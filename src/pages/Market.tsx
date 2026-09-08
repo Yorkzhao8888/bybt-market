@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Store, Users } from 'lucide-react';
 import { api, type MarketBooth } from '../api/client';
 import { DomainChip, DomainLine, SectionTitle } from '../components/ui';
-import { DOMAIN_NAMES } from '../lib/domain';
+import { DOMAIN_NAMES, BOOTH_OPENER_ROLES } from '../lib/domain';
 import type { Unit } from '../../shared/types';
 import { useAuth } from '../Auth';
 
@@ -21,7 +21,9 @@ export default function Market() {
   useEffect(() => { load(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [domain]);
   useEffect(() => { api.units({ side: 'B' }).then(setUnits).catch(console.error); }, []);
   useEffect(() => {
-    if (user && user.entry === 'B' && user.hatId) setForm(f => ({ ...f, ownerUnitId: user.hatId as string }));
+    if (user && user.entry === 'B' && user.hatId && BOOTH_OPENER_ROLES.includes(user.hatRole as string)) {
+      setForm(f => ({ ...f, ownerUnitId: user.hatId as string }));
+    }
   }, [user]);
 
   const create = async () => {
@@ -65,7 +67,8 @@ export default function Market() {
               {domains.map(d => <option key={d} value={d}>{d} · {DOMAIN_NAMES[d]}</option>)}
             </select>
             <select value={form.ownerUnitId} onChange={e => setForm({ ...form, ownerUnitId: e.target.value })} className="rounded-md border bg-white px-3 py-2 text-sm">
-              {units.map(u => <option key={u.id} value={u.id}>{u.name}（{u.code}）</option>)}
+              <option value="">铺子经营者身份（开铺帽）…</option>
+              {units.filter(u => BOOTH_OPENER_ROLES.includes(u.role)).map(u => <option key={u.id} value={u.id}>{u.name}（{u.code}）</option>)}
             </select>
             <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="摊位名称" className="rounded-md border bg-white px-3 py-2 text-sm" />
             <button onClick={create} className="rounded-md bg-[#b8862b] px-3 py-2 text-sm font-semibold text-white hover:bg-[#a07522]">确认开张</button>
@@ -78,7 +81,7 @@ export default function Market() {
       )}
 
       <div className="mb-4 flex items-center gap-2 text-sm text-[#8a8577]">
-        <Users className="h-4 w-4" /> 经营侧（B端）· {units.length} 顶经营帽可统辖摊位
+        <Users className="h-4 w-4" /> Market 为交易平台（不经营、不持有资源），经营户 = 五域铺子（含履约面）；帽 = 铺子经营者身份，不单独入驻
       </div>
 
       <SectionTitle sub={`${booths.length} 个`}>在营摊位（双层）</SectionTitle>

@@ -1,4 +1,7 @@
 // 域元信息前端映射
+// 口径（P0）：Market=交易平台，不经营、不持有资源；经营户=五域铺子(Booth)；帽=铺子经营者身份，不单独开店/入驻。
+export const BOOTH_OPENER_ROLES: string[] = ['EU', 'HU', 'YU', 'TU', 'DU'];
+
 export const DOMAIN_COLORS: Record<string, string> = {
   E: '#C27A1B',
   H: '#E4572E',

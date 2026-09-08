@@ -23,7 +23,7 @@ export default function Home() {
           </h1>
           <p className="mt-4 max-w-xl text-[#cfcabb]">
             物资 · 人力 · 空间 · 技术 · 门店产能 五域联动交易。摊位双层：前店售卖面，后厂履约面。<br aria-hidden />
-            <b className="text-[#f5f2eb]">Market</b> = 企业采购中心 / B2B 撮合平台 · 承载五域集市与 Booth 群。
+            <b className="text-[#f5f2eb]">Market</b> = 企业采购中心 / B2B 撮合平台 · 承载五域集市与 Booth 群。平台自身不经营、不持有资源；经营户 = 五域铺子（Booth），帽 = 铺子经营者/操作员身份。
             消费者逛 <b className="text-[#f5f2eb]">Mall</b>（C端），经营者在 Market 开铺撮合（B端）。
           </p>
           <div className="mt-8 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">

@@ -67,6 +67,7 @@ function sessionOfHat(hatId: string): SessionUser | null {
   const c = containerById(u.containerId);
   if (!c) return null;
   const route = DEMO_ROUTE[u.role as HatRole];
+  const booth = route ? s.booths.find(b => b.id === route.booth) : undefined;
   const user: SessionUser = {
     containerId: c.id,
     containerType: c.type,
@@ -74,7 +75,9 @@ function sessionOfHat(hatId: string): SessionUser | null {
     entry: u.side,
     hatId: u.id,
     hatRole: u.role,
-    hat: `${u.name} (${u.role} ${UNIT_ROLE_LABEL[u.role]})`,
+    hat: route && booth
+      ? `${u.name} (${u.role} ${UNIT_ROLE_LABEL[u.role]}) · 经营「${booth.name}」`
+      : `${u.name} (${u.role} ${UNIT_ROLE_LABEL[u.role]})`,
   };
   if (route) {
     user.domainView = route.domain;
@@ -93,6 +96,7 @@ function demoAccounts(): DemoAccount[] {
       const c = containerById(u.containerId);
       if (!c) return null;
       const route = DEMO_ROUTE[u.role as HatRole];
+      const booth = route ? s.booths.find(b => b.id === route.booth) : undefined;
       const acc: DemoAccount = {
         id,
         entry: u.side,
@@ -100,7 +104,9 @@ function demoAccounts(): DemoAccount[] {
         containerId: c.id,
         hatId: u.id,
         label: `${u.name} · ${UNIT_ROLE_LABEL[u.role]}`,
-        note: `${c.name} · ${CONTAINER_TYPE_LABEL[c.type]}`,
+        note: route && booth
+          ? `${booth.name} · 以 ${u.role} 身份经营（${c.name}）`
+          : `${c.name} · ${CONTAINER_TYPE_LABEL[c.type]}`,
       };
       if (route) {
         acc.domainView = route.domain;

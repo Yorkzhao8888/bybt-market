@@ -60,8 +60,9 @@ export default function MarketBooth() {
           <div className="rounded-lg bg-[#222329] p-3"><span className="text-[#8f8a7d]">前店（售卖面）</span><p className="text-[#e7e2d6]">{booth.frontDesc}</p></div>
           <div className="rounded-lg bg-[#222329] p-3"><span className="text-[#8f8a7d]">后厂（履约面）</span><p className="text-[#e7e2d6]">{booth.backDesc}</p></div>
         </div>
-        <p className="mt-2 text-xs text-[#8f8a7d]">链路 {booth.mode} · 供给/经营单元 {owner?.name}（{owner?.code}）</p>
-        {ops && <p className="mt-1 text-xs text-[#b8862b]">经营帽视角：{ops.name}（{ops.code} · {ops.role}）</p>}
+        <p className="mt-2 text-xs text-[#8f8a7d]">链路 {booth.mode} · 铺子经营者身份（供给帽）{owner?.name}（{owner?.code}）</p>
+        {ops && <p className="mt-1 text-xs text-[#b8862b]">经营者身份（经营帽视角）：{ops.name}（{ops.code} · {ops.role}）</p>}
+        <p className="mt-1 text-xs text-[#8f8a7d]">经营户 = 本铺子（Booth），帽为经营/操作本铺子的身份，不单独入驻</p>
       </div>
 
       {notice && <div className="mb-3 mt-4 rounded-lg bg-[#e8e0cb] px-4 py-2 text-sm text-[#7a5c16]">{notice}</div>}
