@@ -1,21 +1,86 @@
+// X-Market 五域集市系统 · 全局样式（基于 DESIGN.md 设计令牌）
+@import "https://fonts.googleapis.cn/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #f5f2eb;
+  --paper-2: #efeae0;
+  --ink: #17181d;
+  --line: #e4ded2;
+  --gold: #b8862b;
+  --e: #c27a1b;
+  --h: #e4572e;
+  --y: #17a290;
+  --t: #4a5fd5;
+  --de: #d6366e;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-serif-display {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+}
+
+@layer utilities {
+  .ticker-font {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+  }
+}
+
+/* 硬影 = 摊位台物理重量 */
+.hard-shadow {
+  box-shadow: 4px 4px 0 rgba(23, 24, 29, 0.12);
+  transition: box-shadow 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hard-shadow:hover {
+  box-shadow: 6px 6px 0 rgba(23, 24, 29, 0.2);
+  transform: translate(-1px, -1px);
+}
+
+.paper-card {
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+}
+
+.dark-panel {
+  background: #17181d;
+  color: #f5f2eb;
+}
+
+/* 双层卡：后厂深板 */
+.layer-back {
+  background: #17181d;
+  color: #efeae0;
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d8d0bf;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }
