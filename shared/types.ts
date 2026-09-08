@@ -55,17 +55,27 @@ export type UnitRole13 =
   | 'CU' | 'DU' | 'TU' | 'EU' | 'HU' | 'OU' | 'GU'
   | 'AU' | 'FU' | 'IU' | 'VU' | 'SU' | 'YU';
 
-/** 完整帽角色（基座 13U + 经营帽 + 执行帽） */
-export type HatRole = UnitRole13 | 'EDU' | 'EDX' | 'TDU' | 'TDX';
+/** B 端客户帽：XU（采购客户/买家，企业容器 XEPZ 或自然人容器 XHPZ 均可挂） */
+export type ClientHat = 'XU';
 
-/** 帽线：供给 / 经营 / 执行 / 需求 */
-export type HatLine = 'supply' | 'ops' | 'exec' | 'demand';
+/** 平台运营管理方帽（V*M 运营长系）：VEM/VHM/VYM/VTM/VDM，挂平台容器 */
+export type OperatorHat = 'VEM' | 'VHM' | 'VYM' | 'VTM' | 'VDM';
+
+/** 完整帽角色（基座 13U + 经营帽 + 执行帽 + 客户帽 XU + 运营管理帽 V*M） */
+export type HatRole = UnitRole13 | 'EDU' | 'EDX' | 'TDU' | 'TDX' | ClientHat | OperatorHat;
+
+/** 市场四方角色：客户/供应商/平台加盟商/平台运营管理方 */
+export type PartyRole = 'client' | 'supplier' | 'franchiser' | 'operator';
+
+/** 角色所属"线"：供给/经营/执行/需求 */
+export type HatLine = 'supply' | 'ops' | 'exec' | 'demand' | 'admin';
 
 export const HAT_LINE_LABEL: Record<HatLine, string> = {
   supply: '供给线',
   ops: '经营线',
   exec: '执行线',
   demand: '需求线',
+  admin: '运营线',
 };
 
 export const UNIT_ROLE_LABEL: Record<HatRole, string> = {
@@ -86,6 +96,10 @@ export const UNIT_ROLE_LABEL: Record<HatRole, string> = {
   EDX: '物资域执行', // E 域经营执行帽（DX 系，归经营线）
   TDU: '技术域经营', // DU 戴 T 域帽（产业经营者·技术域）
   TDX: '技术域执行', // T 域经营执行帽（DX 系，归经营线）
+  // 市场四方角色补充
+  XU: '客户', // B 端采购客户帽（买家）
+  VEM: '物资域运营长', VHM: '人力域运营长', VYM: '空间域运营长',
+  VTM: '技术域运营长', VDM: '门店产能域运营长', // V*M 平台运营管理方
 };
 
 /** 各帽归属线（供给执行 X 系归 YU/HU/EU/TU/DU；经营执行 DX 系归经营线） */
@@ -99,6 +113,10 @@ export const HAT_LINE_OF: Record<HatRole, HatLine> = {
   // 需求线
   CU: 'demand', OU: 'demand', GU: 'demand',
   AU: 'demand', FU: 'demand', IU: 'demand', VU: 'demand', SU: 'demand',
+  // 客户帽（B 端采购客户）
+  XU: 'demand',
+  // 运营管理方（平台运营长系）
+  VEM: 'admin', VHM: 'admin', VYM: 'admin', VTM: 'admin', VDM: 'admin',
 };
 
 /** 身份（帽）：挂在容器下的一顶帽（基座 13U + 经营帽 + 执行帽） */

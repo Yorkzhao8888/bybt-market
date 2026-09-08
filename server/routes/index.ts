@@ -57,6 +57,8 @@ const DEMO_ALIAS: Record<string, string> = {
   tdu: 'u-tdu1',
   tdx: 'u-tdx1',
   'de-haowei': 'u-du1',
+  'xu-huadong': 'u-xu1',
+  'vem-e': 'u-vem1',
 };
 
 /** 按帽组装会话身份（含域视角/摊位落位） */
@@ -204,6 +206,16 @@ api.get('/model/hats', (_req, res) => {
     base13U: ['CU', 'DU', 'TU', 'EU', 'HU', 'OU', 'GU', 'AU', 'FU', 'IU', 'VU', 'SU', 'YU'],
     opExt: ['EDU', 'TDU'],
     execExt: ['EDX', 'TDX'],
+    clients: ['XU'],
+    suppliers: ['EU', 'YU', 'HU', 'TU'],
+    franchisers: ['DU', 'YDU', 'HDU', 'EDU', 'TDU'],
+    operators: ['VEM', 'VHM', 'VYM', 'VTM', 'VDM'],
+    parties: {
+      client: { label: '客户', line: '买家', hats: ['XU'], desc: 'XU B 端采购客户帽（买家）' },
+      supplier: { label: '供应商', line: '卖家', hats: ['EU', 'YU', 'HU', 'TU'], desc: '五域供给帽（卖家）' },
+      franchiser: { label: '加盟商', line: '合伙商', hats: ['DU', 'YDU', 'HDU', 'EDU', 'TDU'], desc: '经营帽家族·平台加盟商（合伙商）' },
+      operator: { label: '运营管理方', line: '运营方', hats: ['VEM', 'VHM', 'VYM', 'VTM', 'VDM'], desc: '平台运营管理方（平台长系，挂平台容器）' },
+    },
     domains: DOMAINS.map(d => ({
       code: d.code,
       name: d.name,

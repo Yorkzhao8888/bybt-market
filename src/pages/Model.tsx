@@ -3,12 +3,14 @@ import { useEffect, useState } from 'react';
 import { Boxes, Layers, Link2 } from 'lucide-react';
 import { api, type ContainerView, type HierarchyContainer } from '../api/client';
 import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL } from '../../shared/types';
+import { PARTY_COLORS, partyOfRole } from '../lib/domain';
 
 export default function Model() {
   const [containers, setContainers] = useState<ContainerView[]>([]);
   const [hierarchy, setHierarchy] = useState<HierarchyContainer[]>([]);
   const [flows, setFlows] = useState<Partial<Record<'ORDER' | 'RESOURCE' | 'FUND', { caption: string; gate: string; status: string; note: string }>> | null>(null);
   const [err, setErr] = useState('');
+  const [party, setParty] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -55,6 +57,14 @@ export default function Model() {
       {/* 三级结构 */}
       <section className="mb-8">
         <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#17181d]"><Layers className="h-4 w-4 text-[#b8862b]" /> 容器 → 帽 → 摊位</h2>
+        <div className="mb-4 flex flex-wrap gap-2 text-xs">
+          {(['客户','供应商','加盟商','运营管理方','组织管理'] as const).map((p) => (
+            <button key={p} type="button" onClick={() => setParty(p === party ? '' : p)}
+              className={`rounded-md border px-2 py-1 transition ${party === p ? 'border-[#17181d] font-bold text-[#17181d]' : 'border-[#e4ded2] text-[#8a8577]'}`}>
+              <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: PARTY_COLORS[p] }} />{p}
+            </button>
+          ))}
+        </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {hierarchy.map(c => (
             <div key={c.id} className="rounded-lg border border-[#e4ded2] bg-white/70 p-4">
@@ -64,10 +74,11 @@ export default function Model() {
               </div>
               <ul className="space-y-1.5">
                 {c.hats.length === 0 && <li className="text-xs text-[#b8b2a4]">暂无帽</li>}
-                {c.hats.map(h => (
+                {c.hats.filter((hh) => !party || partyOfRole(hh.role) === party).map(h => (
                   <li key={h.id} className="flex items-center justify-between rounded-md bg-white px-2 py-1.5 text-xs">
                     <span className="flex flex-wrap items-center gap-1.5">
                       <span className="font-bold">{UNIT_ROLE_LABEL[h.role as keyof typeof UNIT_ROLE_LABEL] ?? h.role}</span>
+                      <span className="rounded px-1 py-px text-[10px] font-medium" style={{ backgroundColor: PARTY_COLORS[partyOfRole(h.role)] + '1a', color: PARTY_COLORS[partyOfRole(h.role)] }}>{partyOfRole(h.role)}</span>
                       <span className="text-[#8a8577]">{h.name}</span>
                       {h.dispatch && <span className="rounded bg-[#e4572e]/10 px-1 text-[10px] text-[#e4572e]">调度</span>}
                       <span className="text-[10px] text-[#b8b2a4]">{h.domainTags.join('·') || '无域'}</span>

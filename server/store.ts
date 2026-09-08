@@ -39,6 +39,7 @@ function buildSeed(): Store {
     { id: 'c-hw', type: 'XEPZ', name: '好味连锁', region: '华中·武汉', credit: 88 },
     { id: 'c-ym', type: 'XEPZ', name: '原麦烘焙', region: '西南·成都', credit: 85 },
     { id: 'c-gou', type: 'XGPZ', name: '华东区采购办', region: '华东·上海', credit: 90 }, // 政府容器
+    { id: 'c-eq', type: 'XEPZ', name: '华东区采购办·企业采购部', region: '华东·上海', credit: 91 }, // 企业容器：XU 客户帽
     { id: 'c-hr', type: 'XEPZ', name: '华瑞资产', region: '华南·珠海', credit: 87 }, // AU
     { id: 'c-rx', type: 'XEPZ', name: '融信金服', region: '华东·上海', credit: 92 }, // FU
     { id: 'c-zz', type: 'XEPZ', name: '中智信息', region: '华北·北京', credit: 89 }, // IU
@@ -88,6 +89,12 @@ function buildSeed(): Store {
     u('u-tdu1', 'TDU-505', '承启·技术域经营', 'TDU', 'B', 'c-cy', ['T', 'T_MARKET']),   // DU 戴 T 域帽
     u('u-edx1', 'EDX-506', '物资域执行帽', 'EDX', 'B', 'c-cy', ['E', 'E_MARKET']),       // 经营执行 DX 系
     u('u-tdx1', 'TDX-507', '技术域执行帽', 'TDX', 'B', 'c-cy', ['T', 'T_MARKET']),       // 经营执行 DX 系
+    // ===== XU 客户帽（B 端采购客户，买家；可挂企业/自然人容器，按域隔离）=====
+    u('u-xu1', 'XU-801', '华东采购办·物资客户', 'XU', 'B', 'c-eq', ['E', 'E_MARKET']),   // E 域采购客户 XU-E
+    u('u-xu2', 'XU-802', '华东采购办·技术客户', 'XU', 'B', 'c-eq', ['T', 'T_MARKET']),   // T 域采购客户 XU-T
+    // ===== V*M 平台运营管理方（挂平台容器 c-plat）=====
+    u('u-vem1', 'VEM-901', '物资域运营长', 'VEM', 'B', 'c-plat', ['E', 'E_MARKET']),
+    u('u-vtm1', 'VTM-902', '技术域运营长', 'VTM', 'B', 'c-plat', ['T', 'T_MARKET']),
     // GU 政府需求
     u('u-gu1', 'GU-001', '华东采购办·需求', 'GU', 'B', 'c-gou', ['E', 'Y']),
     // AU 资产

@@ -64,6 +64,10 @@ export default function Login() {
   const cSides = useMemo(() => demos.filter(d => d.entry === 'C'), [demos]);
   const bSupply = useMemo(() => demos.filter(d => d.entry === 'B' && ['EU', 'HU', 'YU', 'TU', 'DU'].includes(d.hatRole)), [demos]);
   const bOps = useMemo(() => demos.filter(d => d.entry === 'B' && ['EDU', 'TDU', 'EDX', 'TDX', 'YU'].includes(d.hatRole)), [demos]);
+  const bClientHats = useMemo(() => demos.filter(d => d.hatRole === 'XU'), [demos]);
+  const bOperator = useMemo(() => demos.filter(d => /^V/.test(d.hatRole) && d.hatRole.endsWith('M')), [demos]);
+  const bClient = useMemo(() => demos.filter(d => d.entry === 'B' && d.hatRole === 'XU'), [demos]);
+  const bAdmin = useMemo(() => demos.filter(d => d.entry === 'B' && (d.hatRole.startsWith('V') && d.hatRole.endsWith('M'))), [demos]);
 
   const land = (u: { boothTarget?: string; entry?: string }): void => {
     nav(u?.boothTarget ? `/market/booths/${u.boothTarget}` : (u?.entry === 'C' ? '/mall' : '/market'), { replace: true });
@@ -131,6 +135,8 @@ export default function Login() {
         <GroupCard uid="c" title="C 端演示" sub="CU 顾客 · 一键登录" badge="bg-[#b8862b]" isB={false} items={cSides} onPick={(d) => void goDemo(d)} />
         <GroupCard uid="b" title="B 端 · 五域供给帽" sub="EU/HU/YU/TU/DU · 落到对应域 Booth" badge="bg-[#17181d]" isB items={bSupply} onPick={(d) => void goDemo(d)} />
         <GroupCard uid="o" title="B 端 · 经营/执行帽" sub="EDU/TDU 经营帽 · EDX/TDX 执行帽" badge="bg-[#d6366e]" isB items={bOps} onPick={(d) => void goDemo(d)} />
+        <GroupCard uid="xu" title="B 端 · 客户帽" sub="XU 采购客户 · 企业采购中心" badge="bg-[#4a5fd5]" isB items={bClientHats} onPick={(d) => void goDemo(d)} />
+        <GroupCard uid="vm" title="平台 · 运营管理方" sub="V*M 平台运营长 · 平台侧" badge="bg-[#17a290]" isB items={bOperator} onPick={(d) => void goDemo(d)} />
       </div>
 
       <div className="rounded-xl border border-[#e4ded2] bg-white p-5 shadow-[4px_4px_0_rgba(23,24,29,0.08)]">
