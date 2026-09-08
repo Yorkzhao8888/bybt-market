@@ -1,7 +1,7 @@
 // X-MARKET-09：四类角色工作台路由壳。
 // 客户→/market（蓝）· 供应商→/supplier（绿）· 经营者→/operator（橙）· 治理者→/govern（紫）；
 // 导航按角色收敛，越权直访由 RoleGuard 403 兜底；全局背景浅米白+炭黑不变。
-import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { Store, ShoppingBag, ReceiptText, Boxes, ShieldCheck, LogOut, ShieldBan, LayoutDashboard, Sprout, Crown, ClipboardCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { AuthProvider, useAuth } from './Auth';
@@ -146,9 +146,7 @@ function AllRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AllRoutes />
-      </BrowserRouter>
+      <AllRoutes />
     </AuthProvider>
   );
 }
