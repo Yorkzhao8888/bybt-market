@@ -73,7 +73,7 @@ export const partyOf = (role: string): string => PARTY_OF_ROLE[role] ?? '组织�
 export const isClientRole = (role: string | null | undefined): boolean => role === 'CU' || role === 'XU';
 /** 是否运营管理方 */
 export const isAdminRole = (role: string | null | undefined): boolean =>
-  role === 'VEM' || role === 'VHM' || role === 'VYM' || role === 'VTM' || role === 'VDM';
+  role === 'VEM' || role === 'VHM' || role === 'VYM' || role === 'VTM' || role === 'VDM' || role === 'VXM';
 /** 是否经营/供给（可开铺操作） */
 export const isOperatorRole = (role: string | null | undefined): boolean => {
   if (!role) return false;

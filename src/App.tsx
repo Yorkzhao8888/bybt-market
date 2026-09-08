@@ -12,6 +12,7 @@ import MarketBooth from './pages/MarketBooth';
 import Orders from './pages/Orders';
 import Model from './pages/Model';
 import Govern from './pages/Govern';
+import SupplyMall from './pages/SupplyMall';
 
 function Protected({ children }: { children: ReactNode }) {
   const { isAuthed, loading } = useAuth();
@@ -100,6 +101,7 @@ export default function App() {
             <Route path="/mall/booth/:id" element={<Protected><MallBooth /></Protected>} />
             <Route path="/market" element={<Protected><Market /></Protected>} />
             <Route path="/market/booth/:id" element={<Protected><MarketBooth /></Protected>} />
+            <Route path="/supply-mall" element={<Protected><SupplyMall /></Protected>} />
             <Route path="/orders" element={<Protected><Orders /></Protected>} />
             <Route path="/model" element={<Model />} />
             <Route path="/govern" element={<Protected><Govern /></Protected>} />

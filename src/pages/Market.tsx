@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Store, ShieldCheck, Briefcase, ArrowRight, Plus, Send, Factory, Network, FileText } from 'lucide-react';
+import { Store, ShieldCheck, Briefcase, ArrowRight, Plus, Send, Factory, Network, FileText, Boxes } from 'lucide-react';
 import { api } from '../api/client';
 import type { MarketGroup } from '../api/client';
 import type { BoothRow, Container, HatRow, InquiryRow, SupplyContract } from '../../shared/types';
 import { useAuth } from '../Auth';
 import { colorOf, marketLabel, canOperate, canOpenMarket, isAdminRole, hatLabel, roleLabel, PRO_MARKET_ORDER } from '../lib/domain';
+import SupplyDesk from './SupplyDesk';
 
 function kindLabel(kind: string): string {
   return kind === 'supply' ? '供给方实体铺' : 'DU 经营实体铺';
@@ -152,7 +153,12 @@ export default function Market() {
       {/* DU 多店经营台 */}
       {user?.hatRole === 'DU' && myStores.length > 0 && (
         <div className="rounded-xl border bg-[#17181d] p-5 text-[#f5f2eb]">
-          <p className="flex items-center gap-2 font-serif-display text-lg font-black"><Network className="h-5 w-5" /> 经营台 · 一个 DU 多店总览</p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="flex items-center gap-2 font-serif-display text-lg font-black"><Network className="h-5 w-5" /> 经营台 · 一个 DU 多店总览</p>
+            <Link to="/supply-mall" className="flex items-center gap-1.5 rounded-md bg-[#b8862b] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90">
+              <Boxes className="h-4 w-4" /> 采购商城（合格供应商直采）
+            </Link>
+          </div>
           <p className="mt-1 text-xs text-white/70">DU 为唯一经营主体，直营/加盟；跨店经营不分裂主体，执行帽分管各店（店铺 tab 切换进铺面）。</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {myStores.map((b) => (
@@ -186,6 +192,9 @@ export default function Market() {
           )}
         </div>
       )}
+
+      {/* 供给台（X-MARKET-08）：供给帽准入登记 + 货品上架管理（客户不可见） */}
+      {['EU', 'HU', 'YU', 'TU'].includes(user?.hatRole ?? '') && <SupplyDesk />}
 
       {/* B2B 询价（客户 XU 用，P6） */}
       {current && !mayOperate && (

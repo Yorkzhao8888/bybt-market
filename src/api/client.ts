@@ -2,7 +2,8 @@
 // 视图类型统一从 shared/types 导入（单一来源），client 只做别名与请求封装
 import type {
   BoothRow, Container, DemoAccount, DomainCode, DomainMeta, GovernanceCase, HatLine, HatRow, Inquiry, JobSystem,
-  Listing, Order, OrderRow, ProfessionalMarket, SessionUser, SupplyContract, Unit, HatRole,
+  Listing, Order, OrderRow, ProfessionalMarket, SessionUser, SupplyContract, SupplierApplication, SupplierProduct,
+  SupplyMallItem, Unit, HatRole,
 } from '../../shared/types';
 
 export type DecoratedBooth = BoothRow;
@@ -167,6 +168,20 @@ export const api = {
   // ---- 订单 ----
   orders: () => req<OrderRow[]>('/api/orders'),
   orderFamilies: () => req<OrderFamilyMeta[]>('/api/orders/families'),
-  createOrder: (payload: { boothId: string; listingId?: string; amountCents?: number; side?: 'C' | 'B'; inquiryId?: string }) =>
+  createOrder: (payload: { boothId?: string; listingId?: string; amountCents?: number; side?: 'C' | 'B'; inquiryId?: string; supplierProductId?: string; qty?: number }) =>
     req<Order>('/api/orders', { method: 'POST', body: JSON.stringify(payload) }),
+  /* ============ X-MARKET-08 供应商准入 + DU 采购商城 ============ */
+  submitApplication: (payload: { categories: string; capacity?: string; qualification: string; priceIntent?: string }) =>
+    req<SupplierApplication>('/api/supply/applications', { method: 'POST', body: JSON.stringify(payload) }),
+  myApplication: () => req<SupplierApplication | null>('/api/supply/applications/mine'),
+  allApplications: () => req<SupplierApplication[]>('/api/supply/applications'),
+  reviewApplication: (id: string, payload: { action: 'approve' | 'reject'; rejectReason?: string }) =>
+    req<SupplierApplication>(`/api/supply/applications/${id}/review`, { method: 'POST', body: JSON.stringify(payload) }),
+  myProducts: () => req<SupplierProduct[]>('/api/supply/products/mine'),
+  allProducts: () => req<SupplierProduct[]>('/api/supply/products'),
+  addProduct: (payload: { name: string; category: string; spec?: string; priceCents: number; unit?: string; stock?: number }) =>
+    req<SupplierProduct>('/api/supply/products', { method: 'POST', body: JSON.stringify(payload) }),
+  toggleProduct: (id: string) => req<SupplierProduct>(`/api/supply/products/${id}/toggle`, { method: 'POST' }),
+  takeDownProduct: (id: string) => req<SupplierProduct>(`/api/supply/products/${id}/take-down`, { method: 'POST' }),
+  supplyMall: () => req<SupplyMallItem[]>('/api/supply/mall'),
 };

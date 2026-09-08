@@ -2,7 +2,7 @@
 // X-MARKET-05：两套系统 + 三方链路 + Booth 权属定版
 //   容器(主体) → 帽(身份) → 域角色(标签) → Booth 实体(作业层) / 交易对象(铺面层)
 
-import type { Container, Unit, Booth, Order, Listing, Inquiry, SupplyContract } from '../shared/types';
+import type { Container, Unit, Booth, Order, Listing, Inquiry, SupplyContract, SupplierApplication, SupplierProduct } from '../shared/types';
 
 /* ============ 容器（主体） ============ */
 export const containers: Container[] = [
@@ -53,6 +53,7 @@ export const units: Unit[] = [
   { id: 'u-vym1', code: 'VYM-PLAT', name: '智场市场运营长', role: 'VYM', side: 'B', containerId: 'c-plat', domainTags: ['Y_MARKET'], tier: 'L3', credit: 99 },
   { id: 'u-vtm1', code: 'VTM-PLAT', name: '技术市场运营长', role: 'VTM', side: 'B', containerId: 'c-plat', domainTags: ['T_MARKET'], tier: 'L3', credit: 99 },
   { id: 'u-vdm1', code: 'VDM-PLAT', name: '产品市场运营长', role: 'VDM', side: 'B', containerId: 'c-plat', domainTags: ['DE_MARKET'], tier: 'L3', credit: 99 },
+  { id: 'u-vxm1', code: 'VXM-PLAT', name: '云中心运营审批统筹', role: 'VXM', side: 'B', containerId: 'c-plat', domainTags: ['E_MARKET', 'H_MARKET', 'Y_MARKET', 'T_MARKET', 'DE_MARKET'], tier: 'L3', credit: 99 },
 ];
 
 /* ============ Booth 实体（作业层；Market 铺面引用） ============ */
@@ -121,6 +122,27 @@ export const supplyContracts: SupplyContract[] = [
   { id: 'sc2', duBoothId: 'b-de1', duBoothCode: 'Booth-DE-01', supplyBoothCode: 'Booth-E-01', supplyOwner: '启辰物资（EU）', items: 'MRO 物料集采框架（月结）', amountCents: 5200000, period: '2026-09', invoiceFlow: '启辰物资开进项票 → 合和 DU 开销售票给客户' },
   { id: 'sc3', duBoothId: 'b-dh1', duBoothCode: 'Booth-DH-01', supplyBoothCode: 'Booth-H-01', supplyOwner: '合致人力（HU）', items: '运维班组 12 人外协服务', amountCents: 2880000, period: '2026-Q4', invoiceFlow: '合致人力开进项票 → 丰石 DU 开销售票给客户' },
 ];
+
+/* ============ X-MARKET-08 供应商准入 + DU 采购商城（内存态，客户界面严禁下发） ============ */
+
+/** 供应商准入申请：供给方登记 → VXM 云中心评估（pending/approved/rejected，驳回可重提） */
+export const supplierApplications: SupplierApplication[] = [
+  { id: 'sa-1', supplierId: 'c-qc', boothId: 'b-e1', domain: 'E', categories: 'MRO 工业辅料/五金紧固件/建材钢材', capacity: '月供 5000 件，仓储直发', qualification: 'ISO9001 / 危化品经营许可 / 一般纳税人', priceIntent: '月结 30 天，框架价下浮 5%', status: 'approved', createdAt: '2026-09-01' },
+  { id: 'sa-2', supplierId: 'c-cy', boothId: 'b-t1', domain: 'T', categories: '边缘计算网关/物联网模组', capacity: '月产 800 台', qualification: 'CCC / 高新技术企业证书', priceIntent: '预付 30%，交付后 7 天结清', status: 'pending', createdAt: '2026-09-09' },
+];
+
+/** 供应商货品：合格供应商上架（DU 采购商城数据源，含报价/规格/库存，客户不可见） */
+export const supplierProducts: SupplierProduct[] = [
+  { id: 'sp-1', supplierId: 'c-qc', boothId: 'b-e1', domain: 'E', name: 'Q235 螺纹钢 Φ12', category: '建材钢材', spec: 'Φ12×9m / GB1499.2', priceCents: 420000, unit: '吨', stock: 800, status: 'on' },
+  { id: 'sp-2', supplierId: 'c-qc', boothId: 'b-e1', domain: 'E', name: '不锈钢紧固件组合包', category: '五金紧固', spec: 'M6-M12 / 304 不锈钢', priceCents: 8900, unit: '包', stock: 5000, status: 'on' },
+];
+
+/** 供应商准入/货品自增序号（sa/sp 前缀） */
+let supplierSeq = 2;
+export function nextSupplierId(prefix: 'sa' | 'sp'): string {
+  supplierSeq += 1;
+  return `${prefix}-${supplierSeq}`;
+}
 
 /* ============ 运营治理（V*M，占位） ============ */
 export const governanceCases: { id: string; domain: string; opRole: string; kind: string; desc: string; status: 'open' | 'closed' }[] = [

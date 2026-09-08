@@ -98,8 +98,11 @@ export default function Orders() {
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <span className="text-[#8a8577]">
-                      合同对手：{isClientRole ? 'DU' : o.sellerName}
+                      {isClientRole ? '合同对手：DU' : o.supplierId ? `采购对手（合格供应商）：${o.sellerName}` : `合同对手：${o.sellerName}`}
                     </span>
+                    {!isClientRole && o.supplierId && (
+                      <span className="rounded bg-[#f3eee3] px-1.5 py-0.5 text-[11px] font-bold text-[#8a6d3b]">DU 采购单</span>
+                    )}
                     <span className="ticker-font font-bold">¥{(o.amountCents / 100).toLocaleString()}</span>
                     <span className="rounded px-2 py-0.5 text-xs font-semibold" style={{ color: st.color, background: `${st.color}18` }}>{st.label}</span>
                   </div>

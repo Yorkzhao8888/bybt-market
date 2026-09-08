@@ -11,9 +11,10 @@ import {
 import {
   getStore, nextSeq, containerById,
   inquiries, governanceCases, nextOrderCode, supplyContracts,
+  supplierApplications, supplierProducts, nextSupplierId,
 } from '../store';
 import { createToken, getUserByToken, revokeToken, DEV_PASSWORD } from '../auth';
-import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth } from '../../shared/types';
+import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth, SupplierApplication, SupplierProduct, SupplyMallItem } from '../../shared/types';
 import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL, HAT_LINE_OF, type Inquiry } from '../../shared/types';
 
 const router = Router();
@@ -93,12 +94,14 @@ const demoAccounts: DemoAccount[] = [
   // 平台运营方 V*M
   { id: 'vdm', entry: 'B', hatRole: 'VDM', containerId: 'c-plat', hatId: 'u-vdm1', label: '产品市场运营长 VDM', note: '平台运营管理方·产品市场（DMX 项目线），市场秩序/规则/Booth 系统供给', domainView: 'DE' },
   { id: 'vem-e', entry: 'B', hatRole: 'VEM', containerId: 'c-plat', hatId: 'u-vem1', label: '通货市场运营长 VEM', note: '平台运营管理方·通货市场（EMX 项目线），市场秩序/规则/Booth 系统供给', domainView: 'E' },
+  // 云中心运营审批统筹（X-MARKET-08：供应商准入评估/审核/违规货品治理）
+  { id: 'vxm-cloud', entry: 'B', hatRole: 'VXM', containerId: 'c-plat', hatId: 'u-vxm1', label: '云中心运营审批统筹 VXM', note: '供应商准入评估（通过/驳回）、审批统筹、违规货品治理下架', domainView: 'E' },
 ];
 const DEMO_ALIAS: Record<string, DemoAccount> = Object.fromEntries(demoAccounts.map((a) => [a.id, a]));
 // 帽角色路由 → 演示账号（快捷）
 const DEMO_ROUTE: Partial<Record<HatRole, DemoAccount>> = {
   EU: demoAccounts[3], HU: demoAccounts[4], TU: demoAccounts[5], YU: demoAccounts[6],
-  DU: demoAccounts[7], XU: demoAccounts[9], VDM: demoAccounts[10], VEM: demoAccounts[11],
+  DU: demoAccounts[7], XU: demoAccounts[9], VDM: demoAccounts[10], VEM: demoAccounts[11], VXM: demoAccounts[12],
 };
 
 function buildSession(acc: DemoAccount): SessionUser {
@@ -570,7 +573,12 @@ api.get('/orders', requireAuth, (req: AuthReq, res) => {
         )
         .map((b) => b.id),
     );
-    list = list.filter((o) => o.sellerContainerId === user.containerId || (o.boothId !== null && myBoothIds.has(o.boothId)));
+    list = list.filter(
+      (o) =>
+        o.sellerContainerId === user.containerId ||
+        o.buyerContainerId === user.containerId ||
+        (o.boothId !== null && myBoothIds.has(o.boothId)),
+    );
   } else {
     // 客户（CU/XU/OU 等下游）：只见自己下单
     list = list.filter((o) => o.buyerContainerId === user.containerId);
@@ -580,12 +588,48 @@ api.get('/orders', requireAuth, (req: AuthReq, res) => {
 
 api.post('/orders', requireAuth, (req: AuthReq, res) => {
   const user = req.user!;
-  const { boothId, listingId, amountCents, side } = (req.body ?? {}) as { boothId?: string; listingId?: string; amountCents?: number; side?: 'C' | 'B' };
+  const { listingId, amountCents, side, supplierProductId } = (req.body ?? {}) as { boothId?: string; listingId?: string; amountCents?: number; side?: 'C' | 'B'; supplierProductId?: string };
+  const { qty } = (req.body ?? {}) as { qty?: number };
   const store = getStore();
-  const booth = store.booths.find((b) => b.id === boothId);
+  // X-MARKET-08：DU 采购商城一键下单（supplierProductId 关联合格供应商货品，复用采购单体系 EX-2026-100x）
+  let targetBoothId: string | undefined = (req.body as { boothId?: string } | undefined)?.boothId;
+  let amount = amountCents;
+  let supplierId: string | undefined;
+  let supplyNote = '';
+  if (supplierProductId) {
+    const prod = supplierProducts.find((p) => p.id === supplierProductId);
+    if (!prod) {
+      res.status(404).json({ success: false, error: '货品不存在或已删除' });
+      return;
+    }
+    if (prod.status !== 'on') {
+      res.status(400).json({ success: false, error: '货品已下架，不可采购' });
+      return;
+    }
+    const app = supplierApplications.find((a) => a.supplierId === prod.supplierId);
+    if (!app || app.status !== 'approved') {
+      res.status(403).json({ success: false, error: '供应商未通过云中心准入评估，暂不可采购' });
+      return;
+    }
+    targetBoothId = prod.boothId;
+    const qtyN = qty && qty > 0 ? Math.floor(qty) : 1;
+    amount = prod.priceCents * qtyN;
+    supplierId = prod.supplierId;
+    supplyNote = `DU 采购单：${prod.name}×${qtyN}${prod.unit}（合格供应商·云中心准入通过）`;
+  }
+  const booth = store.booths.find((b) => b.id === targetBoothId);
   if (!booth) {
     res.status(404).json({ success: false, error: 'Booth 不存在' });
     return;
+  }
+  // X-MARKET-08 交易单向：供给实体铺仅 DU 经营线可下单（供给方唯一交易对手 = DU），客户越权采购禁止
+  if (booth.kind === 'supply') {
+    const role = roleOf(user);
+    const buyerOk = role === 'DU' || (HAT_LINE_OF[role] as string | undefined) === 'exec';
+    if (!buyerOk) {
+      res.status(403).json({ success: false, error: '交易单向：供给实体铺仅 DU 经营主体可采购；客户请经 DU 经营实体铺（Market/Mall）交易' });
+      return;
+    }
   }
   // 客户界面校验：DCX/Mall 仅 CU；其余 Market 面 XU
   const execRole = store.units.find((u) => u.id === booth.execUnitId)?.role;
@@ -595,18 +639,19 @@ api.post('/orders', requireAuth, (req: AuthReq, res) => {
     return;
   }
   const listing = listingId ? store.listings.find((l) => l.id === listingId) : undefined;
-  const amount = amountCents ?? listing?.priceCents ?? 0;
+  const finalAmount = amount ?? listing?.priceCents ?? 0;
   const d = DOMAINS.find((x) => x.code === booth.domain)!;
   const tradeCode = effSide === 'C' ? 'C' : d.tradeCode;
   const family = effSide === 'C' ? 'C' : familyOfDomain(booth.domain);
   const id = nextSeq('order');
   const code = nextOrderCode(tradeCode, family);
   const order: Order = {
-    id, code, family, side: effSide, boothId: boothId ?? null, listingId: listingId ?? null,
+    id, code, family, side: effSide, boothId: targetBoothId ?? null, listingId: listingId ?? null,
     buyerContainerId: user.containerId, sellerContainerId: booth.operatorContainerId,
-    tradeCode, status: 'pending', amountCents: amount,
-    note: effSide === 'B' ? `企业采购（${d.marketTitle}市场，${booth.kind === 'du' ? booth.code : (d.duBoothCode ?? booth.code) + ' 经营承接'}）` : undefined,
+    tradeCode, status: 'pending', amountCents: finalAmount,
+    note: supplyNote || (effSide === 'B' ? `企业采购（${d.marketTitle}市场，${booth.kind === 'du' ? booth.code : (d.duBoothCode ?? booth.code) + ' 经营承接'}）` : undefined),
   };
+  if (supplierId) order.supplierId = supplierId;
   store.orders.push(order);
   // B2B 询价转下单
   const { inquiryId } = (req.body ?? {}) as { inquiryId?: string };
@@ -644,5 +689,227 @@ api.get('/flows', (_req, res) => {
 });
 
 // 兼容旧别名
+/* ============ X-MARKET-08 供应商准入 + DU 采购商城 ============ */
+/** 供给帽（EU/HU/TU/YU）：源头产能供给方 */
+const isSupplyHat = (role: HatRole): boolean =>
+  role === 'EU' || role === 'HU' || role === 'TU' || role === 'YU';
+const mySupplyBooth = (user: SessionUser): Booth | undefined =>
+  getStore().booths.find((b) => b.kind === 'supply' && b.ownerUnitId === user.hatId);
+/** 经营线（DU 唯一经营主体 + 执行帽）：采购商城唯一可见/可采身份 */
+const isDUBuyer = (user: SessionUser): boolean =>
+  roleOf(user) === 'DU' || (HAT_LINE_OF[roleOf(user)] as string | undefined) === 'exec';
+
+// 供给方：提交/重新提交准入登记（资质/品类/产能/报价意向 → 待评估）
+api.post('/supply/applications', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  if (!isSupplyHat(roleOf(user))) {
+    res.status(403).json({ success: false, error: '仅供给方帽（EU/HU/TU/YU）可提交供应商准入登记' });
+    return;
+  }
+  const booth = mySupplyBooth(user);
+  if (!booth) {
+    res.status(404).json({ success: false, error: '未找到名下供给实体铺，请先在市场开供给铺' });
+    return;
+  }
+  const { categories, capacity, qualification, priceIntent } = (req.body ?? {}) as {
+    categories?: string; capacity?: string; qualification?: string; priceIntent?: string;
+  };
+  if (!categories?.trim() || !qualification?.trim()) {
+    res.status(400).json({ success: false, error: '资质与供货品类为必填' });
+    return;
+  }
+  const existing = supplierApplications.find((a) => a.supplierId === user.containerId);
+  if (existing && existing.status === 'approved') {
+    res.status(400).json({ success: false, error: '已是合格供应商，无需重复登记' });
+    return;
+  }
+  if (existing && existing.status === 'pending') {
+    res.status(400).json({ success: false, error: '登记申请云中心评估中，请耐心等待' });
+    return;
+  }
+  if (existing) {
+    // rejected → 重新提交：重置为待评估并更新材料
+    existing.status = 'pending';
+    existing.categories = categories.trim();
+    existing.capacity = capacity?.trim() ?? '';
+    existing.qualification = qualification.trim();
+    existing.priceIntent = priceIntent?.trim() ?? '';
+    existing.rejectReason = undefined;
+    existing.createdAt = new Date().toISOString().slice(0, 10);
+    ok(res, existing);
+    return;
+  }
+  const app: SupplierApplication = {
+    id: nextSupplierId('sa'), supplierId: user.containerId, boothId: booth.id, domain: booth.domain,
+    categories: categories.trim(), capacity: capacity?.trim() ?? '', qualification: qualification.trim(),
+    priceIntent: priceIntent?.trim() ?? '', status: 'pending',
+    createdAt: new Date().toISOString().slice(0, 10),
+  };
+  supplierApplications.push(app);
+  ok(res, app);
+});
+
+// 供给方：我的登记状态（待评估/合格/驳回附原因）
+api.get('/supply/applications/mine', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  ok(res, supplierApplications.find((a) => a.supplierId === user.containerId) ?? null);
+});
+
+// V*M：供应商审核列表（平台运营侧可见，客户不可见）
+const withSupplierNames = (a: SupplierApplication): SupplierApplication => {
+  const store = getStore();
+  const booth = store.booths.find((b) => b.id === a.boothId);
+  return {
+    ...a,
+    supplierName: store.containers.find((c) => c.id === a.supplierId)?.name ?? a.supplierId,
+    boothCode: booth?.code ?? a.boothId,
+  };
+};
+
+api.get('/supply/applications', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  if ((HAT_LINE_OF[roleOf(user)] as string | undefined) !== 'admin') {
+    res.status(403).json({ success: false, error: '供应商审核列表仅平台运营方（V*M）可见' });
+    return;
+  }
+  ok(res, supplierApplications.map(withSupplierNames));
+});
+
+// VXM：审核（通过→合格；驳回→附原因，供给方可重提）
+api.post('/supply/applications/:id/review', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  if (roleOf(user) !== 'VXM') {
+    res.status(403).json({ success: false, error: '审核操作仅云中心运营审批统筹（VXM）可执行' });
+    return;
+  }
+  const app = supplierApplications.find((a) => a.id === req.params?.id);
+  if (!app) {
+    res.status(404).json({ success: false, error: '登记申请不存在' });
+    return;
+  }
+  if (app.status !== 'pending') {
+    res.status(400).json({ success: false, error: '仅待评估申请可审核' });
+    return;
+  }
+  const { action, rejectReason } = (req.body ?? {}) as { action?: 'approve' | 'reject'; rejectReason?: string };
+  if (action === 'approve') {
+    app.status = 'approved';
+    app.rejectReason = undefined;
+  } else if (action === 'reject') {
+    if (!rejectReason?.trim()) {
+      res.status(400).json({ success: false, error: '驳回须附原因（供给方据此重新提交）' });
+      return;
+    }
+    app.status = 'rejected';
+    app.rejectReason = rejectReason.trim();
+  } else {
+    res.status(400).json({ success: false, error: 'action 须为 approve 或 reject' });
+    return;
+  }
+  ok(res, withSupplierNames(app));
+});
+
+// 供给方：名下货品管理列表
+api.get('/supply/products/mine', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  if (!isSupplyHat(roleOf(user))) {
+    res.status(403).json({ success: false, error: '仅供给方帽可管理供应商货品' });
+    return;
+  }
+  ok(res, supplierProducts.filter((p) => p.supplierId === user.containerId));
+});
+
+// V*M：全量货品治理列表（违规下架用，客户不可见）
+api.get('/supply/products', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  if ((HAT_LINE_OF[roleOf(user)] as string | undefined) !== 'admin') {
+    res.status(403).json({ success: false, error: '货品治理列表仅平台运营方（V*M）可见' });
+    return;
+  }
+  ok(res, supplierProducts);
+});
+
+// 供给方：上架货品（需云中心准入合格）
+api.post('/supply/products', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  const role = roleOf(user);
+  if (!isSupplyHat(role)) {
+    res.status(403).json({ success: false, error: '仅供给方帽可上架货品' });
+    return;
+  }
+  const app = supplierApplications.find((a) => a.supplierId === user.containerId);
+  if (!app || app.status !== 'approved') {
+    res.status(403).json({ success: false, error: '仅合格供应商可上架货品（先通过 VXM 云中心准入评估）' });
+    return;
+  }
+  const booth = mySupplyBooth(user);
+  if (!booth) {
+    res.status(404).json({ success: false, error: '未找到名下供给实体铺' });
+    return;
+  }
+  const { name, category, spec, priceCents, unit, stock } = (req.body ?? {}) as {
+    name?: string; category?: string; spec?: string; priceCents?: number; unit?: string; stock?: number;
+  };
+  if (!name?.trim() || !category?.trim() || !priceCents || priceCents <= 0) {
+    res.status(400).json({ success: false, error: '名称/品类/报价（分）为必填且报价须大于 0' });
+    return;
+  }
+  const prod: SupplierProduct = {
+    id: nextSupplierId('sp'), supplierId: user.containerId, boothId: booth.id, domain: booth.domain,
+    name: name.trim(), category: category.trim(), spec: spec?.trim() ?? '',
+    priceCents, unit: unit?.trim() || '件', stock: stock && stock > 0 ? Math.floor(stock) : 0, status: 'on',
+  };
+  supplierProducts.push(prod);
+  ok(res, prod);
+});
+
+// 上架/下架：供给方本人切换；VXM 可治理下架违规货品（重新上架须由供给方操作）
+api.post('/supply/products/:id/toggle', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  const role = roleOf(user);
+  const prod = supplierProducts.find((p) => p.id === req.params?.id);
+  if (!prod) {
+    res.status(404).json({ success: false, error: '货品不存在' });
+    return;
+  }
+  const owner = isSupplyHat(role) && prod.supplierId === user.containerId;
+  const isVxm = role === 'VXM';
+  if (!owner && !isVxm) {
+    res.status(403).json({ success: false, error: '仅货品所属供给方或云中心运营审批统筹（VXM）可操作' });
+    return;
+  }
+  if (!owner) {
+    // VXM 治理动作：只能下架（违规治理），不可替供给方重新上架
+    if (prod.status === 'on') {
+      prod.status = 'off';
+      ok(res, prod);
+      return;
+    }
+    res.status(403).json({ success: false, error: '治理下架后重新上架须由供给方本人操作' });
+    return;
+  }
+  prod.status = prod.status === 'on' ? 'off' : 'on';
+  ok(res, prod);
+});
+
+// DU 采购商城：合格供应商 + 在架货品（仅 DU 经营线下发；客户/匿名 → 隔离提示）
+api.get('/supply/mall', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  if (!isDUBuyer(user)) {
+    res.status(403).json({ success: false, error: '采购商城仅对 DU 经营主体开放（客户界面信息隔离：全程不出现供给方名称/报价/产能）' });
+    return;
+  }
+  const store = getStore();
+  const approvedIds = new Set(supplierApplications.filter((a) => a.status === 'approved').map((a) => a.supplierId));
+  const items: SupplyMallItem[] = supplierProducts
+    .filter((p) => p.status === 'on' && approvedIds.has(p.supplierId))
+    .map((p) => ({
+      ...p,
+      supplierName: containerById(p.supplierId)?.name ?? '',
+      boothCode: store.booths.find((b) => b.id === p.boothId)?.code ?? '',
+    }));
+  ok(res, items);
+});
+
 router.use('/api', api);
 export default router;

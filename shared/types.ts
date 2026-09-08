@@ -116,8 +116,8 @@ export type UnitRole13 =
 /** B 端客户帽：XU（采购客户/买家，企业容器 XEPZ 或自然人容器 XHPZ 均可挂，按域细分 XU-Y/E/H/T/DE） */
 export type ClientHat = 'XU';
 
-/** 平台运营管理方帽（V*M 运营长系）：VEM/VHM/VYM/VTM/VDM，挂平台容器 */
-export type OperatorHat = 'VEM' | 'VHM' | 'VYM' | 'VTM' | 'VDM';
+/** 平台运营管理方帽（V*M 运营长系）：VEM/VHM/VYM/VTM/VDM，挂平台容器；VXM=云中心运营审批统筹（X-MARKET-08 供应商准入） */
+export type OperatorHat = 'VEM' | 'VHM' | 'VYM' | 'VTM' | 'VDM' | 'VXM';
 
 /** DU 经营实体五执行帽（DX 系，一一对应 Booth-DY/DH/DT/DE/DC） */
 export type DuExecHat = 'DYX' | 'DHX' | 'DTX' | 'DEX' | 'DCX';
@@ -163,6 +163,7 @@ export const UNIT_ROLE_LABEL: Record<HatRole, string> = {
   XU: '客户', // B 端采购客户帽（买家，走 Market）
   VEM: '通货市场运营长', VHM: '人资市场运营长', VYM: '智场市场运营长',
   VTM: '技术市场运营长', VDM: '产品市场运营长', // V*M 平台运营管理方（称谓=市场代码：E通货/H人资/Y智场/T技术/DE产品）
+  VXM: '云中心运营审批统筹', // X-MARKET-08：供应商准入评估/审核统筹/违规货品治理
 };
 
 /** 各帽归属线（供给/经营执行/需求/运营） */
@@ -177,7 +178,7 @@ export const HAT_LINE_OF: Record<HatRole, HatLine> = {
   // 客户帽（B 端采购客户）
   XU: 'demand',
   // 运营管理方（平台运营长系）
-  VEM: 'admin', VHM: 'admin', VYM: 'admin', VTM: 'admin', VDM: 'admin',
+  VEM: 'admin', VHM: 'admin', VYM: 'admin', VTM: 'admin', VDM: 'admin', VXM: 'admin',
 };
 
 /** 身份（帽）：挂在容器下的一顶帽（基座 13U + 经营帽 + 执行帽） */
@@ -270,6 +271,8 @@ export interface Order {
   settledAt?: string;
   paid?: boolean;
   note?: string;
+  /** X-MARKET-08：DU 采购单关联的合格供应商容器 id（仅 DU 采购单携带；客户订单无此字段） */
+  supplierId?: string;
 }
 
 /** 订单装饰行（/api/orders 返回：附带 booth/listing/买卖方名称） */
@@ -387,6 +390,49 @@ export interface SupplyContract {
   amountCents: number;
   period: string;
   invoiceFlow: string;     // 发票流：供给方开进项票 → DU 开销售票给客户
+}
+
+/* ============ X-MARKET-08 供应商准入 + DU 采购商城 ============ */
+
+/** 供应商准入申请状态：pending 待评估 / approved 合格 / rejected 驳回（可重提） */
+export type SupplierAppStatus = 'pending' | 'approved' | 'rejected';
+
+/** 供应商准入登记（供给方提交 → VXM 云中心评估） */
+export interface SupplierApplication {
+  id: string;
+  supplierId: string;        // 供给方容器 id
+  boothId: string;           // 名下供给实体铺
+  domain: DomainCode;
+  categories: string;        // 供货品类
+  capacity: string;          // 产能/供货能力
+  qualification: string;     // 资质
+  priceIntent: string;       // 报价意向
+  status: SupplierAppStatus;
+  rejectReason?: string;     // 驳回原因（rejected 时必有）
+  createdAt: string;
+  supplierName?: string;     // 展示冗余（服务端填充；仅 DU/供给方/V*M 可见，客户不可见）
+  boothCode?: string;        // 展示冗余（供给实体铺码）
+}
+
+/** 供应商货品（合格供应商上架；仅 DU 采购商城/供给方本人/V*M 可见，客户不可见） */
+export interface SupplierProduct {
+  id: string;
+  supplierId: string;
+  boothId: string;
+  domain: DomainCode;
+  name: string;
+  category: string;
+  spec: string;
+  priceCents: number;
+  unit: string;
+  stock: number;
+  status: 'on' | 'off';      // on 在架 / off 下架（含 VXM 治理下架）
+}
+
+/** DU 采购商城行（货品 + 供给方名称，仅对 DU 经营线下发） */
+export interface SupplyMallItem extends SupplierProduct {
+  supplierName: string;
+  boothCode: string;
 }
 
 export const TRUST_EXPOSURE: Record<DomainCode, TrustExposure> = {

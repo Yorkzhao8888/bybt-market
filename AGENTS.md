@@ -31,12 +31,12 @@
 │   ├── server.ts       # Express 入口
 │   └── vite.ts         # Vite 中间件
 ├── src/
-│   ├── api/client.ts   # api.*（login/oneclick/markets/marketBooths/inquiries/orders/governCases...）
+│   ├── api/client.ts   # api.*（login/oneclick/markets/marketBooths/inquiries/orders/governCases/supply*...）
 │   ├── lib/domain.ts   # 颜色/帽标签/canOperate/canOpenMarket/marketLabel 等 helper
 │   ├── components/ui.tsx
-│   ├── pages/          # Home/Login/Mall/MallBooth/Market/MarketBooth/Orders/Model/Govern
+│   ├── pages/          # Home/Login/Mall/MallBooth/Market/MarketBooth/Orders/Model/Govern/SupplyMall/SupplyDesk
 │   ├── Auth.tsx        # AuthContext
-│   └── App.tsx         # 路由（/mall /market /orders /model /govern）
+│   └── App.tsx         # 路由（/mall /market /orders /model /govern /supply-mall）
 └── index.html
 ```
 
@@ -51,14 +51,18 @@
 - flows: GET（订单流/资源流/资金流三段 + INVOICE 发票流（供给方→DU→客户）+ AFTER_SALES 售后 SLA（责任转移点=交付回执））
 - govern: GET cases（V*M 运营治理：市场秩序/规则制定/Booth 系统供给）
 - market: GET supply-contracts（DU 采购合同，仅 DU/V*M 可见，客户 403）
+- supply 准入+采购商城（X-MARKET-08）：POST supply/applications（供给帽登记，upsert 单条） / GET supply/applications（V*M 审核列表，带 supplierName/boothCode） / GET supply/applications/mine（供给帽） / POST supply/applications/:id/review {action:approve|reject,rejectReason}（仅 VXM） / GET/POST supply/products（供给帽货品，需 approved） / POST supply/products/:id/toggle（供给帽上下架） / POST supply/products/:id/take-down（VXM 治理下架） / GET supply/mall（**仅 DU/执行帽**，合格供应商+在架货品；客户 403 隔离提示）
+- 采购单：POST orders 传 {supplierProductId, qty} → 按货品所属域生成族码（如 T 域 TX-2026-xxxx）+ Order.supplierId 关联；orders GET du/exec 分支含 buyer 血缘（DU 见自己采购单），supply 分支按 ownerUnitId（供给方见名下 Booth 单据）
 - 隔离口径（补充单2）：客户视角 GET market/booths 只下发 kind='du' 铺；供给实体铺对客户 404；客户界面经 TRUST_EXPOSURE（shared/types）露出质检/脱敏产地/服务等级/交付时效/售后，严禁露出供给方名称/进价/联系方式/DU 采购合同
 
 ## 权限口径（服务端强制）
 
-- 客户（CU/XU）：不可开铺/上架/报价（403），不可进入开铺面板；orders 只见 buyerContainerId === 自己容器。
-- DU：开 du 实体铺（E/T 域仅直营）、报价、名下多店订单总览。
-- 供给帽（EU/HU/TU/YU）：开 supply 实体铺（本域）。
+- 客户（CU/XU）：不可开铺/上架/报价（403），不可进入开铺面板；orders 只见 buyerContainerId === 自己容器；**采购商城直访 403 隔离提示**（SupplyMall 页面 catch 同口径）。
+- DU：开 du 实体铺（E/T 域仅直营）、报价、名下多店订单总览、**采购商城一键下单（唯一可与供给方交易的主体）**。
+- 供给帽（EU/HU/TU/YU）：开 supply 实体铺（本域）；供应商准入登记（驳回可重提）→ 合格后货品上架/下架。
 - V*M（VEM/VYM/VHM/VTM/VDM）：全域订单总账 + 治理台。
+- **VXM（云中心运营审批统筹，demoId=vxm-cloud）**：供应商审核（通过/驳回附原因）、治理下架违规货品；审核列表 V*M 可见、审批操作仅 VXM。
+- 交易单向（P0）：供给实体铺仅 DU/执行帽可下单；客户越权采购 403；采购商城数据只在 DU/供给方/V*M 间流转。
 
 ## 调试要点
 
