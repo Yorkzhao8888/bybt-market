@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Zap, ShieldCheck, Store, Store as StoreIcon, Building2 } from 'lucide-react';
 import { useAuth } from '../Auth';
 import { api } from '../api/client';
+import { WORKBENCH_HOME, workbenchOf } from '../lib/domain';
 import type { DemoAccount } from '../../shared/types';
 
 function GroupCard(props: { title: string; sub: string; badge: string; isB: boolean; items: DemoAccount[]; onPick: (d: DemoAccount) => void; uid: string }) {
@@ -56,8 +57,14 @@ export default function Login() {
   const bClientHats = useMemo(() => demos.filter(d => d.hatRole === 'XU'), [demos]);
   const bOperator = useMemo(() => demos.filter(d => /^V/.test(d.hatRole) && d.hatRole.endsWith('M')), [demos]);
 
-  const land = (u: { boothTarget?: string; entry?: string }): void => {
-    nav(u?.boothTarget ? `/market/booths/${u.boothTarget}` : (u?.entry === 'C' ? '/mall' : '/market'), { replace: true });
+  const land = (u: { boothTarget?: string | null; hatRole?: string | null; entry?: string | null } | null): void => {
+    // X-MARKET-09：登录落点 = 四类角色专属工作台（boothTarget 指定铺面优先）
+    if (u?.boothTarget) {
+      nav(`/market/booths/${u.boothTarget}`, { replace: true });
+      return;
+    }
+    const wb = workbenchOf(u?.hatRole);
+    nav(u?.entry === 'C' && wb === 'client' ? '/mall' : WORKBENCH_HOME[wb], { replace: true });
   };
 
   const goLogin = async (e?: React.FormEvent): Promise<void> => {

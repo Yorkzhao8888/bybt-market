@@ -33,10 +33,10 @@
 ├── src/
 │   ├── api/client.ts   # api.*（login/oneclick/markets/marketBooths/inquiries/orders/governCases/supply*...）
 │   ├── lib/domain.ts   # 颜色/帽标签/canOperate/canOpenMarket/marketLabel 等 helper
-│   ├── components/ui.tsx
-│   ├── pages/          # Home/Login/Mall/MallBooth/Market/MarketBooth/Orders/Model/Govern/SupplyMall/SupplyDesk
+│   ├── components/     # ui.tsx / InquiryList.tsx（B2B 询价列表，Market 与 OperatorDesk 共用）
+│   ├── pages/          # Home/Login/Mall/MallBooth/Market(客户工作台)/MarketBooth/Orders/Model/Govern(治理工作台)/SupplyMall/SupplyDesk(供应商工作台)/OperatorDesk(经营者工作台)
 │   ├── Auth.tsx        # AuthContext
-│   └── App.tsx         # 路由（/mall /market /orders /model /govern /supply-mall）
+│   └── App.tsx         # 路由 + RoleGuard 角色守卫（未授权 403 兜底）+ Header 按角色收敛导航与主题徽标
 └── index.html
 ```
 
@@ -63,6 +63,14 @@
 - V*M（VEM/VYM/VHM/VTM/VDM）：全域订单总账 + 治理台。
 - **VXM（云中心运营审批统筹，demoId=vxm-cloud）**：供应商审核（通过/驳回附原因）、治理下架违规货品；审核列表 V*M 可见、审批操作仅 VXM。
 - 交易单向（P0）：供给实体铺仅 DU/执行帽可下单；客户越权采购 403；采购商城数据只在 DU/供给方/V*M 间流转。
+
+## 四类角色工作台（X-MARKET-09）
+
+- **登录落点**：Login 成功后按 `workbenchOf(hatRole)` 跳 `WORKBENCH_HOME`——客户 CU/XU→`/market`（CU entry=C→`/mall`）、供给帽 YU/EU/HU/TU→`/supplier`、DU+执行帽→`/operator`、V*M/VXM→`/govern`；带 `boothTarget` 时优先跳铺面详情。
+- **主题色**（`src/lib/domain.ts` WORKBENCH_THEME，用于顶栏激活态/侧栏/身份徽标/主按钮；全局浅米白+炭黑不变）：客户蓝 `#1D4ED8`（浏览引导型：五市场 tab+DU 铺网格+B2B 询价面板）、供应商绿 `#15803D`（业务操作型：登记/货品/采购单/产能）、经营者橙 `#B45309`（驾驶舱型：KPI 总览/五域铺面/采购商城/采购单/合同/上新铺/询价报价）、治理者紫 `#6D28D9`（管控型：供应商审核/治理案件/规则/全局数据）。
+- **路由守卫**：App.tsx `RoleGuard` 按 `workbenchOf` 判断——客户直访 /supplier、/operator、/govern，供给方直访 /operator 等一律 403 兜底页（含"返回我的工作台"）；/supply-mall 保持服务端 403+页面隔离提示口径。
+- **导航收敛**：Header 按角色渲染（客户 Market/Mall/交易单；供给商 供给台/交易单；经营者 经营台/采购商城/交易单；治理者 治理台/交易单）+ 主题色身份徽标（工作台类别·单位名）。
+- **红线**：B2B 报价入口保留在 InquiryList（Market 与 OperatorDesk 共用）；orders 按身份过滤、隔离 12-14 条款不破。
 
 ## 调试要点
 

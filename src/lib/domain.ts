@@ -124,3 +124,54 @@ export const canOpenMarket = (
   if (kind === 'supply') return SUPPLY_OWNER[marketCode] === role;
   return role === 'DU';
 };
+
+/* ============ X-MARKET-09 四类角色工作台 ============ */
+export type WorkbenchKind = 'client' | 'supplier' | 'operator' | 'govern';
+
+const WORKBENCH_SUPPLY_HATS = ['EU', 'HU', 'YU', 'TU'];
+const WORKBENCH_OPERATOR_HATS = ['DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX'];
+
+/** 角色类别映射：客户/供应商/经营者/治理者 */
+export const workbenchOf = (role: string | null | undefined): WorkbenchKind => {
+  const r = role ?? '';
+  if (r === 'XU' || r === 'CU') return 'client';
+  if (WORKBENCH_SUPPLY_HATS.includes(r)) return 'supplier';
+  if (WORKBENCH_OPERATOR_HATS.includes(r)) return 'operator';
+  if (isAdminRole(r)) return 'govern';
+  return 'client';
+};
+
+export const WORKBENCH_HOME: Record<WorkbenchKind, string> = {
+  client: '/market',
+  supplier: '/supplier',
+  operator: '/operator',
+  govern: '/govern',
+};
+
+export interface WorkbenchTheme {
+  kind: WorkbenchKind;
+  label: string;
+  accent: string;
+  accentSoft: string;
+  accentText: string;
+  desc: string;
+}
+
+export const WORKBENCH_THEME: Record<WorkbenchKind, WorkbenchTheme> = {
+  client: { kind: 'client', label: '客户工作台', accent: '#1D4ED8', accentSoft: '#e8eefb', accentText: '#1e40af', desc: '采购信任 · 浏览引导' },
+  supplier: { kind: 'supplier', label: '供应商工作台', accent: '#15803D', accentSoft: '#e8f5ec', accentText: '#166534', desc: '源头供给 · 业务操作' },
+  operator: { kind: 'operator', label: '经营者工作台', accent: '#B45309', accentSoft: '#fbf0e0', accentText: '#92400e', desc: '经营活力 · 驾驶舱' },
+  govern: { kind: 'govern', label: '治理者工作台', accent: '#6D28D9', accentSoft: '#f0e9fc', accentText: '#5b21b6', desc: '治理权威 · 管控' },
+};
+
+export const workbenchThemeOf = (role: string | null | undefined): WorkbenchTheme =>
+  WORKBENCH_THEME[workbenchOf(role)];
+
+/** 按当前路径判定所属工作台（用于顶栏着色与激活态） */
+export const workbenchByPath = (path: string): WorkbenchKind | null => {
+  if (path.startsWith('/supplier')) return 'supplier';
+  if (path.startsWith('/operator')) return 'operator';
+  if (path.startsWith('/govern')) return 'govern';
+  if (path.startsWith('/market') || path.startsWith('/mall')) return 'client';
+  return null;
+};

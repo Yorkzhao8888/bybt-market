@@ -1,15 +1,15 @@
-// X-MARKET-05：Market = B 端交易平台/铺面层。五大专业市场 + Booth 双层权属 + B2B 询价闭环。
-// P1/P2：客户无铺主操作；P3：按身份过滤；P4/P5：开铺约束与权属校验。
+// X-MARKET-09：Market = 客户工作台（B 端采购首页，浏览引导型，蓝主题）。
+// 五大专业市场 tab + DU 铺面网格 + B2B 询价面板；供给/经营/治理分属 /supplier /operator /govern 独立工作台。
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Store, ShieldCheck, Briefcase, ArrowRight, Plus, Send, Factory, Network, FileText, Boxes } from 'lucide-react';
+import { Store, Briefcase, Send, Factory } from 'lucide-react';
 import { api } from '../api/client';
 import type { MarketGroup } from '../api/client';
-import type { BoothRow, Container, HatRow, InquiryRow, SupplyContract } from '../../shared/types';
+import type { BoothRow, Container, HatRow, InquiryRow } from '../../shared/types';
 import { useAuth } from '../Auth';
-import { colorOf, marketLabel, canOperate, canOpenMarket, isAdminRole, hatLabel, roleLabel, PRO_MARKET_ORDER } from '../lib/domain';
-import SupplyDesk from './SupplyDesk';
+import { colorOf, canOperate, isAdminRole, roleLabel, hatLabel, PRO_MARKET_ORDER, workbenchOf, WORKBENCH_THEME } from '../lib/domain';
+import InquiryList from '../components/InquiryList';
 
 function kindLabel(kind: string): string {
   return kind === 'supply' ? '供给方实体铺' : 'DU 经营实体铺';
@@ -22,12 +22,7 @@ export default function Market() {
   const [containers, setContainers] = useState<Container[]>([]);
   const [hats, setHats] = useState<HatRow[]>([]);
   const [inq, setInq] = useState<InquiryRow[]>([]);
-  const [supplyCs, setSupplyCs] = useState<SupplyContract[]>([]);
   const [active, setActive] = useState<string>('Y');
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [kind, setKind] = useState<'du' | 'supply'>('du');
-  const [msg, setMsg] = useState('');
 
   // B2B 询价面板
   const [inqBooth, setInqBooth] = useState('');
@@ -45,12 +40,6 @@ export default function Market() {
     void api.inquiries().then(setInq);
   }, []);
 
-  // DU 采购合同：仅 DU/运营方可拉取（客户接口 403，静默置空）
-  useEffect(() => {
-    if (user?.hatRole !== 'DU' && !isAdminRole(user?.hatRole)) return;
-    void api.supplyContracts().then(setSupplyCs).catch(() => setSupplyCs([]));
-  }, [user?.hatRole]);
-
   const ordered = useMemo(
     () => PRO_MARKET_ORDER.map((c) => markets.find((m) => m.code === c)).filter((m): m is MarketGroup => Boolean(m)),
     [markets],
@@ -60,26 +49,8 @@ export default function Market() {
   const supplyBooths = marketBooths.filter((b) => b.kind === 'supply');
   const duBooths = marketBooths.filter((b) => b.kind === 'du');
 
-  // DU 多店：当前 DU 名下所有经营实体铺
-  const myStores = booths.filter((b) => user?.hatRole === 'DU' && b.kind === 'du' && b.ownerUnitId === user.hatId);
-
   const containerName = (id: string): string => containers.find((u) => u.id === id)?.name ?? id;
   const hatOf = (id: string): HatRow | undefined => hats.find((h) => h.id === id);
-
-  const canOpen = current ? canOpenMarket(current.code, kind, user?.hatRole) : false;
-
-  const createBooth = (): void => {
-    if (!current || !user?.hatId) return;
-    setMsg('');
-    api.createBooth({ domain: current.code, kind, name, franchise: 'direct' })
-      .then((r) => {
-        setMsg(`已开新铺 ${r.code}（${r.kindLabel}，权属：${r.ownerUnitId}）`);
-        setName(''); setOpen(false);
-        return api.marketBooths();
-      })
-      .then(setBooths)
-      .catch((e: unknown) => setMsg(e instanceof Error ? e.message : '开铺失败'));
-  };
 
   const refreshInq = (): void => { void api.inquiries().then(setInq); };
 
@@ -97,20 +68,20 @@ export default function Market() {
       <div className="rounded-xl border bg-white p-5 shadow-[4px_4px_0_rgba(23,24,29,0.12)]">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="font-serif-display text-2xl font-black">Market · 企业采购中心（B 端交易平台）</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-serif-display text-2xl font-black">Market · 企业采购中心（B 端交易平台）</p>
+              {user?.hatRole && workbenchOf(user.hatRole) === 'client' && (
+                <span className="rounded px-2 py-0.5 text-xs font-semibold text-white" style={{ background: WORKBENCH_THEME.client.accent }}>客户工作台</span>
+              )}
+            </div>
             <p className="mt-1 text-sm text-[#6b665a]">
               五大专业市场各自独立。Market 只做交易（询价/报价/合同/订单），不经营、不持资源、不执行作业；作业系统归属 Booth 实体系统。
             </p>
           </div>
-          {mayOperate && (
-            <button onClick={() => setOpen((v) => !v)} className="flex shrink-0 items-center gap-1.5 rounded-md bg-[#17181d] px-3 py-2 text-sm font-medium text-white hover:opacity-90">
-              <Plus className="h-4 w-4" /> 新开铺
-            </button>
-          )}
         </div>
         {!mayOperate && (
-          <p className="mt-2 rounded-md bg-[#f3eee3] px-3 py-2 text-xs text-[#8a6d3b]">
-            客户视角（{user?.hat ? roleLabel(user.hatRole ?? '') : '未登录'}）：可浏览与询价，不展示开铺/上架等铺主操作（P1/P2）。
+          <p className="mt-2 rounded-md px-3 py-2 text-xs text-[#1e40af]" style={{ background: WORKBENCH_THEME.client.accentSoft }}>
+            客户视角（{user?.hat ? roleLabel(user.hatRole ?? '') : '未登录'}）：可浏览与询价；铺主操作分属供应商 / 经营者工作台（越权由服务端 403 兜底）。
           </p>
         )}
       </div>
@@ -150,53 +121,9 @@ export default function Market() {
         </div>
       )}
 
-      {/* DU 多店经营台 */}
-      {user?.hatRole === 'DU' && myStores.length > 0 && (
-        <div className="rounded-xl border bg-[#17181d] p-5 text-[#f5f2eb]">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="flex items-center gap-2 font-serif-display text-lg font-black"><Network className="h-5 w-5" /> 经营台 · 一个 DU 多店总览</p>
-            <Link to="/supply-mall" className="flex items-center gap-1.5 rounded-md bg-[#b8862b] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90">
-              <Boxes className="h-4 w-4" /> 采购商城（合格供应商直采）
-            </Link>
-          </div>
-          <p className="mt-1 text-xs text-white/70">DU 为唯一经营主体，直营/加盟；跨店经营不分裂主体，执行帽分管各店（店铺 tab 切换进铺面）。</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {myStores.map((b) => (
-              <Link key={b.id} to={`/market/booth/${b.id}`} className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm hover:bg-white/20">
-                <span className="font-mono text-xs">{b.code}</span> {b.name}
-                <span className="rounded bg-white/15 px-1.5 text-[10px]">{marketLabel(b.marketCode)}·{b.execHat}</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            ))}
-          </div>
-          {supplyCs.length > 0 && (
-            <div className="mt-4 rounded-lg border border-white/15 p-3">
-              <p className="text-sm font-bold"><FileText className="mr-1 inline h-4 w-4" />DU 采购合同（仅经营台可见，客户不可见）</p>
-              <table className="mt-2 w-full text-xs">
-                <thead><tr className="text-left text-white/60"><th className="py-1">供给铺</th><th>供给方</th><th>标的</th><th>金额</th><th>发票流</th><th>周期</th></tr></thead>
-                <tbody>
-                  {supplyCs.map((sc) => (
-                    <tr key={sc.id} className="border-t border-white/10">
-                      <td className="py-1.5 font-mono">{sc.supplyBoothCode}</td>
-                      <td>{sc.supplyOwner}</td>
-                      <td>{sc.items}</td>
-                      <td className="font-mono">¥{(sc.amountCents / 100).toLocaleString()}</td>
-                      <td className="text-white/70">{sc.invoiceFlow}</td>
-                      <td className="text-white/70">{sc.period}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="mt-2 text-[10px] text-white/50">发票流：供给方 → DU → 客户（DU 开销售票、收进项票）；责任转移点 = 交付回执。</p>
-            </div>
-          )}
-        </div>
-      )}
+      {/* 经营/供给/治理操作分属专属工作台：/operator · /supplier · /govern（X-MARKET-09） */}
 
-      {/* 供给台（X-MARKET-08）：供给帽准入登记 + 货品上架管理（客户不可见） */}
-      {['EU', 'HU', 'YU', 'TU'].includes(user?.hatRole ?? '') && <SupplyDesk />}
-
-      {/* B2B 询价（客户 XU 用，P6） */}
+      {/* B2B 询价面板（客户工作台主功能区） */}
       {current && !mayOperate && (
         <div className="rounded-xl border bg-white p-5">
           <p className="flex items-center gap-2 font-serif-display text-lg font-black"><Send className="h-4 w-4" /> B2B 采购询价</p>
@@ -209,44 +136,13 @@ export default function Market() {
             <input value={inqItem} onChange={(e) => setInqItem(e.target.value)} placeholder="采购品类/规格" className="rounded-md border px-3 py-2 text-sm" />
             <input value={inqMsg} onChange={(e) => setInqMsg(e.target.value)} placeholder="数量/交期/备注" className="rounded-md border px-3 py-2 text-sm" />
           </div>
-          <button onClick={submitInquiry} className="mt-3 rounded-md bg-[#b8862b] px-4 py-2 text-sm font-medium text-white hover:opacity-90">发送询价</button>
-          {inqMsg && <p className="mt-2 text-xs text-[#8a6d3b]">{inqMsg}</p>}
+          <button onClick={submitInquiry} className="mt-3 rounded-md px-4 py-2 text-sm font-medium text-white hover:opacity-90" style={{ background: WORKBENCH_THEME.client.accent }}>发送询价</button>
+          {inqMsg && <p className="mt-2 text-xs text-[#1e40af]">{inqMsg}</p>}
         </div>
       )}
 
       {/* 询价/报价清单（按身份可见） */}
       <InquiryList inquiries={inq} booths={booths} containerName={containerName} hatOf={hatOf} isAdmin={isAdmin} canOperate={mayOperate} viewerUnit={user?.hatId ?? ''} refresh={refreshInq} />
-
-      {/* 新开铺面板（仅经营/供给/运营方，P2） */}
-      {open && mayOperate && current && (
-        <div className="rounded-xl border bg-white p-5">
-          <p className="font-serif-display text-lg font-black">在 Market-{current.code}（{current.marketTitle}）开新铺</p>
-          <div className="mt-3 space-y-3">
-            <div className="flex flex-wrap gap-2 text-sm">
-              <label className="flex items-center gap-1.5"><input type="radio" checked={kind === 'du'} onChange={() => setKind('du')} /> DU 经营实体铺（{current.duBooth}，执行帽 {current.duExecHat}）</label>
-              <label className="flex items-center gap-1.5"><input type="radio" checked={kind === 'supply'} onChange={() => setKind('supply')} /> 供给方实体铺（{current.supplyBooth}）</label>
-            </div>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="铺名（如 云驿·智场空间 3 号店）" className="w-full rounded-md border px-3 py-2 text-sm" />
-            {!canOpen ? (
-              <p className="rounded-md bg-[#fbeaea] px-3 py-2 text-sm text-[#b0413e]">
-                当前身份 {roleLabel(user?.hatRole ?? '')} 不可在该市场开此类铺：
-                {kind === 'du'
-                  ? (current.canFranchise ? 'DU 直营或加盟可开店' : 'E/T 仅平台直营 DU 可开店（无加盟）')
-                  : `供给方实体铺仅 ${current.supplyOwner} 可开`}
-              </p>
-            ) : (
-              <p className="rounded-md bg-[#eef7ee] px-3 py-2 text-sm text-[#2f7d5b]">
-                权属固定为当前身份「{hatLabel(user?.hatRole ?? '')} · {containerName(user?.hatId ?? '')}」；跨主体使用他方 Booth 属越权，已禁止（P5）。
-              </p>
-            )}
-            <div className="flex gap-2">
-              <button onClick={createBooth} disabled={!canOpen || !name.trim()} className="rounded-md bg-[#17181d] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40">提交开铺</button>
-              <button onClick={() => setOpen(false)} className="rounded-md border px-4 py-2 text-sm">取消</button>
-            </div>
-          </div>
-          {msg && <p className="mt-2 text-sm text-[#2f7d5b]">{msg}</p>}
-        </div>
-      )}
     </div>
   );
 }
@@ -274,7 +170,7 @@ function BoothGroup({ title, icon, booths, color, containerName, onInquire, canB
             </div>
             <div className="mt-2 flex gap-2">
               <Link to={`/market/booth/${b.id}`} className="rounded-md border px-2.5 py-1 text-xs hover:bg-[#efeae0]">进铺面</Link>
-              {canBuy && onInquire && <button onClick={() => onInquire(b.id)} className="rounded-md bg-[#b8862b] px-2.5 py-1 text-xs text-white hover:opacity-90">询价</button>}
+              {canBuy && onInquire && <button onClick={() => onInquire(b.id)} className="rounded-md px-2.5 py-1 text-xs text-white hover:opacity-90" style={{ background: WORKBENCH_THEME.client.accent }}>询价</button>}
             </div>
           </div>
         ))}
@@ -283,83 +179,4 @@ function BoothGroup({ title, icon, booths, color, containerName, onInquire, canB
   );
 }
 
-function InquiryList({ inquiries, booths, containerName, hatOf, isAdmin, canOperate, viewerUnit, refresh }: {
-  inquiries: InquiryRow[]; booths: BoothRow[]; containerName: (id: string) => string;
-  hatOf: (id: string) => HatRow | undefined; isAdmin: boolean; canOperate: boolean; viewerUnit: string;
-  refresh: () => void;
-}) {
-  const visible = inquiries.filter((q) =>
-    isAdmin
-    || q.buyerContainerId === viewerUnit
-    || (canOperate && booths.some((b) => b.id === q.boothId && b.ownerUnitId === viewerUnit)),
-  );
-  const [quotePrice, setQuotePrice] = useState('');
-  const [quoteId, setQuoteId] = useState('');
-  const [err, setErr] = useState('');
-  const isSeller = (q: InquiryRow): boolean =>
-    canOperate && booths.some((b) => b.id === q.boothId && b.ownerUnitId === viewerUnit);
-  const isBuyer = (q: InquiryRow): boolean => q.buyerContainerId === viewerUnit;
-
-  const quote = (q: InquiryRow): void => {
-    const cents = Math.round(Number(quotePrice) * 100);
-    if (!Number.isFinite(cents) || cents <= 0) { setErr('请输入有效报价金额'); return; }
-    setErr('');
-    api.quoteInquiry(q.id, { quoteCents: cents })
-      .then(() => { setQuoteId(''); setQuotePrice(''); refresh(); })
-      .catch((e: unknown) => setErr(e instanceof Error ? e.message : '报价失败'));
-  };
-  const contract = (q: InquiryRow): void => {
-    api.contractInquiry(q.id).then(refresh).catch((e: unknown) => setErr(e instanceof Error ? e.message : '合同失败'));
-  };
-  const placeOrder = (q: InquiryRow): void => {
-    api.createOrder({ boothId: q.boothId, amountCents: q.quoteCents, side: 'B', inquiryId: q.id })
-      .then((o) => { setErr(''); window.alert(`已下单 ${o.code}（P6 B2B 闭环完成，履约由 Booth 实体系统承接）`); refresh(); })
-      .catch((e: unknown) => setErr(e instanceof Error ? e.message : '下单失败'));
-  };
-
-  if (visible.length === 0) return null;
-  return (
-    <div className="rounded-xl border bg-white p-5">
-      <p className="flex items-center gap-2 font-serif-display text-lg font-black"><ShieldCheck className="h-4 w-4" /> 询价 → 报价 → 合同 → 下单（P6 B2B 闭环 · {visible.length}）</p>
-      {err && <p className="mt-2 rounded bg-[#f3eee3] px-2 py-1 text-xs text-[#8a6d3b]">{err}</p>}
-      <div className="mt-3 space-y-2">
-        {visible.map((q) => {
-          const h = hatOf(q.buyerContainerId);
-          const stageLabel: Record<string, string> = { inquiry: '询价中', quoted: '已报价', contracted: '已签合同', ordered: '已下单' };
-          return (
-            <div key={q.id} className="rounded-lg border border-[#e4ded2] p-3 text-sm">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded bg-[#17181d] px-2 py-0.5 text-xs text-white">{stageLabel[q.status] ?? q.status}</span>
-                <span className="font-medium">{q.title}</span>
-                <span className="text-xs text-[#8a8577]">铺面 {booths.find((b) => b.id === q.boothId)?.code ?? q.boothId}</span>
-                {q.quoteCents != null && <span className="rounded bg-[#eef7ee] px-1.5 py-0.5 text-xs text-[#2f7d5b]">报价 ¥{(q.quoteCents / 100).toFixed(2)}</span>}
-                {q.contractNo && <span className="rounded bg-[#f3eee3] px-1.5 py-0.5 text-xs">合同 {q.contractNo}</span>}
-              </div>
-              <p className="mt-1 text-xs text-[#6b665a]">客户：{containerName(q.buyerContainerId)}{h ? `（${hatLabel(h.role)}）` : ''} · {q.detail}</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {q.status === 'inquiry' && isSeller(q) && (
-                  quoteId === q.id ? (
-                    <>
-                      <input value={quotePrice} onChange={(e) => setQuotePrice(e.target.value)} placeholder="报价金额(元)" className="w-28 rounded border px-2 py-1 text-xs" />
-                      <button onClick={() => quote(q)} className="rounded bg-[#b8862b] px-2 py-1 text-xs text-white hover:opacity-90">确认报价</button>
-                      <button onClick={() => { setQuoteId(''); setQuotePrice(''); }} className="rounded border px-2 py-1 text-xs">取消</button>
-                    </>
-                  ) : (
-                    <button onClick={() => { setQuoteId(q.id); setQuotePrice(''); }} className="rounded bg-[#b8862b] px-2 py-1 text-xs text-white hover:opacity-90">报价</button>
-                  )
-                )}
-                {q.status === 'quoted' && isBuyer(q) && (
-                  <button onClick={() => contract(q)} className="rounded bg-[#17181d] px-2 py-1 text-xs text-white hover:opacity-90">确认合同</button>
-                )}
-                {q.status === 'contracted' && isBuyer(q) && (
-                  <button onClick={() => placeOrder(q)} className="rounded bg-[#2f7d5b] px-2 py-1 text-xs text-white hover:opacity-90">下单（Order-{q.domain} 族）</button>
-                )}
-                {q.status === 'ordered' && <span className="text-xs text-[#8a8577]">订单已建立，履约由 Booth 实体系统承接</span>}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+// InquiryList 已抽至 src/components/InquiryList.tsx（Market 客户工作台与 OperatorDesk 经营者工作台共用）

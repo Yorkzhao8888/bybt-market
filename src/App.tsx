@@ -1,8 +1,11 @@
+// X-MARKET-09：四类角色工作台路由壳。
+// 客户→/market（蓝）· 供应商→/supplier（绿）· 经营者→/operator（橙）· 治理者→/govern（紫）；
+// 导航按角色收敛，越权直访由 RoleGuard 403 兜底；全局背景浅米白+炭黑不变。
+import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { Store, ShoppingBag, ReceiptText, Boxes, ShieldCheck, LogOut, ShieldBan, LayoutDashboard, Sprout, Crown, ClipboardCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Routes, Route, NavLink, Link, Navigate, useLocation } from 'react-router-dom';
-import { BookOpenText, Store, LayoutGrid, LogIn, LogOut, CircleUserRound, ShieldCheck } from 'lucide-react';
 import { AuthProvider, useAuth } from './Auth';
-import { isAdminRole } from './lib/domain';
+import type { SessionUser } from '../shared/types';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Mall from './pages/Mall';
@@ -13,74 +16,68 @@ import Orders from './pages/Orders';
 import Model from './pages/Model';
 import Govern from './pages/Govern';
 import SupplyMall from './pages/SupplyMall';
-
-function Protected({ children }: { children: ReactNode }) {
-  const { isAuthed, loading } = useAuth();
-  if (loading) {
-    return <div className="py-24 text-center text-sm text-[#8a8577]">正在恢复登录会话…</div>;
-  }
-  if (!isAuthed) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-}
+import SupplyDesk from './pages/SupplyDesk';
+import OperatorDesk from './pages/OperatorDesk';
+import { workbenchOf, workbenchThemeOf, WORKBENCH_HOME, WORKBENCH_THEME } from './lib/domain';
+import type { WorkbenchKind } from './lib/domain';
+import { api } from './api/client';
 
 function Header() {
-  const { user, isAuthed, logout } = useAuth();
-  const location = useLocation();
-  const entry = user?.entry ?? 'C';
+  const { user, logout } = useAuth();
+  const wb: WorkbenchKind = workbenchOf(user?.hatRole);
+  const theme = workbenchThemeOf(user?.hatRole);
+  const loc = useLocation();
 
-  const handleLogout = (): void => {
-    void logout();
+  const navByWb: Record<WorkbenchKind, { to: string; label: string; icon: ReactNode }[]> = {
+    client: [
+      { to: '/market', label: 'Market', icon: <Store className="h-3.5 w-3.5" /> },
+      { to: '/mall', label: 'Mall', icon: <ShoppingBag className="h-3.5 w-3.5" /> },
+      { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
+    ],
+    supplier: [
+      { to: '/supplier', label: '供给台', icon: <Sprout className="h-3.5 w-3.5" /> },
+      { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
+    ],
+    operator: [
+      { to: '/operator', label: '经营台', icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
+      { to: '/supply-mall', label: '采购商城', icon: <Boxes className="h-3.5 w-3.5" /> },
+      { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
+    ],
+    govern: [
+      { to: '/govern', label: '治理台', icon: <Crown className="h-3.5 w-3.5" /> },
+      { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
+    ],
   };
+  const nav = navByWb[wb];
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-[#f5f2eb]/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-        <Link to="/" className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-[#17181d] text-[#f5f2eb]">
-            <Store className="h-5 w-5" />
-          </span>
-          <span className="font-serif-display text-lg font-black tracking-wide">
-            X-Market<span className="ml-1 text-sm font-semibold text-[#b8862b]">五域集市</span>
-          </span>
-        </Link>
-
-        <nav className="flex items-center gap-1 text-sm font-medium">
-          <NavLink to="/mall" className={({ isActive }) => `flex items-center gap-1.5 rounded-md px-3 py-2 transition ${isActive ? 'bg-[#b8862b] text-white' : 'hover:bg-[#efeae0]'}`}>
-            <BookOpenText className="h-4 w-4" /> Mall · C端
-          </NavLink>
-          <NavLink to="/market" className={({ isActive }) => `flex items-center gap-1.5 rounded-md px-3 py-2 transition ${isActive ? 'bg-[#17181d] text-white' : 'hover:bg-[#efeae0]'}`}>
-            <LayoutGrid className="h-4 w-4" /> Market · B端
-          </NavLink>
-          <NavLink to="/orders" className={({ isActive }) => `flex items-center gap-1.5 rounded-md px-3 py-2 transition ${isActive ? 'bg-[#17181d] text-white' : 'hover:bg-[#efeae0]'}`}>
-            交易单
-          </NavLink>
-          <NavLink to="/model" className={({ isActive }) => `hidden items-center gap-1.5 rounded-md px-3 py-2 transition md:flex ${isActive ? 'bg-[#17181d] text-white' : 'hover:bg-[#efeae0]'}`}>
-            域·帽
-          </NavLink>
-          {isAdminRole(user?.hatRole) && (
-            <NavLink to="/govern" className={({ isActive }) => `hidden items-center gap-1.5 rounded-md px-3 py-2 transition md:flex ${isActive ? 'bg-[#17181d] text-white' : 'hover:bg-[#efeae0]'}`}>
-              <ShieldCheck className="h-4 w-4" /> 运营治理
+    <header className="sticky top-0 z-20 border-b border-[#e4ded2] bg-[#f5f2eb]/95 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
+        <Link to="/" className="font-serif-display text-lg font-black tracking-tight hover:opacity-80">X-Market <span className="text-xs font-normal text-[#8a8577]">五域集市</span></Link>
+        <span className="rounded px-2 py-0.5 text-xs font-semibold text-white" style={{ background: theme.accent }}>
+          {theme.label}
+        </span>
+        <nav className="flex flex-wrap items-center gap-1">
+          {nav.map((n) => (
+            <NavLink key={n.to} to={n.to}
+              className={({ isActive }) => `flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition ${isActive ? 'font-semibold text-white' : 'text-[#4b463a] hover:bg-[#efeae0]'}`}
+              style={loc.pathname.startsWith(n.to) || (n.to === '/market' && loc.pathname.startsWith('/market')) ? { background: theme.accent } : undefined}>
+              {n.icon} {n.label}
             </NavLink>
-          )}
+          ))}
         </nav>
-
-        <div className="flex items-center gap-2">
-          {isAuthed && user ? (
+        <div className="ml-auto flex items-center gap-2">
+          {user ? (
             <>
-              <span className={`hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold sm:flex ${entry === 'B' ? 'bg-[#17181d] text-[#f5f2eb]' : 'bg-[#b8862b] text-white'}`}>
-                <CircleUserRound className="h-3.5 w-3.5" />
-                {user.containerName} · {user.hat}
+              <span className="hidden rounded-md border bg-white px-2.5 py-1 text-xs text-[#4b463a] sm:inline">
+                {theme.label.replace('工作台', '')} · {user.containerName ?? user.containerId}
               </span>
-              <button onClick={handleLogout} className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-[#6b665a] hover:bg-[#efeae0]" title="登出">
-                <LogOut className="h-3.5 w-3.5" />
+              <button onClick={() => void api.logout().then(logout)} className="flex items-center gap-1 rounded-md border bg-white px-2.5 py-1 text-xs hover:bg-[#efeae0]">
+                <LogOut className="h-3.5 w-3.5" /> 退出
               </button>
             </>
           ) : (
-            location.pathname === '/login' ? null : (
-              <Link to="/login" className="flex items-center gap-1.5 rounded-md bg-[#17181d] px-3 py-2 text-sm font-medium text-[#f5f2eb] hover:opacity-90">
-                <LogIn className="h-4 w-4" /> 登录
-              </Link>
-            )
+            <Link to="/login" className="rounded-md px-3 py-1.5 text-xs font-medium text-white hover:opacity-90" style={{ background: theme.accent }}>演示登录</Link>
           )}
         </div>
       </div>
@@ -88,30 +85,70 @@ function Header() {
   );
 }
 
+/** X-MARKET-09 路由守卫：按工作台类型拦截，未授权 403 兜底。 */
+function RoleGuard({ wb, children }: { wb: WorkbenchKind; children: ReactNode }) {
+  const { user, isAuthed, loading } = useAuth();
+  if (loading) return <p className="p-10 text-center text-sm text-[#8a8577]">身份校验中…</p>;
+  if (!isAuthed || !user) return <Navigate to="/login" replace />;
+  if (workbenchOf(user.hatRole) !== wb) return <Forbidden need={workbenchThemeOf(user?.hatRole)} want={wb} />;
+  return <>{children}</>;
+}
+
+function Forbidden({ need, want }: { need: ReturnType<typeof workbenchThemeOf>; want: WorkbenchKind }) {
+  return (
+    <div className="mx-auto max-w-lg rounded-xl border bg-white p-8 text-center shadow-[4px_4px_0_rgba(23,24,29,0.12)]">
+      <ShieldBan className="mx-auto h-10 w-10 text-[#b3261e]" />
+      <p className="mt-3 font-serif-display text-2xl font-black">403 · 越权访问</p>
+      <p className="mt-2 text-sm text-[#6b665a]">
+        该区域属于{WORKBENCH_THEME[want].label}，你的当前身份是「{need.label}」。角色数据边界由服务端强制（隔离红线 P0）。
+      </p>
+      <Link to={WORKBENCH_HOME[workbenchOf(need.kind)]} className="mt-4 inline-block rounded-md px-4 py-2 text-sm font-medium text-white hover:opacity-90" style={{ background: need.accent }}>
+        返回我的工作台
+      </Link>
+    </div>
+  );
+}
+
+function Shell({ children }: { children: ReactNode }) {
+  return (
+    <div className="min-h-screen bg-[#f5f2eb] text-[#17181d]">
+      <Header />
+      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      <footer className="border-t border-[#e4ded2] py-4 text-center text-xs text-[#8a8577]">
+        X-Market 五域集市 · 交易不经营 / 铺面即实体 · Booth 实体系统另窗口实现
+      </footer>
+    </div>
+  );
+}
+
+function AllRoutes() {
+  return (
+    <Shell>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/mall" element={<Mall />} />
+        <Route path="/mall/booth/:id" element={<MallBooth />} />
+        <Route path="/market" element={<Market />} />
+        <Route path="/market/booth/:id" element={<MarketBooth />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/model" element={<Model />} />
+        <Route path="/supply-mall" element={<SupplyMall />} />
+        <Route path="/supplier" element={<RoleGuard wb="supplier"><SupplyDesk /></RoleGuard>} />
+        <Route path="/operator" element={<RoleGuard wb="operator"><OperatorDesk /></RoleGuard>} />
+        <Route path="/govern" element={<RoleGuard wb="govern"><Govern /></RoleGuard>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Shell>
+  );
+}
+
 export default function App() {
   return (
     <AuthProvider>
-      <div className="min-h-screen">
-        <Header />
-        <main className="mx-auto max-w-6xl px-4 py-6">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/mall" element={<Protected><Mall /></Protected>} />
-            <Route path="/mall/booth/:id" element={<Protected><MallBooth /></Protected>} />
-            <Route path="/market" element={<Protected><Market /></Protected>} />
-            <Route path="/market/booth/:id" element={<Protected><MarketBooth /></Protected>} />
-            <Route path="/supply-mall" element={<Protected><SupplyMall /></Protected>} />
-            <Route path="/orders" element={<Protected><Orders /></Protected>} />
-            <Route path="/model" element={<Model />} />
-            <Route path="/govern" element={<Protected><Govern /></Protected>} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-        <footer className="mt-10 border-t py-6 text-center text-xs text-[#8a8577]">
-          X-Market 企业采购中心 · ZiwayOS v2.2 · 三套系统：Market 交易 / Booth 作业 / Mall 零售 · 权属：Y/E/H/T 归供给方，DY/DH/DT/DE/DC 归 DU
-        </footer>
-      </div>
+      <BrowserRouter>
+        <AllRoutes />
+      </BrowserRouter>
     </AuthProvider>
   );
 }
