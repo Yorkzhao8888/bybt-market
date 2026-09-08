@@ -45,14 +45,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, [clear]);
 
-  const login = useCallback(async (account: string, password: string, entry?: 'C' | 'B') => {
-    const res = await api.login({ account, password, entry });
+  const login = useCallback(async (account: string, password: string) => {
+    const res = await api.login({ account, password });
     setToken(res.token);
     setUser(res.user);
   }, []);
 
-  const oneClick = useCallback(async (entry: 'C' | 'B') => {
-    const res = await api.oneClick(entry);
+  const oneClick = useCallback(async (_entry: 'C' | 'B') => {
+    const res = await api.oneClickById('xiaolin');
     setToken(res.token);
     setUser(res.user);
   }, []);

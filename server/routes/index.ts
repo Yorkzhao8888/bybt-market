@@ -1,13 +1,21 @@
 // X-Market 五域集市系统 · 后端 Express API 路由
-// 双入口 Mall(C端) / Market(B端)，五域 Booth 双层（前店售卖面 / 后厂履约面）
-// 数据四级：容器(主体)→帽(13U 身份)→角色(域角色)→交易对象(商品/服务/产能)
+// X-MARKET-05：两套独立系统（Market 铺面层 / Booth 实体作业层）+ 三方链路 + Booth 权属
+//   Market：五大专业市场、铺面、询价/报价/合同/订单、DU 经营台、运营方治理（不经营/不持资源/不执行作业）
+//   Booth 实体：FAB/WH/DL/SVC/LAB 五作业系统（占位，另一窗口实现），铺面仅引用
 
 import { Router } from 'express';
-import { DOMAINS, domainByCode, familyOfDomain, marketMetaOf, PUBLIC_MARKETS, JOB_SYSTEMS, OPERATOR_DUTIES } from '../domainConfig';
-import { getStore, nextSeq, domainStats, containerById } from '../store';
+import {
+  DOMAINS, domainByCode, familyOfDomain, marketMetaOf, PUBLIC_MARKETS,
+  JOB_SYSTEMS, OPERATOR_DUTIES, boothOwnerRole, duExecHatOf, BOOTH_OF_EXEC_HAT, MALL_EXEC_HAT,
+} from '../domainConfig';
+import {
+  getStore, nextSeq, containerById,
+  inquiries, governanceCases, nextOrderCode,
+  type Inquiry,
+} from '../store';
 import { createToken, getUserByToken, revokeToken, DEV_PASSWORD } from '../auth';
-import type { Container, DemoAccount, DomainCode, HatRole, Order, SessionUser } from '../../shared/types';
-import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL } from '../../shared/types';
+import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth } from '../../shared/types';
+import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL, HAT_LINE_OF } from '../../shared/types';
 
 const router = Router();
 const api = Router();
@@ -16,8 +24,10 @@ function ok(res: { json: (v: unknown) => void }, data: unknown): void {
   res.json({ success: true, data });
 }
 
-/** 授权中间件：从 Authorization: Bearer <token> 还原当前会话 */
-function requireAuth(req: { headers: { authorization?: string } }, res: { status: (n: number) => { json: (v: unknown) => void } }, next: () => void): void {
+type AuthReq = { headers: { authorization?: string }; user?: SessionUser; body?: unknown; query?: Record<string, unknown>; params?: Record<string, string> };
+type AuthRes = { status: (n: number) => { json: (v: unknown) => void }; json: (v: unknown) => void };
+
+function requireAuth(req: AuthReq, res: AuthRes, next: () => void): void {
   const h = req.headers.authorization || '';
   const token = h.startsWith('Bearer ') ? h.slice(7) : '';
   const user = token ? getUserByToken(token) : null;
@@ -25,632 +35,572 @@ function requireAuth(req: { headers: { authorization?: string } }, res: { status
     res.status(401).json({ success: false, error: '未登录或会话已过期' });
     return;
   }
-  (req as { user?: SessionUser }).user = user;
+  req.user = user;
   next();
 }
 
+/* ============ 身份/权限判定（X-MARKET-05 P1/P2/P3/P5） ============ */
+type Capability = 'open_booth' | 'operate_booth' | 'view_all_orders' | 'govern' | 'b2b_purchase';
+/** 客户（XU/CU）只读；DU 系/供给方可开铺经营；V*M 运营方可治理与全局总账 */
+function can(user: SessionUser, cap: Capability): boolean {
+  const role = user.hatRole;
+  if (!role) return false;
+  const line = HAT_LINE_OF[role] as string | undefined;
+  switch (cap) {
+    case 'b2b_purchase':
+      return role === 'XU' || line === 'demand' || role === 'OU';
+    case 'open_booth':
+    case 'operate_booth':
+      // 经营/供给/运营可操作铺；客户（CU/XU）不可
+      return line === 'supply' || line === 'exec' || role === 'DU' || line === 'admin';
+    case 'view_all_orders':
+    case 'govern':
+      return line === 'admin'; // 仅运营方/平台可见全局总账/治理
+  }
+}
+/** 是否为客户（下游买家）：C 端 CU / B 端 XU */
+const isClient = (role: HatRole | null): boolean => role === 'CU' || role === 'XU';
+/** 当前会话帽角色（兜底 SU，理论上登录后必有） */
+const roleOf = (user: SessionUser): HatRole => user.hatRole ?? 'OU';
+/** 当前帽归属线 */
+const lineOf = (user: SessionUser): string => (user.hatRole ? (HAT_LINE_OF[user.hatRole] as string) : '');
+
 // ================= 认证（底座·开发版）=================
-// 密码统一 test123；一键登录进入预设身份（C 端 + B 端五域供给帽/经营帽）
-/** 帽 → 域视角落位（经营/执行帽归对应 Booth 视角） */
-const DEMO_ROUTE: Partial<Record<HatRole, { domain: DomainCode; booth: string }>> = {
-  EU: { domain: 'E', booth: 'b-e1' },
-  EDU: { domain: 'E', booth: 'b-e1' },
-  EDX: { domain: 'E', booth: 'b-e1' },
-  HU: { domain: 'H', booth: 'b-h1' },
-  YU: { domain: 'Y', booth: 'b-y1' },
-  TU: { domain: 'T', booth: 'b-t1' },
-  TDU: { domain: 'T', booth: 'b-t1' },
-  TDX: { domain: 'T', booth: 'b-t1' },
-  DU: { domain: 'DE', booth: 'b-de1' },
+/** 演示账号（C 端顾客 / 供给方 / DU 经营主体 / B 端客户 / 运营方） */
+const demoAccounts: DemoAccount[] = [
+  // C 端顾客（Mall）
+  { id: 'xiaolin', entry: 'C', hatRole: 'CU', containerId: 'c-xl', hatId: 'u-cu1', label: '小林 · 顾客', note: '消费者·小林 · 自然人容器' },
+  { id: 'amay', entry: 'C', hatRole: 'CU', containerId: 'c-may', hatId: 'u-cu2', label: '阿May · 顾客', note: '消费者·阿May · 自然人容器' },
+  // B 端组织/采购
+  { id: 'hefeng', entry: 'B', hatRole: 'OU', containerId: 'c-hf', hatId: 'u-op1', label: '恒丰·组织需求', note: '恒丰供应链 · 企业容器' },
+  // 供给方（源头产能，持供给实体铺）
+  { id: 'eu-qiuchen', entry: 'B', hatRole: 'EU', containerId: 'c-qc', hatId: 'u-eu1', label: '启辰物资 · 物资供给', note: '以 EU 身份持源头供给实体铺 Booth-E', domainView: 'E', boothTarget: 'b-e1' },
+  { id: 'hu-renshi', entry: 'B', hatRole: 'HU', containerId: 'c-rs', hatId: 'u-hu1', label: '任仕人力 · 人力供给', note: '以 HU 身份持源头供给实体铺 Booth-H', domainView: 'H', boothTarget: 'b-h1' },
+  { id: 'tu-chiyuan', entry: 'B', hatRole: 'TU', containerId: 'c-cy', hatId: 'u-tu1', label: '驰远智联 · 技术供给', note: '以 TU 身份持源头供给实体铺 Booth-T', domainView: 'T', boothTarget: 'b-t1' },
+  { id: 'yu-jiezu', entry: 'B', hatRole: 'YU', containerId: 'c-yj', hatId: 'u-yu1', label: '捷租云间 · 空间供给', note: '以 YU 身份持源头供给实体铺 Booth-Y（捷租 Jezoom）', domainView: 'Y', boothTarget: 'b-y1' },
+  // DU 唯一经营主体（一个 DU 多店）
+  { id: 'du-hehe', entry: 'B', hatRole: 'DU', containerId: 'c-du', hatId: 'u-du1', label: '合和经营 · 平台直营 DU', note: '以 DU 身份经营 5 类经营实体铺（DY/DH/DT/DE/DC），执行帽 DYX/DHX/DTX/DEX/DCX 分管', domainView: 'DE', boothTarget: 'b-de1' },
+  { id: 'du-fengshi', entry: 'B', hatRole: 'DU', containerId: 'c-fs', hatId: 'u-du2', label: '丰时经营 · 加盟 DU', note: '加盟 DU（Y/H/DE 可加盟），经营 Booth-DH', domainView: 'H', boothTarget: 'b-dh2' },
+  // B 端客户 XU（买家，走 Market）
+  { id: 'xu-huadong', entry: 'B', hatRole: 'XU', containerId: 'c-gou', hatId: 'u-xu1', label: '华东区采购办 · 客户 XU', note: 'B 端采购客户（走 Market，企业采购/询价报价）', domainView: 'E' },
+  // 平台运营方 V*M
+  { id: 'vdm', entry: 'B', hatRole: 'VDM', containerId: 'c-plat', hatId: 'u-vdm1', label: '产品市场运营长 VDM', note: '平台运营管理方·产品市场（DMX 项目线），市场秩序/规则/Booth 系统供给', domainView: 'DE' },
+];
+const DEMO_ALIAS: Record<string, DemoAccount> = Object.fromEntries(demoAccounts.map((a) => [a.id, a]));
+// 帽角色路由 → 演示账号（快捷）
+const DEMO_ROUTE: Partial<Record<HatRole, DemoAccount>> = {
+  EU: demoAccounts[3], HU: demoAccounts[4], TU: demoAccounts[5], YU: demoAccounts[6],
+  DU: demoAccounts[7], XU: demoAccounts[9], VDM: demoAccounts[10],
 };
 
-const DEMO_ALIAS: Record<string, string> = {
-  xiaolin: 'u-cu1',
-  amay: 'u-cu2',
-  hefeng: 'u-op1',
-  'eu-qiuchen': 'u-eu1',
-  edu: 'u-edu1',
-  edx: 'u-edx1',
-  'hu-xunche': 'u-hu1',
-  'yu-yunjie': 'u-yu1',
-  'tu-xingmai': 'u-tu1',
-  tdu: 'u-tdu1',
-  tdx: 'u-tdx1',
-  'de-haowei': 'u-du1',
-  'xu-huadong': 'u-xu1',
-  'vem-e': 'u-vem1',
-  'vdm-de': 'u-vdm1',
-};
-
-/** 按帽组装会话身份（含域视角/摊位落位） */
-function sessionOfHat(hatId: string): SessionUser | null {
-  const s = getStore();
-  const u = s.units.find(x => x.id === hatId);
-  if (!u) return null;
-  const c = containerById(u.containerId);
-  if (!c) return null;
-  const route = DEMO_ROUTE[u.role as HatRole];
-  const booth = route ? s.booths.find(b => b.id === route.booth) : undefined;
-  const user: SessionUser = {
-    containerId: c.id,
-    containerType: c.type,
-    containerName: c.name,
-    entry: u.side,
-    hatId: u.id,
-    hatRole: u.role,
-    hat: route && booth
-      ? `${u.name} (${u.role} ${UNIT_ROLE_LABEL[u.role]}) · 经营「${booth.name}」`
-      : `${u.name} (${u.role} ${UNIT_ROLE_LABEL[u.role]})`,
+function buildSession(acc: DemoAccount): SessionUser {
+  const store = getStore();
+  const container = store.containers.find((c) => c.id === acc.containerId) ?? store.containers[0];
+  const hat = store.units.find((u) => u.id === acc.hatId) ?? store.units[0];
+  return {
+    containerId: container.id,
+    containerName: container.name,
+    containerType: container.type,
+    entry: acc.entry,
+    hatId: hat.id,
+    hatRole: acc.hatRole,
+    hat: hat.name,
+    domainView: acc.domainView ?? undefined,
+    boothTarget: acc.boothTarget ?? undefined,
   };
-  if (route) {
-    user.domainView = route.domain;
-    user.boothTarget = route.booth;
-  }
-  return user;
 }
 
-/** 演示账号表（由 13U 帽派生，登录/一键登录共用） */
-function demoAccounts(): DemoAccount[] {
-  const s = getStore();
-  return Object.entries(DEMO_ALIAS)
-    .map(([id, hatId]) => {
-      const u = s.units.find(x => x.id === hatId);
-      if (!u) return null;
-      const c = containerById(u.containerId);
-      if (!c) return null;
-      const route = DEMO_ROUTE[u.role as HatRole];
-      const booth = route ? s.booths.find(b => b.id === route.booth) : undefined;
-      const acc: DemoAccount = {
-        id,
-        entry: u.side,
-        hatRole: u.role,
-        containerId: c.id,
-        hatId: u.id,
-        label: `${u.name} · ${UNIT_ROLE_LABEL[u.role]}`,
-        note: route && booth
-          ? `${booth.name} · 以 ${u.role} 身份经营（${c.name}）`
-          : `${c.name} · ${CONTAINER_TYPE_LABEL[c.type]}`,
-      };
-      if (route) {
-        acc.domainView = route.domain;
-        acc.boothTarget = route.booth;
-      }
-      return acc;
-    })
-    .filter((x): x is DemoAccount => x !== null);
-}
-
-const ACCOUNTS: Record<string, SessionUser> = {};
-for (const acc of demoAccounts()) {
-  const u = sessionOfHat(acc.hatId);
-  if (u) ACCOUNTS[acc.id] = u;
-}
-
-function defaultUser(entry: string): SessionUser {
-  return entry === 'B' ? ACCOUNTS.hefeng : ACCOUNTS.xiaolin;
-}
-
-// 一键登录演示账号清单（C 端 + B 端五域供给帽/经营帽）
-api.get('/auth/demos', (_req, res) => {
-  ok(res, demoAccounts());
-});
-
-// 账号密码登录（口令 test123）
 api.post('/auth/login', (req, res) => {
-  const body = req.body as { account?: string; password?: string; entry?: 'C' | 'B' };
-  if (body.password !== DEV_PASSWORD) {
-    res.status(401).json({ success: false, error: '账号或密码错误（开发口径口令 test123）' });
+  const { account, password } = (req.body ?? {}) as { account?: string; password?: string };
+  if (password !== DEV_PASSWORD) {
+    res.status(401).json({ success: false, error: '密码不正确（开发版统一 test123）' });
     return;
   }
-  const account = (body.account || '').trim().toLowerCase();
-  const entry = body.entry === 'B' ? 'B' : 'C';
-  const user = account && ACCOUNTS[account] ? ACCOUNTS[account] : defaultUser(entry);
-  const token = createToken(user);
-  ok(res, { token, user });
+  const acc = DEMO_ALIAS[account ?? ''] ?? (account === 'test123' ? demoAccounts[0] : undefined);
+  if (!acc) {
+    res.status(400).json({ success: false, error: '账号不存在，可使用演示账号一键登录' });
+    return;
+  }
+  const user = buildSession(acc);
+  ok(res, { token: createToken(user), user });
 });
 
-// 一键登录（免密，进入预设身份；可指定演示账号）
 api.post('/auth/oneclick', (req, res) => {
-  const body = req.body as { entry?: 'C' | 'B'; demoId?: string };
-  if (body.demoId && ACCOUNTS[body.demoId]) {
-    const user = ACCOUNTS[body.demoId];
-    ok(res, { token: createToken(user), user });
-    return;
-  }
-  const entry = body.entry === 'B' ? 'B' : 'C';
-  const user = defaultUser(entry);
-  const token = createToken(user);
-  ok(res, { token, user });
+  const { demoId } = (req.body ?? {}) as { demoId?: string };
+  const acc = DEMO_ALIAS[demoId ?? 'xiaolin'] ?? demoAccounts[0];
+  const user = buildSession(acc);
+  ok(res, { token: createToken(user), user });
 });
 
-// 当前会话
-api.get('/auth/me', requireAuth, (req, res) => {
-  ok(res, (req as { user?: SessionUser }).user);
-});
+api.get('/auth/demos', (_req, res) => ok(res, demoAccounts));
 
-// 登出
-api.post('/auth/logout', (req, res) => {
+api.get('/auth/me', requireAuth, (req: AuthReq, res) => ok(res, req.user));
+api.post('/auth/logout', requireAuth, (req: AuthReq, res) => {
   const h = req.headers.authorization || '';
   const token = h.startsWith('Bearer ') ? h.slice(7) : '';
-  if (token) revokeToken(token);
+  revokeToken(token);
   ok(res, { loggedOut: true });
 });
 
-// ================= 数据模型查询（域/帽/容器 三级）=================
-api.get('/model/containers', (_req, res) => {
-  const s = getStore();
-  const data = s.containers.map(c => ({
-    ...c,
-    typeLabel: CONTAINER_TYPE_LABEL[c.type],
-    hatCount: s.units.filter(u => u.containerId === c.id).length,
-    boothCount: s.booths.filter(b => b.operatorContainerId === c.id).length,
-  }));
-  ok(res, data);
-});
-
-api.get('/model/containers/:id', (req, res) => {
-  const s = getStore();
-  const c = s.containers.find(x => x.id === req.params.id);
-  if (!c) {
-    res.status(404).json({ success: false, error: '容器不存在' });
-    return;
-  }
-  const container: Container = c;
-  const hats = s.units.filter(u => u.containerId === container.id);
-  const booths = s.booths.filter(b => b.operatorContainerId === container.id);
-  ok(res, { container, hats, booths });
-});
-
-// 五域帽表（供给帽/经营帽/执行帽，含线归属）——由 domainConfig 驱动
-api.get('/model/hats', (_req, res) => {
+// ================= 首页总览 =================
+api.get('/overview', (_req, res) => {
+  const store = getStore();
+  const turnoverOf = (domain: string): number => {
+    const ids = new Set(store.booths.filter((b) => b.domain === domain).map((b) => b.id));
+    return Math.round(
+      store.orders.filter((o) => o.boothId !== null && ids.has(o.boothId)).reduce((s, o) => s + o.amountCents, 0) / 100,
+    );
+  };
   ok(res, {
-    base13U: ['CU', 'DU', 'TU', 'EU', 'HU', 'OU', 'GU', 'AU', 'FU', 'IU', 'VU', 'SU', 'YU'],
-    opExt: ['EDU', 'TDU'],
-    execExt: ['EDX', 'TDX'],
-    clients: ['XU'],
-    suppliers: ['EU', 'YU', 'HU', 'TU'],
-    franchisers: ['DU', 'YDU', 'HDU', 'EDU', 'TDU'],
-    operators: ['VEM', 'VHM', 'VYM', 'VTM', 'VDM'],
-    parties: {
-      client: { label: '客户', line: '买家', hats: ['XU'], desc: 'XU B 端采购客户帽（买家）' },
-      supplier: { label: '供应商', line: '卖家', hats: ['EU', 'YU', 'HU', 'TU'], desc: '五域供给帽（卖家）' },
-      franchiser: { label: '加盟商', line: '合伙商', hats: ['DU', 'YDU', 'HDU', 'EDU', 'TDU'], desc: '经营帽家族·平台加盟商（合伙商）' },
-      operator: { label: '运营管理方', line: '运营方', hats: ['VEM', 'VHM', 'VYM', 'VTM', 'VDM'], desc: '平台运营管理方（平台长系，挂平台容器）' },
-    },
-    domains: DOMAINS.map(d => ({
-      code: d.code,
-      name: d.name,
-      supplyHat: d.unitCode,
-      opHat: d.opCode,
-      execHat: d.execCode,
-      booth: `Booth-${d.code}`,
-      tradeCode: d.tradeCode,
-      line: `${d.unitCode} → ${d.opCode === d.unitCode ? '—' : `${d.opCode} →`} Booth-${d.code} [${d.tradeCode}]`,
+    domainMeta: DOMAINS,
+    totalBooths: store.booths.length,
+    totalListings: store.listings.length,
+    totalOrders: store.orders.length,
+    totalTurnover: Math.round(store.orders.reduce((s, o) => s + o.amountCents, 0) / 100),
+    stats: DOMAINS.map((d) => ({
+      domain: d.code,
+      booths: store.booths.filter((b) => b.domain === d.code).length,
+      turnover: turnoverOf(d.code),
     })),
   });
 });
 
-// 五大专业市场主视角（Y/E/H/T/DE）：Booth/铺主/运营方/项目线/作业系统
+// ================= 13U 帽模型查询 =================
+api.get('/model/units', (_req, res) => {
+  const store = getStore();
+  const enriched = store.units.map((u) => ({ ...u, line: HAT_LINE_OF[u.role], roleLabel: UNIT_ROLE_LABEL[u.role] }));
+  ok(res, enriched);
+});
+
+api.get('/model/hierarchy', (_req, res) => {  const store = getStore();
+  const data = store.containers.map((c) => ({
+    ...c,
+    containerTypeLabel: CONTAINER_TYPE_LABEL[c.type],
+    units: store.units
+      .filter((u) => u.containerId === c.id)
+      .map((u) => ({ ...u, roleLabel: UNIT_ROLE_LABEL[u.role], line: HAT_LINE_OF[u.role] })),
+  }));
+  ok(res, data);
+});
+
+api.get('/model/containers', (_req, res) => {
+  const store = getStore();
+  ok(res, store.containers.map((c) => ({ ...c, containerTypeLabel: CONTAINER_TYPE_LABEL[c.type] })));
+});
+
+/** 帽体系说明（X-MARKET-05：DU 唯一经营主体 + 五执行帽；不再有 YDU/HDU/EDU/TDU 独立执业帽） */
+api.get('/model/hats', (_req, res) => {
+  const base13 = ['CU', 'DU', 'TU', 'EU', 'HU', 'OU', 'GU', 'AU', 'FU', 'IU', 'VU', 'SU', 'YU'] as HatRole[];
+  const duExec = ['DYX', 'DHX', 'DTX', 'DEX', 'DCX'] as HatRole[];
+  const parties = {
+    client: { label: '客户(下游)', line: '买家', hats: ['XU', 'CU'], desc: 'XU 企业客户走 Market / CU 自然人客户走 Mall' },
+    operator: { label: '经营(中游)', line: 'DU 唯一经营主体', hats: ['DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX'], desc: 'DU 平台直营/加盟，下辖五执行帽一一对应 Booth-DY/DH/DT/DE/DC' },
+    supplier: { label: '供给(上游)', line: '源头产能', hats: ['YU', 'EU', 'HU', 'TU', 'DU'], desc: '供给方实体铺 Booth-Y/E/H/T（+产品 DU），源头产能' },
+    admin: { label: '运营管理方', line: '平台方', hats: ['VYM', 'VEM', 'VHM', 'VTM', 'VDM'], desc: '平台运营长系 V*M，市场秩序/规则/Booth 系统供给' },
+  };
+  ok(res, {
+    base13U: base13,
+    duExecHats: duExec,
+    clients: ['XU'] as HatRole[],
+    suppliers: ['EU', 'YU', 'HU', 'TU'] as HatRole[],
+    duEntity: ['DU'],
+    execHats: duExec,
+    operators: ['VEM', 'VHM', 'VYM', 'VTM', 'VDM'] as HatRole[],
+    removedIndependent: ['YDU', 'HDU', 'EDU', 'TDU', 'EDX', 'TDX'],
+    execHatToBooth: BOOTH_OF_EXEC_HAT,
+    mallExecHat: MALL_EXEC_HAT,
+    parties,
+    domains: DOMAINS,
+    jobSystems: JOB_SYSTEMS,
+    jobSystemNote: '五大作业系统 FAB/WH/DL/SVC/LAB 归 Booth 实体系统（作业层）；Market 铺面层仅引用展示，不执行作业（拎包经营，另一窗口实现）。',
+  });
+});
+
+/** 五大专业市场（Market 系统·铺面层主视角） */
 api.get('/model/markets', (_req, res) => {
-  const s = getStore();
-  const markets: Array<Record<string, unknown>> = [];
-  for (const code of PUBLIC_MARKETS) {
-    const d = marketMetaOf(code);
-    if (!d) continue;
-    const boothCount = s.booths.filter(b => b.domain === code).length;
-    markets.push({
-      code: d.code,
+  const store = getStore();
+  const markets = PUBLIC_MARKETS.map((code) => {
+    const d = DOMAINS.find((x) => x.code === code)!;
+    const domainBooths = store.booths.filter((b) => b.domain === code);
+    const supply = domainBooths.filter((b) => b.kind === 'supply');
+    const du = domainBooths.filter((b) => b.kind === 'du');
+    return {
+      code,
       marketTitle: d.marketTitle,
       marketName: d.marketName,
       name: d.name,
-      boothCode: `Booth-${d.code}`,
-      ownerRoles: d.ownerRoles,
-      ownerLabels: d.ownerRoles.map(r => UNIT_ROLE_LABEL[r as HatRole] ?? r),
-      hasFranchise: d.hasFranchise,
+      clientFace: d.clientFace,
+      // 源头供给
+      supplyBooth: d.supplyBoothCode,
+      supplyOwner: d.unitCode,
+      supplyBoothCodes: supply.map((b) => b.code),
+      // DU 经营实体
+      duBooth: d.duBoothCode,
+      duExecHat: d.duExecCode,
+      duBoothCodes: du.map((b) => b.code),
+      canFranchise: d.duCanFranchise,
+      // 平台运营方 + 项目线
       operatorRole: d.opRole,
       projectLine: d.projectLine,
-      orderFamily: familyOfDomain(d.code),
+      orderFamily: familyOfDomain(code),
       color: d.color,
-      collectedFamily: d.operationsFamily,
-      boothCount,
       summary: d.description,
-      boothCodes: s.booths.filter(b => b.domain === code).map(b => b.code),
-    });
-  }
+      supplyCount: supply.length,
+      duCount: du.length,
+    };
+  });
   ok(res, {
     markets,
     jobSystems: JOB_SYSTEMS,
+    jobSystemNote: '五大作业系统 FAB/WH/DL/SVC/LAB 内置 Booth 实体（拎包经营）；Market 铺面层仅引用展示，不执行作业。',
     operatorDuties: OPERATOR_DUTIES,
+    valueChain: '供给方 Booth-Y/E/H/T（源头产能）→ DU 经营实体 Booth-DY/DH/DT/DE/DC（组织经营）→ Market/Mall（客户界面）',
   });
 });
 
-api.get('/model/units', (req, res) => {
-  const s = getStore();
-  const role = typeof req.query.role === 'string' ? req.query.role : undefined;
-  const side = typeof req.query.side === 'string' ? req.query.side : undefined;
-  const containerId = typeof req.query.containerId === 'string' ? req.query.containerId : undefined;
-  let list = s.units;
-  if (role) list = list.filter(u => u.role === role);
-  if (side === 'C' || side === 'B') list = list.filter(u => u.side === side);
-  if (containerId) list = list.filter(u => u.containerId === containerId);
-  const containerMap = new Map(s.containers.map(c => [c.id, c.name]));
-  ok(res, list.map(u => ({
-    ...u,
-    containerName: containerMap.get(u.containerId) ?? '',
-  })));
+// ================= Mall（C 端 CU）：面向自然人的商城只读 =================
+api.get('/mall/listings', (req, res) => {
+  const store = getStore();
+  const domain = (req.query?.domain as string) || null;
+  // Mall 仅展示 C 端门店（Booth-DC，DCX 执行帽）与可零售商品
+  const dcxBoothIds = new Set(
+    store.booths
+      .filter((b) => b.kind === 'du' && store.units.find((u) => u.id === b.execUnitId)?.role === 'DCX')
+      .map((b) => b.id),
+  );
+  let list = store.listings.filter((l) => dcxBoothIds.has(l.boothId));
+  if (domain) list = list.filter((l) => l.domain === domain);
+  ok(res, list.map((l) => ({ ...l, booth: store.booths.find((b) => b.id === l.boothId) })));
 });
 
-// 三级结构：容器 → 帽(身份) → 域角色(交易对象)
-api.get('/model/hierarchy', (_req, res) => {
-  const s = getStore();
-  const containers = s.containers.map(c => ({
-    id: c.id,
-    type: c.type,
-    typeLabel: CONTAINER_TYPE_LABEL[c.type],
-    name: c.name,
-    hats: s.units
-      .filter(u => u.containerId === c.id)
-      .map(u => ({
-        id: u.id,
-        code: u.code,
-        name: u.name,
-        role: u.role,
-        side: u.side,
-        domainTags: u.domainTags,
-        dispatch: u.dispatch,
-        booths: s.booths.filter(b => b.operatorContainerId === c.id || b.ownerUnitId === u.id).map(b => ({ id: b.id, code: b.code, name: b.name, domain: b.domain })),
-      })),
-  }));
-  ok(res, containers);
+api.get('/mall/booths', (_req, res) => {
+  const store = getStore();
+  const mall = store.booths
+    .filter((b) => b.kind === 'du' && store.units.find((u) => u.id === b.execUnitId)?.role === 'DCX')
+    .map(decorateBooth(store));
+  ok(res, mall);
 });
 
-// ================= 三流占位（订单流/资源流/资金流 → XCASE 收口）=================
-api.get('/flows', (_req, res) => {
-  ok(res, {
-    ORDER: { caption: '订单流', gate: 'XCASE', status: 'stub', note: '待对接 ERP 与 XCASE 收口' },
-    RESOURCE: { caption: '资源流', gate: 'XCASE', status: 'stub', note: '履约资源调度台账占位' },
-    FUND: {
-      caption: '资金流',
-      gate: 'XCASE → ERP → X-FIN',
-      status: 'stub',
-      note: '结算收口、总账入账、财务分析三段分工',
-      segments: [
-        { id: 'XCASE', label: '结算流水（收口结算）', owner: 'XCASE', note: '订单/退款/回款实时结算流水，收口资金口径' },
-        { id: 'ERP', label: '总账/资产（管账）', owner: 'ERP', note: '结算对账入总账、应收应付与资产台账' },
-        { id: 'X-FIN', label: '财务分析（分析）', owner: 'X-FIN', note: '现金流/毛利率/产能收益等财务分析' },
-      ],
-    },
-  });
+// ================= Market（B 端 XU）：企业采购中心 · 五大专业市场铺面 =================
+api.get('/market/booths', (req, res) => {
+  const store = getStore();
+  const domain = (req.query?.domain as string) || null;
+  const kind = (req.query?.kind as string) || null; // supply | du
+  let list = [...store.booths];
+  if (domain) list = list.filter((b) => b.domain === domain);
+  if (kind === 'supply' || kind === 'du') list = list.filter((b) => b.kind === kind);
+  ok(res, list.map(decorateBooth(store)));
 });
 
-api.get('/flows/:kind', (req, res) => {
-  const kind = String(req.params.kind).toUpperCase();
-  const s = getStore();
-  const meta: Record<string, string> = { ORDER: '订单流', RESOURCE: '资源流', FUND: '资金流' };
-  if (!meta[kind]) {
-    res.status(404).json({ success: false, error: '未知三流类型' });
+api.get('/market/booths/:id', (req, res) => {
+  const store = getStore();
+  const booth = store.booths.find((b) => b.id === req.params?.id);
+  if (!booth) {
+    res.status(404).json({ success: false, error: 'Booth 不存在' });
     return;
   }
-  const rows = kind === 'ORDER'
-    ? s.orders.map(o => ({ id: o.id, tradeCode: o.tradeCode, domain: o.domain, amount: o.amount, status: o.status }))
-    : [];
-  ok(res, { kind, caption: meta[kind], gate: 'XCASE', status: 'stub', items: rows });
+  const d = DOMAINS.find((x) => x.code === booth.domain)!;
+  const listing = store.listings.filter((l) => l.boothId === booth.id);
+  const owner = store.units.find((u) => u.id === booth.ownerUnitId) || null;
+  const exec = booth.execUnitId ? store.units.find((u) => u.id === booth.execUnitId) || null : null;
+  ok(res, {
+    booth: decorateBooth(store)(booth),
+    owner,
+    exec,
+    operatorRole: d.opRole,
+    projectLine: d.projectLine,
+    canFranchise: d.duCanFranchise,
+    clientFace: d.clientFace,
+    listings: listing,
+    // 作业系统：Booth 实体能力（铺面层仅引用展示，不执行）
+    jobSystems: JOB_SYSTEMS,
+    jobSystemNote: '五大作业系统内置 Booth 实体（拎包经营）；Market 铺面层仅引用展示，不执行作业。',
+  });
 });
 
-// ================= Mall · C端 =================
-api.get('/mall/listings', (req, res) => {
-  const s = getStore();
-  const dom = typeof req.query.domain === 'string' ? req.query.domain : undefined;
-  let list = s.listings;
-  if (dom) list = list.filter(l => l.domain === dom);
-  const boothMap = new Map(s.booths.map(b => [b.id, b]));
-  const data = list.map(l => ({
-    ...l,
-    booth: boothMap.get(l.boothId) ? { id: boothMap.get(l.boothId)!.id, name: boothMap.get(l.boothId)!.name, code: boothMap.get(l.boothId)!.code, rating: boothMap.get(l.boothId)!.rating } : null,
-  }));
-  ok(res, data);
+function decorateBooth(store: ReturnType<typeof getStore>) {
+  return (b: Booth) => {
+    const d = DOMAINS.find((x) => x.code === b.domain)!;
+    const owner = store.units.find((u) => u.id === b.ownerUnitId) || null;
+    const exec = b.execUnitId ? store.units.find((u) => u.id === b.execUnitId) || null : null;
+    return {
+      ...b,
+      marketCode: b.domain,
+      kindLabel: b.kind === 'supply' ? '供给方实体铺(源头产能)' : 'DU 经营实体铺(组织经营)',
+      chainLabel: b.chain === 'source' ? '源头' : b.chain === 'du' ? '经营' : '铺面',
+      ownerRoleLabel: owner ? UNIT_ROLE_LABEL[owner.role] : '',
+      ownerName: owner?.name ?? '',
+      execHat: exec?.role ?? null,
+      execName: exec?.name ?? null,
+      marketTitle: d.marketTitle,
+      projectLine: d.projectLine,
+      operatorRole: d.opRole,
+      clientFace: d.clientFace,
+      jobSystems: JOB_SYSTEMS.map((j) => j.code),
+      franchiseLabel: b.franchise === 'direct' ? '平台直营' : b.franchise === 'franchise' ? '加盟' : '—',
+    };
+  };
+}
+
+/** 新开 Booth（B 端经营）：按专业市场约束铺主帽与权属（P4/P5）
+ *  Y/H：供给帽(YU/HU) 或 DU 经营均可；E/T：供给帽(EU/TU) 或平台直营 DU（无加盟）；DE：DU 直营/加盟。
+ *  供给方实体铺归供给帽；DU 经营实体铺归 DU + 合法执行帽；跨主体选帽拒绝。 */
+api.post('/market/booths', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  if (!can(user, 'open_booth')) {
+    res.status(403).json({ success: false, error: '客户身份不可开铺/上架；请使用供给方或 DU 经营身份' });
+    return;
+  }
+  const { domain, kind, name, franchise } = (req.body ?? {}) as { domain?: DomainCode; kind?: 'supply' | 'du'; name?: string; franchise?: 'direct' | 'franchise' };
+  const d = domain ? DOMAINS.find((x) => x.code === domain) : undefined;
+  if (!d) {
+    res.status(400).json({ success: false, error: '请选择专业市场（Y智场/E通货/H人资/T技术/DE产品）' });
+    return;
+  }
+  if (!name || !name.trim()) {
+    res.status(400).json({ success: false, error: '请填写铺名' });
+    return;
+  }
+  const store = getStore();
+  const boothKind: 'supply' | 'du' = kind === 'supply' ? 'supply' : 'du';
+  // 权属帽：supply=该域供给帽；du=DU
+  const ownerRole = boothOwnerRole(d.code, boothKind);
+  // 校验当前身份有权开该类铺
+  const role = roleOf(user);
+  const line = lineOf(user);
+  if (boothKind === 'supply' && role !== ownerRole && line !== 'admin') {
+    res.status(403).json({ success: false, error: `供给方实体铺 ${d.supplyBoothCode} 仅 ${ownerRole}（${UNIT_ROLE_LABEL[ownerRole]}）可开，跨主体开铺属越权` });
+    return;
+  }
+  if (boothKind === 'du' && role !== 'DU' && line !== 'admin') {
+    res.status(403).json({ success: false, error: `经营实体铺 ${d.duBoothCode} 仅 DU 经营主体可开（DU 唯一经营主体）` });
+    return;
+  }
+  // 加盟约束：E/T 仅平台直营
+  const effFranchise = boothKind === 'du' ? (franchise === 'franchise' ? 'franchise' : 'direct') : undefined;
+  if (boothKind === 'du' && effFranchise === 'franchise' && !d.duCanFranchise) {
+    res.status(403).json({ success: false, error: `${d.marketName}（${d.marketTitle}）不开放加盟，仅平台直营 DU 可开店` });
+    return;
+  }
+  // 执行帽：du 经营实体按域一一对应；Mall C 端 DE 用 DCX
+  const execRole = boothKind === 'du'
+    ? (d.clientFace === 'mall' && franchise === 'direct' ? MALL_EXEC_HAT : duExecHatOf(d.code))
+    : undefined;
+  const ownerHat = store.units.find((u) => u.containerId === user.containerId && u.role === ownerRole)
+    ?? store.units.find((u) => u.role === ownerRole);
+  const execHat = execRole
+    ? (store.units.find((u) => u.containerId === user.containerId && u.role === execRole)
+       ?? store.units.find((u) => u.role === execRole))
+    : undefined;
+  if (!ownerHat) {
+    res.status(400).json({ success: false, error: `当前主体缺少 ${ownerRole} 帽，无法持有 ${boothKind === 'supply' ? d.supplyBoothCode : d.duBoothCode}` });
+    return;
+  }
+  const prefix = boothKind === 'supply' ? d.supplyBoothCode : d.duBoothCode;
+  const id = nextSeq('booth');
+  const seq = String(store.booths.filter((b) => b.code.startsWith(prefix)).length + 1).padStart(2, '0');
+  const booth: Booth = {
+    id,
+    code: `${prefix}-${seq}`,
+    domain: d.code,
+    kind: boothKind,
+    name: name.trim(),
+    ownerUnitId: ownerHat.id,
+    execUnitId: execHat?.id,
+    operatorContainerId: user.containerId,
+    chain: boothKind === 'supply' ? 'source' : (d.clientFace === 'mall' && execRole === MALL_EXEC_HAT ? 'face' : 'du'),
+    mode: boothKind === 'supply' ? `${ownerRole} → ${prefix}（源头产能）` : `DU·${execRole} → ${prefix}（组织经营）`,
+    frontDesc: '新铺·铺面（售卖面，面向客户询价/报价/合同/下单）',
+    backDesc: 'Booth 实体·五大作业系统 FAB/WH/DL/SVC/LAB（拎包经营，作业层占位）',
+    franchise: effFranchise,
+    status: 'open',
+    rating: 0,
+    listingCount: 0,
+  };
+  store.booths.push(booth);
+  ok(res, decorateBooth(store)(booth));
 });
 
-api.get('/mall/booths', (req, res) => {
-  const s = getStore();
-  const dom = typeof req.query.domain === 'string' ? req.query.domain : undefined;
-  let list = s.booths;
-  if (dom) list = list.filter(b => b.domain === dom);
+/* ============ B2B 闭环：询价 → 报价 → 合同 → 下单（P6，Market 铺面层） ============ */
+api.post('/market/inquiries', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  if (!can(user, 'b2b_purchase')) {
+    res.status(403).json({ success: false, error: '仅 B 端采购客户（XU）可发起企业询价' });
+    return;
+  }
+  const { boothId, domain, title, detail } = (req.body ?? {}) as { boothId?: string; domain?: DomainCode; title?: string; detail?: string };
+  const store = getStore();
+  const booth = store.booths.find((b) => b.id === boothId);
+  if (!booth) {
+    res.status(404).json({ success: false, error: '目标铺面不存在' });
+    return;
+  }
+  const id = `inq-${inquiries.length + 1}`;
+  const code = `RFQ-${(inquiries.length + 1).toString().padStart(4, '0')}`;
+  const inq: Inquiry = {
+    id, code, domain: domain ?? booth.domain, boothId: boothId ?? booth.id, buyerContainerId: user.containerId,
+    title: title?.trim() || '企业采购询价', detail: detail?.trim() || '',
+    status: 'inquiry', createdAt: new Date().toISOString().slice(0, 10),
+  };
+  inquiries.push(inq);
+  ok(res, inq);
+});
+
+api.get('/market/inquiries', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  const line = lineOf(user);
+  // 客户只见自己发起；经营方(DU/供给)见待报价；运营方见全部
+  let list = inquiries;
+  if (line === 'demand') list = inquiries.filter((i) => i.buyerContainerId === user.containerId);
+  else if (line === 'admin') list = inquiries;
+  else list = inquiries.filter((i) => i.status === 'inquiry' || i.status === 'quoted');
   ok(res, list);
 });
 
-// 摊位详情（双层：前店售卖面 + 后厂履约面）
-api.get('/mall/booths/:id', (req, res) => {
-  const s = getStore();
-  const booth = s.booths.find(b => b.id === req.params.id);
-  if (!booth) {
-    res.status(404).json({ success: false, error: 'Booth not found' });
+/** 报价 → 合同 → 下单（占位流转，经营方操作） */
+api.post('/market/inquiries/:id/quote', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  if (!can(user, 'operate_booth')) {
+    res.status(403).json({ success: false, error: '仅经营/供给方可报价' });
     return;
   }
-  ok(res, {
-    booth,
-    front: s.listings.filter(l => l.boothId === booth.id),
-    back: s.fulfillments.filter(f => f.boothId === booth.id),
-    owner: s.units.find(u => u.id === booth.ownerUnitId) ?? null,
-  });
+  const inq = inquiries.find((i) => i.id === req.params?.id);
+  if (!inq) { res.status(404).json({ success: false, error: '询价单不存在' }); return; }
+  const { quoteCents, quoteNote } = (req.body ?? {}) as { quoteCents?: number; quoteNote?: string };
+  inq.status = 'quoted';
+  inq.quoteCents = quoteCents ?? 0;
+  inq.quoteNote = quoteNote ?? '';
+  ok(res, inq);
+});
+api.post('/market/inquiries/:id/contract', requireAuth, (req: AuthReq, res) => {
+  const inq = inquiries.find((i) => i.id === req.params?.id);
+  if (!inq) { res.status(404).json({ success: false, error: '询价单不存在' }); return; }
+  if (inq.status !== 'quoted') { res.status(400).json({ success: false, error: '请先报价再签合同' }); return; }
+  inq.status = 'contracted';
+  inq.contractNo = `CT-${inq.code.slice(4)}`;
+  ok(res, inq);
 });
 
-// ================= Market · B端 =================
-api.get('/market/units', (req, res) => {
-  const s = getStore();
-  const role = typeof req.query.role === 'string' ? req.query.role : undefined;
-  let list = s.units;
-  if (role) list = list.filter(u => u.role === role);
-  const containerMap = new Map(s.containers.map(c => [c.id, c.name]));
-  ok(res, list.map(u => ({ ...u, containerName: containerMap.get(u.containerId) ?? '' })));
+/* ============ 运营治理（P7，V*M 运营方骨架） ============ */
+api.get('/govern/cases', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  const d = marketMetaOf(user.domainView ?? null);
+  const line = lineOf(user);
+  const role = roleOf(user);
+  // 运营方见管辖域；产品市场运营长(VDM) 兼看产品；其余平台运营长见本域
+  const list = line === 'admin'
+    ? governanceCases.filter((g) => g.opRole === role || role === 'VDM')
+    : [];
+  ok(res, { cases: list, duties: OPERATOR_DUTIES, domain: d?.marketName ?? null });
 });
 
-// 摊位列表（含双层聚合）
-api.get('/market/booths', (req, res) => {
-  const s = getStore();
-  const dom = typeof req.query.domain === 'string' ? req.query.domain : undefined;
-  let list = s.booths;
-  if (dom) list = list.filter(b => b.domain === dom);
-  const unitMap = new Map(s.units.map(u => [u.id, u]));
-  const data = list.map(b => {
-    const frontCount = s.listings.filter(l => l.boothId === b.id).length;
-    const backTasks = s.fulfillments.filter(f => f.boothId === b.id);
+// ================= 订单流（六族 + C 族，按身份过滤 P3） ==================
+api.get('/orders/families', (_req, res) => {
+  ok(res, [
+    { family: 'C', name: 'Order-C 消费订单', desc: 'Mall C 端 CU 自然人消费（B2C）' },
+    { family: 'D', name: 'Order-D 门店产能订单', desc: '门店/产品产能，经 Booth-DE/DC → D-OFD 汇聚调度' },
+    { family: 'H', name: 'Order-H 人力订单', desc: '人力/技能服务采购，Booth-DH/DHX 经营承接' },
+    { family: 'E', name: 'Order-E 物资订单', desc: '物资/商品采购，Booth-E 源头 → Booth-DE/DEX 经营承接' },
+    { family: 'Y', name: 'Order-Y 空间订单', desc: '空间租赁采购，Booth-DY/DYX 经营承接（捷租）' },
+    { family: 'T', name: 'Order-T 技术订单', desc: '技术采购订单，Booth-DT/DTX 经营承接（新增）' },
+  ]);
+});
+
+/** 订单按身份过滤（P3）：客户只见自己、DU 见名下多店、运营方见管辖域/全局 */
+api.get('/orders', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  const store = getStore();
+  const line = lineOf(user);
+  const role = roleOf(user);
+
+  let list = store.orders.map((o) => {
+    const booth = store.booths.find((b) => b.id === o.boothId);
+    const listing = o.listingId ? store.listings.find((l) => l.id === o.listingId) : undefined;
+    const buyer = containerById(o.buyerContainerId);
+    const seller = containerById(o.sellerContainerId);
     return {
-      ...b,
-      owner: unitMap.get(b.ownerUnitId) ? { id: unitMap.get(b.ownerUnitId)!.id, name: unitMap.get(b.ownerUnitId)!.name, code: unitMap.get(b.ownerUnitId)!.code } : null,
-      frontCount,
-      backCount: backTasks.length,
-      backLoad: backTasks.reduce((acc, t) => acc + t.used, 0),
+      ...o,
+      boothCode: booth?.code ?? '',
+      boothName: booth?.name ?? '',
+      boothKind: booth?.kind ?? '',
+      listingTitle: listing?.title ?? '—',
+      buyerName: buyer?.name ?? '—',
+      sellerName: seller?.name ?? '—',
     };
   });
-  ok(res, data);
+
+  if (can(user, 'view_all_orders')) {
+    // 运营方：全局总账
+  } else if (role === 'DU' || line === 'exec' || line === 'supply') {
+    // DU 经营主体/执行/供给：见名下多店
+    const myBoothIds = new Set(
+      store.booths
+        .filter((b) => b.operatorContainerId === user.containerId || b.ownerUnitId === user.hatId || line === 'supply')
+        .map((b) => b.id),
+    );
+    list = list.filter((o) => o.sellerContainerId === user.containerId || (o.boothId !== null && myBoothIds.has(o.boothId)));
+  } else {
+    // 客户（CU/XU/OU 等下游）：只见自己下单
+    list = list.filter((o) => o.buyerContainerId === user.containerId);
+  }
+  ok(res, list);
 });
 
-// 摊位详情（B端经营视角：前店+后厂+经营单元）
-api.get('/market/booths/:id', (req, res) => {
-  const s = getStore();
-  const booth = s.booths.find(b => b.id === req.params.id);
+api.post('/orders', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  const { boothId, listingId, amountCents, side } = (req.body ?? {}) as { boothId?: string; listingId?: string; amountCents?: number; side?: 'C' | 'B' };
+  const store = getStore();
+  const booth = store.booths.find((b) => b.id === boothId);
   if (!booth) {
-    res.status(404).json({ success: false, error: 'Booth not found' });
+    res.status(404).json({ success: false, error: 'Booth 不存在' });
     return;
   }
-  ok(res, {
-    booth,
-    front: s.listings.filter(l => l.boothId === booth.id),
-    back: s.fulfillments.filter(f => f.boothId === booth.id),
-    owner: s.units.find(u => u.id === booth.ownerUnitId) ?? null,
-    ops: booth.opsUnitId ? s.units.find(u => u.id === booth.opsUnitId) ?? null : null,
-    orders: s.orders.filter(o => o.boothId === booth.id),
-  });
-});
-
-// 创建摊位（新增域摊位，B端）
-api.post('/market/booths', (req, res) => {
-  const s = getStore();
-  const body = req.body as { domain?: string; name?: string; ownerUnitId?: string; frontDesc?: string; backDesc?: string };
-  const domain = body.domain && domainByCode(body.domain).code;
-  if (!domain || !body.name || !body.ownerUnitId) {
-    res.status(400).json({ success: false, error: 'domain/name/ownerUnitId 为必填项' });
+  // 客户界面校验：DCX/Mall 仅 CU；其余 Market 面 XU
+  const execRole = store.units.find((u) => u.id === booth.execUnitId)?.role;
+  const effSide: 'C' | 'B' = side ?? (execRole === 'DCX' ? 'C' : 'B');
+  if (effSide === 'C' && roleOf(user) !== 'CU') {
+    res.status(403).json({ success: false, error: 'Mall C 端门店仅 CU 自然人客户下单；企业采购请走 Market 询价' });
     return;
   }
-  const owner = s.units.find(u => u.id === body.ownerUnitId);
-  if (!owner) {
-    res.status(400).json({ success: false, error: 'owner 经营帽不存在' });
-    return;
-  }
-  const domainInfo = domainByCode(domain);
-  const n = s.booths.filter(b => b.domain === domain).length + 1;
-  const booth = {
-    id: `b-${domain}-${Date.now()}`,
-    code: `Booth-${domain}-${String(n).padStart(2, '0')}`,
-    domain,
-    name: body.name,
-    ownerUnitId: body.ownerUnitId,
-    operatorContainerId: owner.containerId,
-    mode: domainInfo.mode,
-    frontDesc: body.frontDesc || '待补充售卖面说明',
-    backDesc: body.backDesc || '待补充履约面说明',
-    status: 'open',
-    rating: 4.5,
-    listingCount: 0,
-  } as const;
-  s.booths.push(booth);
-  ok(res, booth);
-});
-
-// 上架商品（前店售卖面）
-api.post('/market/booths/:id/listings', (req, res) => {
-  const s = getStore();
-  const booth = s.booths.find(b => b.id === req.params.id);
-  if (!booth) {
-    res.status(404).json({ success: false, error: 'Booth not found' });
-    return;
-  }
-  const body = req.body as { title?: string; spec?: string; unit?: string; price?: number; stock?: number; supplierUnitId?: string };
-  if (!body.title || !body.unit || typeof body.price !== 'number') {
-    res.status(400).json({ success: false, error: 'title/unit/price 为必填项' });
-    return;
-  }
-  const listing = {
-    id: `l-${booth.id}-${Date.now()}`,
-    boothId: booth.id,
-    domain: booth.domain,
-    title: body.title,
-    spec: body.spec || '-',
-    unit: body.unit,
-    price: body.price,
-    stock: body.stock ?? 0,
-    supplierUnitId: body.supplierUnitId || booth.ownerUnitId,
-    category: '自定义',
-  } as const;
-  s.listings.push(listing);
-  booth.listingCount = s.listings.filter(l => l.boothId === booth.id).length;
-  ok(res, listing);
-});
-
-// 添加履约任务（后厂履约面）
-api.post('/market/booths/:id/fulfillments', (req, res) => {
-  const s = getStore();
-  const booth = s.booths.find(b => b.id === req.params.id);
-  if (!booth) {
-    res.status(404).json({ success: false, error: 'Booth not found' });
-    return;
-  }
-  const body = req.body as { title?: string; task?: string; capacity?: number };
-  if (!body.title) {
-    res.status(400).json({ success: false, error: 'title 为必填项' });
-    return;
-  }
-  const fulfillment = {
-    id: `f-${booth.id}-${Date.now()}`,
-    boothId: booth.id,
-    domain: booth.domain,
-    title: body.title,
-    task: body.task || '待补充履约动作',
-    capacity: body.capacity ?? 0,
-    used: 0,
-    status: 'ready',
-  } as const;
-  s.fulfillments.push(fulfillment);
-  ok(res, fulfillment);
-});
-
-// 交易对象（商品/服务/产能）柜台，预留交易对象台账
-api.get('/tradables', (_req, res) => {
-  const s = getStore();
-  ok(res, {
-    listingCount: s.listings.length,
-    categories: Array.from(new Set(s.listings.map(l => l.category))),
-    capacityBooths: s.fulfillments.length,
-  });
-});
-
-// ================= 交易与订单 =================
-api.post('/orders', (req, res) => {
-  const s = getStore();
-  const body = req.body as {
-    type?: 'MALL' | 'MARKET';
-    listingId?: string;
-    buyerUnitId?: string;
-    qty?: number;
-  };
-  const listing = s.listings.find(l => l.id === body.listingId);
-  if (!listing) {
-    res.status(400).json({ success: false, error: 'listing 不存在' });
-    return;
-  }
-  if (!body.buyerUnitId) {
-    res.status(400).json({ success: false, error: 'buyerUnitId 为必填项' });
-    return;
-  }
-  const qty = body.qty ?? 1;
-  if (qty <= 0 || qty > listing.stock) {
-    res.status(400).json({ success: false, error: '数量超出库存' });
-    return;
-  }
-  const booth = s.booths.find(b => b.id === listing.boothId);
-  const domainInfo = domainByCode(listing.domain);
-  const seq = nextSeq(domainInfo.code);
-  const tradeCode = `${domainInfo.tradeCode}-2024-${String(seq).padStart(4, '0')}`;
+  const listing = listingId ? store.listings.find((l) => l.id === listingId) : undefined;
+  const amount = amountCents ?? listing?.priceCents ?? 0;
+  const d = DOMAINS.find((x) => x.code === booth.domain)!;
+  const tradeCode = effSide === 'C' ? 'C' : d.tradeCode;
+  const family = effSide === 'C' ? 'C' : familyOfDomain(booth.domain);
+  const id = nextSeq('order');
+  const code = nextOrderCode(tradeCode, family);
   const order: Order = {
-    id: `o-${Date.now()}`,
-    type: body.type === 'MARKET' ? 'MARKET' : 'MALL',
-    family: body.type === 'MARKET' ? familyOfDomain(listing.domain) : 'C',
-    tradeCode,
-    domain: listing.domain,
-    buyerUnitId: body.buyerUnitId,
-    sellerUnitId: listing.supplierUnitId,
-    boothId: booth?.id ?? null,
-    listingId: listing.id,
-    title: listing.title,
-    qty,
-    amount: listing.price * qty,
-    status: 'paid',
-    createdAt: new Date().toISOString(),
+    id, code, family, side: effSide, boothId: boothId ?? null, listingId: listingId ?? null,
+    buyerContainerId: user.containerId, sellerContainerId: booth.operatorContainerId,
+    tradeCode, status: 'pending', amountCents: amount,
+    note: effSide === 'B' ? `企业采购（${d.marketTitle}市场，${booth.kind === 'du' ? booth.code : (d.duBoothCode ?? booth.code) + ' 经营承接'}）` : undefined,
   };
-  s.orders.push(order);
-  listing.stock -= qty;
-  ok(res, order);
-});
-
-// 订单六族占位（C/D/H/E/Y/T）
-api.get('/orders/families', (_req, res) => {
-  const s = getStore();
-  const FAMILY_META = [
-    { family: 'C', caption: '客户订单族', lead: 'C 端消费者直购（Shop B2C）' },
-    { family: 'D', caption: '门店产能订单族', lead: 'DU → Booth-DE → D-OFD 履约' },
-    { family: 'H', caption: '人力订单族', lead: 'HU → HDU → Booth-H → HX' },
-    { family: 'E', caption: '物资订单族', lead: 'EU → Booth-E → EX' },
-    { family: 'Y', caption: '空间订单族', lead: 'YU → YDU → Booth-Y → YX' },
-    { family: 'T', caption: '技术订单族 Order-T', lead: 'TU/TDU → Booth-T → TDX，经 X-OFD 汇聚（占位）' },
-  ] as const;
-  const withCount = FAMILY_META.map(m => ({
-    ...m,
-    count: s.orders.filter(o => o.family === m.family).length,
-    status: m.family === 'T' ? 'placeholder' : 'active',
-  }));
-  ok(res, {
-    families: withCount,
-    mapping: { C: '客户端', D: '门店产能', H: '人力', E: '物资', Y: '空间', T: '技术(Order-T)' },
-  });
-});
-
-// 订单列表
-api.get('/orders', (req, res) => {
-  const s = getStore();
-  const type = typeof req.query.type === 'string' ? req.query.type : undefined;
-  let list = s.orders;
-  if (type) list = list.filter(o => o.type === type);
-  const unitMap = new Map(s.units.map(u => [u.id, u.name]));
-  const data = list.map(o => ({
-    ...o,
-    buyer: unitMap.get(o.buyerUnitId) ?? o.buyerUnitId,
-    seller: unitMap.get(o.sellerUnitId) ?? o.sellerUnitId,
-  }));
-  ok(res, data.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
-});
-
-// 订单状态推进
-api.post('/orders/:id/advance', (req, res) => {
-  const s = getStore();
-  const order = s.orders.find(o => o.id === req.params.id);
-  if (!order) {
-    res.status(404).json({ success: false, error: 'Order not found' });
-    return;
+  store.orders.push(order);
+  // B2B 询价转下单
+  const { inquiryId } = (req.body ?? {}) as { inquiryId?: string };
+  if (inquiryId) {
+    const inq = inquiries.find((i) => i.id === inquiryId);
+    if (inq) { inq.status = 'ordered'; inq.contractNo = inq.contractNo ?? code; }
   }
-  const flow: Record<Order['status'], Order['status']> = {
-    pending: 'paid',
-    paid: 'fulfilling',
-    fulfilling: 'done',
-    done: 'done',
-  };
-  order.status = flow[order.status];
   ok(res, order);
 });
 
-// ---- 元信息 ----
-api.get('/meta', (_req, res) => {
-  ok(res, { domains: DOMAINS, stats: domainStats() });
+// ================= 三流占位（订单流/资源流/资金流） ==================
+api.get('/flows', (_req, res) => {
+  ok(res, [
+    { kind: 'ORDER', label: '订单流', desc: 'Order-C/D/H/E/Y/T 六族', status: '已建模',
+      detail: '交易订单在 Market 铺面层（询价→报价→合同→下单）；B2B=XU 走 Market，B2C=CU 走 Mall（DCX）。' },
+    { kind: 'RESOURCE', label: '资源流', desc: 'Booth 实体五作业系统 FAB/WH/DL/SVC/LAB', status: '占位',
+      detail: '作业系统归 Booth 实体（作业层）：交易订单 ↔ 履约采购/调度单回传；Market 不执行作业。' },
+    { kind: 'FUND', label: '资金流（XCASE 收口）', desc: '三段：XCASE → ERP → X-FIN', status: '占位',
+      segments: [
+        { stage: 'XCASE', role: '结算流水', desc: '收口交易结算/支付流水（Market 交易资金归集）' },
+        { stage: 'ERP', role: '总账/资产', desc: '企业资源计划记总账与资产（对接方：ERP-TENANT）' },
+        { stage: 'X-FIN', role: '财务分析', desc: '财务数据建模与经营分析' },
+      ] },
+  ]);
 });
 
-// ---- 双入口首页看板 ----
-api.get('/overview', (_req, res) => {
-  const s = getStore();
-  ok(res, {
-    stats: domainStats(),
-    domainMeta: DOMAINS,
-    totalListings: s.listings.length,
-    totalBooths: s.booths.length,
-    totalOrders: s.orders.length,
-    totalTurnover: s.orders.filter(o => o.status !== 'pending').reduce((a, o) => a + o.amount, 0),
-  });
-});
-
+// 兼容旧别名
 router.use('/api', api);
-
-// 兜底 404
-router.use('/api', (req, res) => {
-  res.status(404).json({ success: false, error: 'API 未找到: ' + req.originalUrl });
-});
-
 export default router;

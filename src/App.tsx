@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { Routes, Route, NavLink, Link, Navigate, useLocation } from 'react-router-dom';
-import { BookOpenText, Store, LayoutGrid, LogIn, LogOut, CircleUserRound } from 'lucide-react';
+import { BookOpenText, Store, LayoutGrid, LogIn, LogOut, CircleUserRound, ShieldCheck } from 'lucide-react';
 import { AuthProvider, useAuth } from './Auth';
+import { isAdminRole } from './lib/domain';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Mall from './pages/Mall';
@@ -10,6 +11,7 @@ import Market from './pages/Market';
 import MarketBooth from './pages/MarketBooth';
 import Orders from './pages/Orders';
 import Model from './pages/Model';
+import Govern from './pages/Govern';
 
 function Protected({ children }: { children: ReactNode }) {
   const { isAuthed, loading } = useAuth();
@@ -54,6 +56,11 @@ function Header() {
           <NavLink to="/model" className={({ isActive }) => `hidden items-center gap-1.5 rounded-md px-3 py-2 transition md:flex ${isActive ? 'bg-[#17181d] text-white' : 'hover:bg-[#efeae0]'}`}>
             域·帽
           </NavLink>
+          {isAdminRole(user?.hatRole) && (
+            <NavLink to="/govern" className={({ isActive }) => `hidden items-center gap-1.5 rounded-md px-3 py-2 transition md:flex ${isActive ? 'bg-[#17181d] text-white' : 'hover:bg-[#efeae0]'}`}>
+              <ShieldCheck className="h-4 w-4" /> 运营治理
+            </NavLink>
+          )}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -94,12 +101,13 @@ export default function App() {
             <Route path="/market" element={<Protected><Market /></Protected>} />
             <Route path="/market/booth/:id" element={<Protected><MarketBooth /></Protected>} />
             <Route path="/orders" element={<Protected><Orders /></Protected>} />
-            <Route path="/model" element={<Protected><Model /></Protected>} />
+            <Route path="/model" element={<Model />} />
+            <Route path="/govern" element={<Protected><Govern /></Protected>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
         <footer className="mt-10 border-t py-6 text-center text-xs text-[#8a8577]">
-          X-Market 五域集市系统 · ZiwayOS v2.2 · 13U 口径 · 双入口 Mall/Market · Booth 双层 前店售卖面 / 后厂履约面
+          X-Market 企业采购中心 · ZiwayOS v2.2 · 三套系统：Market 交易 / Booth 作业 / Mall 零售 · 权属：Y/E/H/T 归供给方，DY/DH/DT/DE/DC 归 DU
         </footer>
       </div>
     </AuthProvider>

@@ -1,15 +1,12 @@
-// 域元信息前端映射
-// 口径（P0）：Market=交易平台，不经营、不持有资源；经营户=五域铺子(Booth)；帽=铺子经营者身份，不单独开店/入驻。
-export const BOOTH_OPENER_ROLES: string[] = ['EU', 'HU', 'YU', 'TU', 'DU'];
+// 域/角色前端映射（X-MARKET-05 三方链路与 Booth 权属定版）
+// 两套系统：Market=铺面层（交易平台，不经营/不持资源/不执行作业）；Booth 实体=作业层（经营实体+五作业系统）。
+// 价值链：供给方 Booth-Y/E/H/T（源头产能）→ DU 经营实体 Booth-DY/DH/DT/DE/DC（组织经营）→ Market/Mall（客户界面）。
 
-// X-MARKET-04：按专业市场约束开铺铺主帽（Y/H 供应帽+加盟执业帽；E/T 仅供应帽；DE 直营/加盟）
-export const MARKET_OWNER_ROLES: Record<string, string[]> = {
-  Y: ['YU', 'YDU'],
-  E: ['EU'],
-  H: ['HU', 'HDU'],
-  T: ['TU'],
-  DE: ['DU'],
-};
+import { UNIT_ROLE_LABEL } from '../../shared/types';
+import type { HatRole } from '../../shared/types';
+
+export const DOMAIN_ORDER: string[] = ['Y', 'E', 'H', 'T', 'DE'];
+
 export const MARKET_TITLES: Record<string, string> = {
   Y: '智场',
   E: '通货',
@@ -34,6 +31,55 @@ export const DOMAIN_NAMES: Record<string, string> = {
   DE: '门店产能',
 };
 
+/** 供给方实体铺（源头产能）权属帽 */
+export const SUPPLY_OWNER: Record<string, string> = {
+  Y: 'YU', E: 'EU', H: 'HU', T: 'TU',
+};
+/** DU 经营实体铺执行帽（一一对应 Booth-DY/DH/DT/DE/DC） */
+export const DU_EXEC_HAT: Record<string, string> = {
+  Y: 'DYX', H: 'DHX', T: 'DTX', DE: 'DEX',
+};
+export const EXEC_HAT_TO_BOOTH: Record<string, string> = {
+  DYX: 'Booth-DY', DHX: 'Booth-DH', DTX: 'Booth-DT', DEX: 'Booth-DE', DCX: 'Booth-DC',
+};
+/** 可加盟域：Y/H/DE；E/T 仅平台直营 */
+export const FRANCHISE_DOMAINS = ['Y', 'H', 'DE'];
+
+/** 角色 → 三方角色（下游客户/中游经营/上游供给/平台运营） */
+export const PARTY_OF_ROLE: Record<string, string> = {
+  // 客户（下游）
+  XU: '客户', CU: '客户',
+  // 经营（中游，DU 唯一主体）
+  DU: '经营', DYX: '经营', DHX: '经营', DTX: '经营', DEX: '经营', DCX: '经营',
+  // 供给（上游，源头产能）
+  EU: '供给', HU: '供给', YU: '供给', TU: '供给',
+  // 平台运营管理方
+  VEM: '运营管理方', VHM: '运营管理方', VYM: '运营管理方', VTM: '运营管理方', VDM: '运营管理方',
+  OU: '组织管理',
+};
+export const PARTY_LIST = ['客户', '经营', '供给', '运营管理方', '组织管理'];
+export const partyOfRole = (r: string): string => PARTY_OF_ROLE[r] ?? '其他';
+export const PARTY_COLORS: Record<string, string> = {
+  客户: '#4A5FD5',
+  经营: '#D6366E',
+  供给: '#C27A1B',
+  运营管理方: '#17A290',
+  组织管理: '#6b665a',
+  其他: '#999',
+};
+export const partyOf = (role: string): string => PARTY_OF_ROLE[role] ?? '组织管理';
+
+/** 是否客户（下游买家，只读）：CU/XU */
+export const isClientRole = (role: string | null | undefined): boolean => role === 'CU' || role === 'XU';
+/** 是否运营管理方 */
+export const isAdminRole = (role: string | null | undefined): boolean =>
+  role === 'VEM' || role === 'VHM' || role === 'VYM' || role === 'VTM' || role === 'VDM';
+/** 是否经营/供给（可开铺操作） */
+export const isOperatorRole = (role: string | null | undefined): boolean => {
+  if (!role) return false;
+  return ['DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX', 'EU', 'HU', 'YU', 'TU', 'VEM', 'VHM', 'VYM', 'VTM', 'VDM'].includes(role);
+};
+
 export const ORDER_STATUS: Record<string, { label: string; color: string }> = {
   pending: { label: '待付款', color: '#b8862b' },
   paid: { label: '已支付', color: '#17a290' },
@@ -41,33 +87,40 @@ export const ORDER_STATUS: Record<string, { label: string; color: string }> = {
   done: { label: '已完成', color: '#6b665a' },
 };
 
-// 四方角色语义（X-MARKET-03 LOCKED）
-// 客户 XU / 供应商 EU·YU·HU·TU / 加盟商(平台合伙商) DU·YDU·HDU·EDU·TDU / 运营管理方 V*M；OU=组织管理语义
-export const PARTY_OF_ROLE: Record<string, string> = {
-  XU: '客户',
-  EU: '供应商',
-  HU: '供应商',
-  YU: '供应商',
-  TU: '供应商',
-  DU: '加盟商',
-  HDU: '加盟商',
-  YDU: '加盟商',
-  EDU: '加盟商',
-  TDU: '加盟商',
-  VEM: '运营管理方',
-  VHM: '运营管理方',
-  VYM: '运营管理方',
-  VTM: '运营管理方',
-  VDM: '运营管理方',
-  OU: '组织管理',
+export const JOB_SYSTEM_LABEL: Record<string, string> = {
+  FAB: '制造', WH: '仓储', DL: '配送', SVC: '服务', LAB: '实验',
 };
-export const PARTY_LIST = ['客户', '供应商', '加盟商', '运营管理方'];
-export const partyOfRole = (r: string): string => PARTY_OF_ROLE[r] ?? '其他';
-export const PARTY_COLORS: Record<string, string> = {
-  客户: '#4A5FD5',
-  供应商: '#C27A1B',
-  加盟商: '#D6366E',
-  运营管理方: '#17A290',
-  组织管理: '#6b665a',
+
+/* ============ 通用辅助（页面视图层） ============ */
+export const PRO_MARKET_ORDER = DOMAIN_ORDER;
+export const colorOf = (code: string | null | undefined): string =>
+  (code && DOMAIN_COLORS[code]) || '#17181d';
+export const marketLabel = (code: string | null | undefined): string =>
+  code ? `Market-${code}·${MARKET_TITLES[code] ?? DOMAIN_NAMES[code] ?? ''}` : '—';
+export const jobSystemName = (code: string): string => JOB_SYSTEM_LABEL[code] ?? code;
+export const kindLabelSafe = (kind: string | null | undefined): string =>
+  kind === 'supply' ? '供给方实体' : kind === 'du' ? 'DU 经营实体' : '—';
+export const hatLabel = (role: string | null | undefined): string => {
+  if (!role) return '未激活';
+  return UNIT_ROLE_LABEL[role as HatRole] ?? role;
 };
-export const partyOf = (role: string): string => PARTY_OF_ROLE[role] ?? '组织管理';
+export const roleLabel = hatLabel;
+/** 可经营/操作（非客户）：DU/执行帽/供给帽/运营方 */
+export const canOperate = isOperatorRole;
+/** 是否可操作该铺：必须是经营/供给身份，且为该铺权属帽本人（跨主体=越权，P5） */
+export const canOperateBooth = (
+  role: string | null | undefined,
+  hatId: string | null | undefined,
+  ownerUnitId: string | null | undefined,
+): boolean => canOperate(role) && !!hatId && hatId === ownerUnitId;
+/** 开新铺约束（P5）：supply 仅该域供给帽；du 仅 DU（Y/H/DE 可加盟，E/T 仅直营） */
+export const canOpenMarket = (
+  marketCode: string,
+  kind: 'supply' | 'du',
+  role: string | null | undefined,
+): boolean => {
+  if (!role) return false;
+  if (isAdminRole(role)) return true;
+  if (kind === 'supply') return SUPPLY_OWNER[marketCode] === role;
+  return role === 'DU';
+};

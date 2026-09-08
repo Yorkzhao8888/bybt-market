@@ -1,201 +1,175 @@
-// X-Market 五域集市系统 · 内存数据仓库（含种子数据）
-// 以「容器（主体）→ 帽（13U 身份）→ 角色（域角色）→ 交易对象」四级建模。
-// 13U 口径（09-08 LOCKED）：PU→TU；13 = 12U + YU(域主)。
+// X-Market 五域集市系统 · 内存数据存储（演示开发版）
+// X-MARKET-05：两套系统 + 三方链路 + Booth 权属定版
+//   容器(主体) → 帽(身份) → 域角色(标签) → Booth 实体(作业层) / 交易对象(铺面层)
 
-import type {
-  Booth, Container, DomainCode, DomainStats, Fulfillment, HatRole, Listing, MarketTag, Order, Unit,
-} from '../shared/types';
-import { DOMAINS, familyOfDomain, ORDER_FAMILY_OF_TRADECODE } from './domainConfig';
+import type { Container, Unit, Booth, Order, Listing } from '../shared/types';
 
+/* ============ 容器（主体） ============ */
+export const containers: Container[] = [
+  { id: 'c-xl', type: 'XHPZ', name: '消费者·小林', region: '华东', credit: 80 },
+  { id: 'c-may', type: 'XHPZ', name: '消费者·阿May', region: '华南', credit: 78 },
+  { id: 'c-hf', type: 'XEPZ', name: '恒丰供应链', region: '华东', credit: 90 },
+  // 供给方实体（源头产能）
+  { id: 'c-qc', type: 'XEPZ', name: '启辰物资', region: '华东', credit: 92, domainTag: 'E_MARKET' },
+  { id: 'c-rs', type: 'XHPZ', name: '任仕人力服务', region: '华北', credit: 85, domainTag: 'H_MARKET' },
+  { id: 'c-cy', type: 'XEPZ', name: '驰远智联云仓', region: '华东', credit: 95, domainTag: 'T_MARKET' },
+  { id: 'c-yj', type: 'XEPZ', name: '捷租·云间', region: '华南', credit: 91, domainTag: 'Y_MARKET' },
+  // DU 经营实体（唯一经营主体，平台直营/加盟，一个 DU 可开多店）
+  { id: 'c-du', type: 'XEPZ', name: '合和经营(平台直营)', region: '全国', credit: 96, domainTag: 'DE_MARKET' },
+  { id: 'c-fs', type: 'XEPZ', name: '丰时经营(加盟)', region: '华西', credit: 88, domainTag: 'H_MARKET' },
+  // 平台运营方（V*M 挂平台容器）
+  { id: 'c-plat', type: 'XOPZ', name: 'X-Market 平台运营', region: '全国', credit: 99 },
+  // B 端客户（XU 企业采购）
+  { id: 'c-gou', type: 'XEPZ', name: '华东区采购办', region: '华东', credit: 89 },
+];
+
+/* ============ 帽（身份） ============ */
+export const units: Unit[] = [
+  // —— C 端顾客帽 ——
+  { id: 'u-cu1', code: 'CU-XL', name: '小林', role: 'CU', side: 'C', containerId: 'c-xl', domainTags: [], tier: 'L1', credit: 80 },
+  { id: 'u-cu2', code: 'CU-MAY', name: '阿May', role: 'CU', side: 'C', containerId: 'c-may', domainTags: [], tier: 'L1', credit: 78 },
+  { id: 'u-op1', code: 'OU-HF', name: '恒丰·组织需求', role: 'OU', side: 'B', containerId: 'c-hf', domainTags: [], tier: 'L2', credit: 90 },
+  // —— 供给方帽（源头产能，各持供给实体铺）——
+  { id: 'u-eu1', code: 'EU-QC', name: '启辰物资', role: 'EU', side: 'B', containerId: 'c-qc', domainTags: ['E_MARKET'], tier: 'L2', credit: 92 },
+  { id: 'u-hu1', code: 'HU-RS', name: '任仕人力服务', role: 'HU', side: 'B', containerId: 'c-rs', domainTags: ['H_MARKET'], tier: 'L2', credit: 85 },
+  { id: 'u-tu1', code: 'TU-CY', name: '驰远智联云仓', role: 'TU', side: 'B', containerId: 'c-cy', domainTags: ['T_MARKET'], tier: 'L3', credit: 95 },
+  { id: 'u-yu1', code: 'YU-YJ', name: '捷租·云间', role: 'YU', side: 'B', containerId: 'c-yj', domainTags: ['Y_MARKET'], tier: 'L3', credit: 91 },
+  // —— DU 唯一经营主体（经营帽），一个 DU 开多店 ——
+  { id: 'u-du1', code: 'DU-HH', name: '合和经营(直营)', role: 'DU', side: 'B', containerId: 'c-du', domainTags: ['Y_MARKET', 'E_MARKET', 'H_MARKET', 'T_MARKET', 'DE_MARKET'], tier: 'L3', credit: 96 },
+  { id: 'u-du2', code: 'DU-FS', name: '丰时经营(加盟)', role: 'DU', side: 'B', containerId: 'c-fs', domainTags: ['H_MARKET', 'Y_MARKET', 'DE_MARKET'], tier: 'L2', credit: 88 },
+  // DU 经营实体五执行帽（DX 系，一一对应 Booth-DY/DH/DT/DE/DC）
+  { id: 'u-dyx', code: 'DYX-HH', name: '合和·空间经营执行', role: 'DYX', side: 'B', containerId: 'c-du', domainTags: ['Y_MARKET'], tier: 'L2', credit: 93, dispatch: true },
+  { id: 'u-dhx', code: 'DHX-HH', name: '合和·人力经营执行', role: 'DHX', side: 'B', containerId: 'c-du', domainTags: ['H_MARKET'], tier: 'L2', credit: 90, dispatch: true },
+  { id: 'u-dtx', code: 'DTX-HH', name: '合和·技术经营执行', role: 'DTX', side: 'B', containerId: 'c-du', domainTags: ['T_MARKET'], tier: 'L3', credit: 94 },
+  { id: 'u-dex', code: 'DEX-HH', name: '合和·产品经营执行', role: 'DEX', side: 'B', containerId: 'c-du', domainTags: ['DE_MARKET', 'E_MARKET'], tier: 'L2', credit: 92 },
+  { id: 'u-dcx', code: 'DCX-HH', name: '合和·门店经营执行', role: 'DCX', side: 'C', containerId: 'c-du', domainTags: ['DE_MARKET'], tier: 'L2', credit: 93, dispatch: true },
+  { id: 'u-dhx2', code: 'DHX-FS', name: '丰时·人力经营执行', role: 'DHX', side: 'B', containerId: 'c-fs', domainTags: ['H_MARKET'], tier: 'L2', credit: 86 },
+  // —— B 端客户帽 XU（买家，按域隔离）——
+  { id: 'u-xu1', code: 'XU-GOU', name: '华东区采购办·客户', role: 'XU', side: 'B', containerId: 'c-gou', domainTags: ['E_MARKET', 'T_MARKET', 'H_MARKET'], tier: 'L2', credit: 89 },
+  { id: 'u-xu2', code: 'XU-CY', name: '驰远·企业采购', role: 'XU', side: 'B', containerId: 'c-cy', domainTags: ['T_MARKET'], tier: 'L2', credit: 90 },
+  // —— 平台运营管理方 V*M（挂平台容器）——
+  { id: 'u-vem1', code: 'VEM-PLAT', name: '通货市场运营长', role: 'VEM', side: 'B', containerId: 'c-plat', domainTags: ['E_MARKET'], tier: 'L3', credit: 99 },
+  { id: 'u-vhm1', code: 'VHM-PLAT', name: '人资市场运营长', role: 'VHM', side: 'B', containerId: 'c-plat', domainTags: ['H_MARKET'], tier: 'L3', credit: 99 },
+  { id: 'u-vym1', code: 'VYM-PLAT', name: '智场市场运营长', role: 'VYM', side: 'B', containerId: 'c-plat', domainTags: ['Y_MARKET'], tier: 'L3', credit: 99 },
+  { id: 'u-vtm1', code: 'VTM-PLAT', name: '技术市场运营长', role: 'VTM', side: 'B', containerId: 'c-plat', domainTags: ['T_MARKET'], tier: 'L3', credit: 99 },
+  { id: 'u-vdm1', code: 'VDM-PLAT', name: '产品市场运营长', role: 'VDM', side: 'B', containerId: 'c-plat', domainTags: ['DE_MARKET'], tier: 'L3', credit: 99 },
+];
+
+/* ============ Booth 实体（作业层；Market 铺面引用） ============ */
+export const booths: Booth[] = [
+  // —— 供给方实体铺 ——
+  { id: 'b-e1', code: 'Booth-E-01', domain: 'E', kind: 'supply', name: '启辰·工业物资铺', ownerUnitId: 'u-eu1', operatorContainerId: 'c-qc', chain: 'source', mode: 'EU → Booth-E（源头产能）', frontDesc: '钢材/五金/工业耗材现货直供（铺面层展示）', backDesc: 'Booth 实体·WH 仓储作业系统（作业层）', status: 'open', rating: 4.8, listingCount: 2 },
+  { id: 'b-e2', code: 'Booth-E-02', domain: 'E', kind: 'supply', name: '启辰·MRO 集采铺', ownerUnitId: 'u-eu1', operatorContainerId: 'c-qc', chain: 'source', mode: 'EU → Booth-E（源头产能）', frontDesc: 'MRO 工业辅料集采（铺面层展示）', backDesc: 'Booth 实体·WH/SVC 作业系统（作业层）', status: 'open', rating: 4.6, listingCount: 1 },
+  { id: 'b-h1', code: 'Booth-H-01', domain: 'H', kind: 'supply', name: '任仕·人力派遣铺', ownerUnitId: 'u-hu1', operatorContainerId: 'c-rs', chain: 'source', mode: 'HU → Booth-H（源头人力）', frontDesc: '产线/仓储人力，按日按周（铺面层展示）', backDesc: 'Booth 实体·SVC 派单作业系统（作业层）', status: 'open', rating: 4.7, listingCount: 2 },
+  { id: 'b-t1', code: 'Booth-T-01', domain: 'T', kind: 'supply', name: '驰远·云仓 SaaS 铺', ownerUnitId: 'u-tu1', operatorContainerId: 'c-cy', chain: 'source', mode: 'TU → Booth-T（源头技术）', frontDesc: '云仓/调度 SaaS 订阅与定制（铺面层展示）', backDesc: 'Booth 实体·LAB 研发作业系统（作业层）', status: 'open', rating: 4.9, listingCount: 2 },
+  { id: 'b-y1', code: 'Booth-Y-01', domain: 'Y', kind: 'supply', name: '捷租·共享仓库', ownerUnitId: 'u-yu1', operatorContainerId: 'c-yj', chain: 'source', mode: 'YU → Booth-Y（源头空间，捷租 Jezoom）', frontDesc: '园区仓库/共享仓按天租赁（铺面层展示）', backDesc: 'Booth 实体·DL/WH 空间作业系统（作业层）', status: 'open', rating: 4.8, listingCount: 2 },
+  // —— DU 经营实体铺（组织经营，归 DU，执行帽一一对应）——
+  { id: 'b-dy1', code: 'Booth-DY-01', domain: 'Y', kind: 'du', name: '合和·智场经营店', ownerUnitId: 'u-du1', execUnitId: 'u-dyx', operatorContainerId: 'c-du', chain: 'du', mode: 'DU·DYX → Booth-DY（经营·智场）', frontDesc: '空间经营店：承接源头空间，面向 XU 企业撮合（铺面层）', backDesc: 'Booth 实体·五大作业系统（DYX 履约，作业层）', franchise: 'direct', status: 'open', rating: 4.7, listingCount: 1 },
+  { id: 'b-dh1', code: 'Booth-DH-01', domain: 'H', kind: 'du', name: '合和·人资经营店', ownerUnitId: 'u-du1', execUnitId: 'u-dhx', operatorContainerId: 'c-du', chain: 'du', mode: 'DU·DHX → Booth-DH（经营·人资）', frontDesc: '人力经营店：组织派单承接企业用工（铺面层）', backDesc: 'Booth 实体·SVC/DL 作业系统（DHX 履约）', franchise: 'direct', status: 'open', rating: 4.6, listingCount: 1 },
+  { id: 'b-dh2', code: 'Booth-DH-02', domain: 'H', kind: 'du', name: '丰时·人资加盟店', ownerUnitId: 'u-du2', execUnitId: 'u-dhx2', operatorContainerId: 'c-fs', chain: 'du', mode: 'DU(加盟)·DHX → Booth-DH', frontDesc: '加盟人资经营店（铺面层）', backDesc: 'Booth 实体·SVC 作业系统（DHX 履约）', franchise: 'franchise', status: 'open', rating: 4.5, listingCount: 1 },
+  { id: 'b-dt1', code: 'Booth-DT-01', domain: 'T', kind: 'du', name: '合和·技术经营店', ownerUnitId: 'u-du1', execUnitId: 'u-dtx', operatorContainerId: 'c-du', chain: 'du', mode: 'DU·DTX → Booth-DT（经营·技术）', frontDesc: '技术经营店：承接技术源头，Order-T 采购（铺面层）', backDesc: 'Booth 实体·LAB/FAB 作业系统（DTX 履约）', franchise: 'direct', status: 'open', rating: 4.8, listingCount: 1 },
+  { id: 'b-de1', code: 'Booth-DE-01', domain: 'E', kind: 'du', name: '合和·物资经营部', ownerUnitId: 'u-du1', execUnitId: 'u-dex', operatorContainerId: 'c-du', chain: 'du', mode: 'DU·DEX → Booth-DE（经营·通货，Market B端）', frontDesc: '物资经营部：通货面向 XU 企业批量采购（Market 铺面层）', backDesc: 'Booth 实体·五大作业系统（DEX 履约，作业层）', franchise: 'direct', status: 'open', rating: 4.7, listingCount: 1 },
+  { id: 'b-dc1', code: 'Booth-DC-01', domain: 'DE', kind: 'du', name: '合和·直营门店(Mall)', ownerUnitId: 'u-du1', execUnitId: 'u-dcx', operatorContainerId: 'c-du', chain: 'face', mode: 'DU·DCX → Booth-DC（Mall C端门店）', frontDesc: '直营门店：面向 CU 自然人零售（Mall C端）', backDesc: 'Booth 实体·SVC 门店作业系统（DCX 履约）', franchise: 'direct', status: 'open', rating: 4.9, listingCount: 2 },
+];
+
+/* ============ 商品/服务/产能（挂铺面，引用 Booth 实体） ============ */
+export const listings: Listing[] = [
+  { id: 'l1', boothId: 'b-e1', domain: 'E', title: 'Q235 螺纹钢 现货', unit: '吨', priceCents: 420000, tags: ['现货', '集采'] },
+  { id: 'l2', boothId: 'b-e1', domain: 'E', title: '工业五金耗材包', unit: '套', priceCents: 8900, tags: ['MRO'] },
+  { id: 'l3', boothId: 'b-e2', domain: 'E', title: 'MRO 季度集采框架', unit: '季', priceCents: 1200000, tags: ['框架协议'] },
+  { id: 'l4', boothId: 'b-h1', domain: 'H', title: '仓储分拣人力（日）', unit: '人日', priceCents: 26000, tags: ['灵活用工'] },
+  { id: 'l5', boothId: 'b-h1', domain: 'H', title: '产线外包（周）', unit: '人周', priceCents: 180000, tags: ['外包'] },
+  { id: 'l6', boothId: 'b-t1', domain: 'T', title: '云仓调度 SaaS（年）', unit: '年', priceCents: 6000000, tags: ['Order-T'] },
+  { id: 'l7', boothId: 'b-t1', domain: 'T', title: 'WMS 定制开发', unit: '项目', priceCents: 20000000, tags: ['Order-T', '定制'] },
+  { id: 'l8', boothId: 'b-y1', domain: 'Y', title: '园区仓库 100㎡（天）', unit: '天', priceCents: 36000, tags: ['捷租Jezoom'] },
+  { id: 'l9', boothId: 'b-y1', domain: 'Y', title: '共享仓工位（月）', unit: '月', priceCents: 480000, tags: ['共享仓'] },
+  { id: 'l10', boothId: 'b-dy1', domain: 'Y', title: '智场·企业空间整包(月)', unit: '月', priceCents: 900000, tags: ['经营承接'] },
+  { id: 'l11', boothId: 'b-dh1', domain: 'H', title: '人资·企业用工整包(月)', unit: '月', priceCents: 600000, tags: ['经营承接'] },
+  { id: 'l12', boothId: 'b-dh2', domain: 'H', title: '丰时加盟·灵活用工包', unit: '月', priceCents: 520000, tags: ['加盟'] },
+  { id: 'l13', boothId: 'b-dt1', domain: 'T', title: '技术·数字化整包(年)', unit: '年', priceCents: 12000000, tags: ['Order-T', '经营承接'] },
+  { id: 'l14', boothId: 'b-de1', domain: 'E', title: '通货·企业批量采购框架', unit: '季', priceCents: 3000000, tags: ['B2B'] },
+  { id: 'l15', boothId: 'b-dc1', domain: 'DE', title: '门店·生活服务套餐(个人)', unit: '次', priceCents: 19900, tags: ['B2C', 'Mall'] },
+  { id: 'l16', boothId: 'b-dc1', domain: 'DE', title: '门店·零售商品(个人)', unit: '件', priceCents: 8900, tags: ['B2C', 'Mall'] },
+];
+
+/* ============ 订单（三流之订单流） ============ */
+let orderSeq = 1001;
+export const orders: Order[] = [
+  { id: 'o-1001', code: 'C-2026-0001', family: 'C', side: 'C', boothId: 'b-dc1', listingId: 'l15', buyerContainerId: 'c-xl', sellerContainerId: 'c-du', tradeCode: 'C', status: 'done', amountCents: 19900, settledAt: '2026-09-05', paid: true },
+  { id: 'o-1002', code: 'C-2026-0002', family: 'C', side: 'C', boothId: 'b-dc1', listingId: 'l16', buyerContainerId: 'c-may', sellerContainerId: 'c-du', tradeCode: 'C', status: 'pending', amountCents: 8900 },
+  { id: 'o-1003', code: 'E-2026-0001', family: 'E', side: 'B', boothId: 'b-dh1', listingId: null, buyerContainerId: 'c-gou', sellerContainerId: 'c-du', tradeCode: 'EX', status: 'done', amountCents: 260000, settledAt: '2026-09-03', paid: true, note: '企业用工整包（Booth-DH/DHX 履约）' },
+  { id: 'o-1004', code: 'T-2026-0001', family: 'T', side: 'B', boothId: 'b-dt1', listingId: 'l13', buyerContainerId: 'c-gou', sellerContainerId: 'c-du', tradeCode: 'TX', status: 'pending', amountCents: 12000000, note: '数字化整包（Order-T，Booth-DT/DTX 经营承接）' },
+  { id: 'o-1005', code: 'Y-2026-0001', family: 'Y', side: 'B', boothId: 'b-dy1', listingId: 'l10', buyerContainerId: 'c-gou', sellerContainerId: 'c-du', tradeCode: 'YX', status: 'fulfilling', amountCents: 2700000, note: '企业空间整包·3 月（Booth-DY/DYX 履约，捷租）' },
+  { id: 'o-1006', code: 'D-2026-0001', family: 'D', side: 'B', boothId: 'b-de1', listingId: 'l14', buyerContainerId: 'c-hf', sellerContainerId: 'c-du', tradeCode: 'D-OFD', status: 'pending', amountCents: 9000000, note: '企业产品批量框架（Booth-DE/DEX→D-OFD 汇聚调度）' },
+  { id: 'o-1007', code: 'C-2026-0003', family: 'C', side: 'C', boothId: 'b-dc1', listingId: 'l15', buyerContainerId: 'c-may', sellerContainerId: 'c-du', tradeCode: 'C', status: 'done', amountCents: 19900, settledAt: '2026-08-28', paid: true },
+];
+
+export const nextOrderCode = (tradeCode: string, family: string): string => {
+  orderSeq += 1;
+  return `${family === 'C' ? 'C' : tradeCode}-2026-${String(orderSeq - 1000).padStart(4, '0')}`;
+};
+
+/* ============ B2B 询价/报价/合同（Market 铺面层，占位内存态） ============ */
+export interface Inquiry {
+  id: string;
+  code: string;
+  domain: string;
+  boothId: string;
+  buyerContainerId: string;
+  title: string;
+  detail: string;
+  status: 'inquiry' | 'quoted' | 'contracted' | 'ordered';
+  quoteCents?: number;
+  quoteNote?: string;
+  contractNo?: string;
+  createdAt: string;
+}
+export const inquiries: Inquiry[] = [];
+
+/* ============ 运营治理（V*M，占位） ============ */
+export const governanceCases: { id: string; domain: string; opRole: string; kind: string; desc: string; status: 'open' | 'closed' }[] = [
+  { id: 'g1', domain: 'E', opRole: 'VEM', kind: '市场秩序', desc: '通货市场价格巡检：MRO 集采报价合规核对', status: 'open' },
+  { id: 'g2', domain: 'Y', opRole: 'VYM', kind: '规则制定', desc: '智场空间租赁合同模板 v2 评审（捷租子品牌）', status: 'open' },
+  { id: 'g3', domain: 'T', opRole: 'VTM', kind: 'Booth 系统供给', desc: '技术经营店 LAB 作业系统能力清单审核', status: 'closed' },
+  { id: 'g4', domain: 'DE', opRole: 'VDM', kind: '市场秩序', desc: '产品市场 Booth-DE/DC 直营加盟资质巡检', status: 'open' },
+];
+
+/* ================= 内存态访问助手（演示开发版，单例可变） ================= */
 export interface Store {
   containers: Container[];
   units: Unit[];
   booths: Booth[];
   listings: Listing[];
-  fulfillments: Fulfillment[];
   orders: Order[];
-  seq: Record<string, number>;
 }
-
-let store: Store | null = null;
-
-function stamp(): string {
-  return new Date().toISOString();
-}
-
-function buildSeed(): Store {
-  // ===== 主体：容器 =====
-  const containers: Container[] = [
-    { id: 'c-plat', type: 'XOPZ', name: 'X-Market 平台', region: '平台总部', credit: 99 }, // T-PLAT
-    { id: 'c-hf', type: 'XEPZ', name: '恒丰供应链', region: '华东·上海', credit: 96 }, // B端经营主体
-    { id: 'c-xl', type: 'XHPZ', name: '消费者·小林', region: '华东·杭州', credit: 88 }, // C端
-    { id: 'c-may', type: 'XHPZ', name: '消费者·阿May', region: '华南·深圳', credit: 92 },
-    { id: 'c-qc', type: 'XEPZ', name: '启辰物资', region: '华北·天津', credit: 94 },
-    { id: 'c-fs', type: 'XEPZ', name: '丰山仓储', region: '西南·重庆', credit: 90 },
-    { id: 'c-xc', type: 'XEPZ', name: '迅驰人力', region: '华东·苏州', credit: 91 },
-    { id: 'c-yj', type: 'XEPZ', name: '云阶空间', region: '华南·广州', credit: 89 },
-    { id: 'c-xm', type: 'XEPZ', name: '星脉科技', region: '华东·杭州', credit: 95 },
-    { id: 'c-jz', type: 'XEPZ', name: '矩阵算法实验室', region: '华北·北京', credit: 91 },
-    { id: 'c-hw', type: 'XEPZ', name: '好味连锁', region: '华中·武汉', credit: 88 },
-    { id: 'c-ym', type: 'XEPZ', name: '原麦烘焙', region: '西南·成都', credit: 85 },
-    { id: 'c-gou', type: 'XGPZ', name: '华东区采购办', region: '华东·上海', credit: 90 }, // 政府容器
-    { id: 'c-eq', type: 'XEPZ', name: '华东区采购办·企业采购部', region: '华东·上海', credit: 91 }, // 企业容器：XU 客户帽
-    { id: 'c-hr', type: 'XEPZ', name: '华瑞资产', region: '华南·珠海', credit: 87 }, // AU
-    { id: 'c-rx', type: 'XEPZ', name: '融信金服', region: '华东·上海', credit: 92 }, // FU
-    { id: 'c-zz', type: 'XEPZ', name: '中智信息', region: '华北·北京', credit: 89 }, // IU
-    { id: 'c-jy', type: 'XEPZ', name: '捷运车队', region: '西南·成都', credit: 86 }, // VU
-    { id: 'c-fh', type: 'XEPZ', name: '泛华综合服务', region: '华南·广州', credit: 88 }, // SU
-    { id: 'c-cy', type: 'XEPZ', name: '承启产业经营', region: '华东·上海', credit: 90 }, // 产业经营者：人不变帽子变（DU/EDU/TDU 共容）
-    // ===== 五域容器（一一映射五域）=====
-    { id: 'E-TM', type: 'XOPZ', name: '物资域容器', region: '域级', credit: 50, domainTag: 'E_MARKET' },
-    { id: 'H-TM', type: 'XOPZ', name: '人力域容器', region: '域级', credit: 50, domainTag: 'H_MARKET' },
-    { id: 'Y-TM', type: 'XOPZ', name: '空间域容器·捷租', region: '域级', credit: 50, domainTag: 'Y_MARKET' },
-    { id: 'T-TM', type: 'XOPZ', name: '技术域容器', region: '域级', credit: 50, domainTag: 'T_MARKET' },
-    { id: 'T-DE', type: 'XOPZ', name: '门店产能域容器', region: '域级', credit: 50, domainTag: 'DE_MARKET' },
-  ];
-
-  const u = (
-    id: string, code: string, name: string, role: HatRole, side: 'C' | 'B',
-    containerId: string, domainTags: Array<DomainCode | MarketTag>, dispatch = false,
-  ): Unit => ({
-    id, code, name, role, side, containerId,
-    domainTags, dispatch, tier: 'L2', credit: 85,
-  });
-
-  // ===== 身份：帽体系（13U 基座 + 经营帽 EDU/TDU + 执行帽 EDX/TDX）=====
-  const units: Unit[] = [
-    // CU 顾客（C端双入口之 Mall）
-    u('u-cu1', 'CU-001', '小林', 'CU', 'C', 'c-xl', []),
-    u('u-cu2', 'CU-002', '阿May', 'CU', 'C', 'c-may', []),
-    // 经营主体恒丰持有的帽：OU(组织采购需求)
-    u('u-op1', 'OP-HF1', '恒丰·经营帽', 'OU', 'B', 'c-hf', ['E_MARKET', 'H_MARKET']),
-    u('u-ou1', 'OU-001', '恒丰采购需求', 'OU', 'B', 'c-hf', ['E', 'H']),
-    // EU 物资（域标签补 _MARKET）
-    u('u-eu1', 'EU-101', '启辰物资', 'EU', 'B', 'c-qc', ['E', 'E_MARKET']),
-    u('u-eu2', 'EU-102', '丰山仓储', 'EU', 'B', 'c-fs', ['E', 'E_MARKET']),
-    // HU 人力（含调度能力 HDU 并入）
-    u('u-hu1', 'HU-201', '迅驰人力', 'HU', 'B', 'c-xc', ['H', 'H_MARKET'], true),
-    // YU 空间·域主（含调度 YDU 并入；保留捷租子品牌）
-    u('u-yu1', 'YU-401', '云阶空间', 'YU', 'B', 'c-yj', ['Y', 'Y_MARKET'], true),
-    // TU 技术（13U 基座供给帽；域标签补 T_MARKET）
-    u('u-tu1', 'TU-601', '星脉科技', 'TU', 'B', 'c-xm', ['T', 'T_MARKET']),
-    u('u-tu2', 'TU-602', '矩阵算法', 'TU', 'B', 'c-jz', ['T', 'T_MARKET']),
-    // DU 门店产能（域标签补 DE_MARKET）
-    u('u-du1', 'DU-701', '好味一门店', 'DU', 'B', 'c-hw', ['DE', 'DE_MARKET']),
-    u('u-du2', 'DU-702', '原麦烘焙店', 'DU', 'B', 'c-ym', ['DE', 'DE_MARKET']),
-    // 产业经营者「承启」持有的帽：人不变帽子变
-    u('u-du-e0', 'DU-503', '承启·门店底座', 'DU', 'B', 'c-cy', ['DE', 'DE_MARKET']),   // 供 T-DE 域经营
-    u('u-edu1', 'EDU-504', '承启·物资域经营', 'EDU', 'B', 'c-cy', ['E', 'E_MARKET']),   // DU 戴 E 域帽
-    u('u-tdu1', 'TDU-505', '承启·技术域经营', 'TDU', 'B', 'c-cy', ['T', 'T_MARKET']),   // DU 戴 T 域帽
-    u('u-edx1', 'EDX-506', '物资域执行帽', 'EDX', 'B', 'c-cy', ['E', 'E_MARKET']),       // 经营执行 DX 系
-    u('u-tdx1', 'TDX-507', '技术域执行帽', 'TDX', 'B', 'c-cy', ['T', 'T_MARKET']),       // 经营执行 DX 系
-    // ===== XU 客户帽（B 端采购客户，买家；可挂企业/自然人容器，按域隔离）=====
-    u('u-xu1', 'XU-801', '华东采购办·物资客户', 'XU', 'B', 'c-eq', ['E', 'E_MARKET']),   // E 域采购客户 XU-E
-    u('u-xu2', 'XU-802', '华东采购办·技术客户', 'XU', 'B', 'c-eq', ['T', 'T_MARKET']),   // T 域采购客户 XU-T
-    // ===== V*M 平台运营管理方（挂平台容器 c-plat）=====
-    u('u-vem1', 'VEM-901', '物资域运营长', 'VEM', 'B', 'c-plat', ['E', 'E_MARKET']),
-    u('u-vym1', 'VYM-903', '智场域运营长', 'VYM', 'B', 'c-plat', ['Y', 'Y_MARKET']),
-    u('u-vhm1', 'VHM-904', '人资域运营长', 'VHM', 'B', 'c-plat', ['H', 'H_MARKET']),
-    u('u-vtm1', 'VTM-902', '技术域运营长', 'VTM', 'B', 'c-plat', ['T', 'T_MARKET']),
-    u('u-vdm1', 'VDM-905', '产品域运营长', 'VDM', 'B', 'c-plat', ['DE', 'DE_MARKET']),
-    // GU 政府需求
-    u('u-gu1', 'GU-001', '华东采购办·需求', 'GU', 'B', 'c-gou', ['E', 'Y']),
-    // AU 资产
-    u('u-au1', 'AU-001', '华瑞资产', 'AU', 'B', 'c-hr', ['Y']),
-    // FU 金融
-    u('u-fu1', 'FU-001', '融信金服', 'FU', 'B', 'c-rx', ['T', 'E']),
-    // IU 信息
-    u('u-iu1', 'IU-001', '中智信息', 'IU', 'B', 'c-zz', ['T']),
-    // VU 车辆
-    u('u-vu1', 'VU-001', '捷运车队', 'VU', 'B', 'c-jy', ['E']),
-    // SU 综合服务
-    u('u-su1', 'SU-001', '泛华综合服务', 'SU', 'B', 'c-fh', ['H', 'DE']),
-  ];
-
-  // ===== 交易对象：摊位（双层） =====
-  const containerOf = (unitId: string): string => units.find(x => x.id === unitId)?.containerId ?? 'c-plat';
-  const booths: Booth[] = [
-    { id: 'b-e1', code: 'Booth-E-01', domain: 'E', name: '启辰·工业物资铺', ownerUnitId: 'u-eu1', opsUnitId: 'u-edu1', operatorContainerId: containerOf('u-eu1'), mode: 'EU → Booth-E', frontDesc: 'MRO 物资、包装耗材现货直售', backDesc: '仓内分拣打包，48h 发货履约', status: 'open', rating: 4.8, listingCount: 4 },
-    { id: 'b-e2', code: 'Booth-E-02', domain: 'E', name: '丰山·冷链仓储铺', ownerUnitId: 'u-eu2', opsUnitId: 'u-edu1', operatorContainerId: containerOf('u-eu2'), mode: 'EU → Booth-E', frontDesc: '生鲜冷链物资代发', backDesc: '冷库暂存 + 干线运输', status: 'open', rating: 4.6, listingCount: 3 },
-    { id: 'b-h1', code: 'Booth-H-01', domain: 'H', name: '迅驰·临时用工铺', ownerUnitId: 'u-hu1', operatorContainerId: containerOf('u-hu1'), mode: 'HU → HDU → Booth-H', frontDesc: '展会/物流高峰临时用工', backDesc: 'HDU 排班调度 + 保险核验', status: 'open', rating: 4.7, listingCount: 3 },
-    { id: 'b-y1', code: 'Booth-Y-01', domain: 'Y', name: '云阶·共享工位铺', ownerUnitId: 'u-yu1', operatorContainerId: containerOf('u-yu1'), mode: 'YU → YDU → Booth-Y', frontDesc: '联合办公工位/会议室', backDesc: 'YDU 撮合入驻 + 门禁授权', status: 'open', rating: 4.9, listingCount: 3 },
-    { id: 'b-t1', code: 'Booth-T-01', domain: 'T', name: '星脉·算法授权铺', ownerUnitId: 'u-tu1', opsUnitId: 'u-tdu1', operatorContainerId: containerOf('u-tu1'), mode: 'TU → Booth-T', frontDesc: 'OCR/风控模型 API 授权', backDesc: '算力调度 + 沙箱交付', status: 'open', rating: 4.9, listingCount: 3 },
-    { id: 'b-t2', code: 'Booth-T-02', domain: 'T', name: '矩阵·数据标注铺', ownerUnitId: 'u-tu2', opsUnitId: 'u-tdu1', operatorContainerId: containerOf('u-tu2'), mode: 'TU → Booth-T', frontDesc: '标注数据集与模型微调', backDesc: '标注管线 + 质检闭环', status: 'open', rating: 4.5, listingCount: 2 },
-    { id: 'b-de1', code: 'Booth-DE-01', domain: 'DE', name: '好味·堂食产能铺', ownerUnitId: 'u-du1', operatorContainerId: containerOf('u-du1'), mode: 'DU → Booth-DE', frontDesc: '午市餐位&包间时段', backDesc: '后厨排产 + 履约 D-OFD', status: 'open', rating: 4.7, listingCount: 3 },
-    { id: 'b-de2', code: 'Booth-DE-02', domain: 'DE', name: '原麦·下午茶产能铺', ownerUnitId: 'u-du2', operatorContainerId: containerOf('u-du2'), mode: 'DU → Booth-DE', frontDesc: '现烤甜品+茶饮时段', backDesc: '出品排期 + 到店自取 D-OFD', status: 'open', rating: 4.6, listingCount: 2 },
-  ];
-
-  const listings: Listing[] = [
-    { id: 'l-e1-1', boothId: 'b-e1', domain: 'E', title: '工业润滑油(200L桶)', spec: 'ISO VG 46 抗磨液压油', unit: '桶', price: 2680, stock: 120, supplierUnitId: 'u-eu1', category: 'MRO耗材' },
-    { id: 'l-e1-2', boothId: 'b-e1', domain: 'E', title: '瓦楞纸箱 5层加固', spec: '600×400×200mm', unit: '只', price: 4.2, stock: 5000, supplierUnitId: 'u-eu1', category: '包装耗材' },
-    { id: 'l-e1-3', boothId: 'b-e1', domain: 'E', title: '防静电手套(丁腈)', spec: 'M码·无粉', unit: '盒', price: 58, stock: 800, supplierUnitId: 'u-eu1', category: '防护用品' },
-    { id: 'l-e2-1', boothId: 'b-e2', domain: 'E', title: '冷链干线舱位', spec: '2~8℃ 单日整托', unit: '托', price: 480, stock: 90, supplierUnitId: 'u-eu2', category: '冷链服务' },
-    { id: 'h1', boothId: 'b-h1', domain: 'H', title: '展会布展临时工', spec: '8小时/班·含保险', unit: '人日', price: 320, stock: 60, supplierUnitId: 'u-hu1', category: '临时用工' },
-    { id: 'h2', boothId: 'b-h1', domain: 'H', title: '仓库分拣小时工', spec: '晚班分段排班', unit: '人时', price: 26, stock: 400, supplierUnitId: 'u-hu1', category: '临时用工' },
-    { id: 'y1', boothId: 'b-y1', domain: 'Y', title: '独立工位(月租)', spec: '开放区·含水电', unit: '位', price: 1200, stock: 20, supplierUnitId: 'u-yu1', category: '办公空间' },
-    { id: 'y2', boothId: 'b-y1', domain: 'Y', title: '8人会议室(4小时)', spec: '含投屏·茶歇', unit: '间', price: 600, stock: 6, supplierUnitId: 'u-yu1', category: '会议空间' },
-    { id: 't1', boothId: 'b-t1', domain: 'T', title: '票据 OCR API 授权', spec: 'QPS 50·年度授权', unit: '个', price: 8800, stock: 30, supplierUnitId: 'u-tu1', category: 'API服务' },
-    { id: 't2', boothId: 'b-t1', domain: 'T', title: '风控评分模型', spec: '本地部署·GPU', unit: '套', price: 36000, stock: 10, supplierUnitId: 'u-tu1', category: '模型' },
-    { id: 'de1', boothId: 'b-de1', domain: 'DE', title: '午市四人餐位', spec: '11:30-13:30·含服务', unit: '台', price: 88, stock: 24, supplierUnitId: 'u-du1', category: '门店产能' },
-    { id: 'de2', boothId: 'b-de1', domain: 'DE', title: '6人包间(晚市)', spec: '18:00 起·低消580', unit: '间', price: 580, stock: 4, supplierUnitId: 'u-du1', category: '门店产能' },
-    { id: 'de3', boothId: 'b-de2', domain: 'DE', title: '现烤招牌蛋挞(12只)', spec: '14:00 出品·到店自取', unit: '份', price: 68, stock: 40, supplierUnitId: 'u-du2', category: '门店产能' },
-  ];
-
-  const fulfillments: Fulfillment[] = [
-    { id: 'f-e1-1', boothId: 'b-e1', domain: 'E', title: 'MRO 分拣打包线', task: '按单拣货→贴标→出库', capacity: 500, used: 340, status: 'processing' },
-    { id: 'f-e2-1', boothId: 'b-e2', domain: 'E', title: '冷链干线调度', task: '托盘装载→温控运输', capacity: 120, used: 90, status: 'processing' },
-    { id: 'f-h1-1', boothId: 'b-h1', domain: 'H', title: '临时工排班派单', task: 'HDU 接单→派班→核验', capacity: 200, used: 150, status: 'ready' },
-    { id: 'f-y1-1', boothId: 'b-y1', domain: 'Y', title: '工位入驻授权', task: 'YDU 撮合→门禁开通', capacity: 50, used: 32, status: 'ready' },
-    { id: 'f-t1-1', boothId: 'b-t1', domain: 'T', title: '模型算力调度', task: '申请算力→沙箱部署', capacity: 40, used: 18, status: 'processing' },
-    { id: 'f-de1-1', boothId: 'b-de1', domain: 'DE', title: '堂食排产履约', task: '排台→后厨排产→出品 D-OFD', capacity: 80, used: 55, status: 'done' },
-    { id: 'f-de2-1', boothId: 'b-de2', domain: 'DE', title: '甜品出品排期', task: '订单排期→现烤→自取 D-OFD', capacity: 60, used: 40, status: 'processing' },
-  ];
-
-  const orders: Order[] = [
-    { id: 'o1', family: 'C', type: 'MALL', tradeCode: 'EX-2024-0001', domain: 'E', buyerUnitId: 'u-cu1', sellerUnitId: 'u-eu1', boothId: 'b-e1', listingId: 'l-e1-3', title: '防静电手套(丁腈)', qty: 20, amount: 1160, status: 'done', createdAt: stamp() },
-    { id: 'o2', family: ORDER_FAMILY_OF_TRADECODE['EX'] ?? 'E', type: 'MARKET', tradeCode: 'EX-2024-0002', domain: 'E', buyerUnitId: 'u-op1', sellerUnitId: 'u-eu1', boothId: 'b-e1', listingId: 'l-e1-1', title: '工业润滑油(200L桶)', qty: 6, amount: 16080, status: 'fulfilling', createdAt: stamp() },
-    { id: 'o3', family: ORDER_FAMILY_OF_TRADECODE['HX'] ?? 'H', type: 'MARKET', tradeCode: 'HX-2024-0001', domain: 'H', buyerUnitId: 'u-op1', sellerUnitId: 'u-hu1', boothId: 'b-h1', listingId: 'h1', title: '展会布展临时工', qty: 40, amount: 12800, status: 'fulfilling', createdAt: stamp() },
-    { id: 'o4', family: ORDER_FAMILY_OF_TRADECODE['YX'] ?? 'Y', type: 'MALL', tradeCode: 'YX-2024-0001', domain: 'Y', buyerUnitId: 'u-cu2', sellerUnitId: 'u-yu1', boothId: 'b-y1', listingId: 'y2', title: '8人会议室(4小时)', qty: 1, amount: 600, status: 'paid', createdAt: stamp() },
-    { id: 'o5', family: ORDER_FAMILY_OF_TRADECODE['TX'] ?? 'T', type: 'MARKET', tradeCode: 'TX-2024-0001', domain: 'T', buyerUnitId: 'u-op1', sellerUnitId: 'u-tu1', boothId: 'b-t1', listingId: 't1', title: '票据 OCR API 授权', qty: 1, amount: 8800, status: 'done', createdAt: stamp() },
-    { id: 'o6', family: ORDER_FAMILY_OF_TRADECODE['D-OFD'] ?? 'D', type: 'MALL', tradeCode: 'D-OFD-2024-0001', domain: 'DE', buyerUnitId: 'u-cu1', sellerUnitId: 'u-du1', boothId: 'b-de1', listingId: 'de1', title: '午市四人餐位', qty: 2, amount: 176, status: 'paid', createdAt: stamp() },
-    { id: 'o7', family: ORDER_FAMILY_OF_TRADECODE['D-OFD'] ?? 'D', type: 'MALL', tradeCode: 'D-OFD-2024-0002', domain: 'DE', buyerUnitId: 'u-cu2', sellerUnitId: 'u-du2', boothId: 'b-de2', listingId: 'de3', title: '现烤招牌蛋挞(12只)', qty: 3, amount: 204, status: 'done', createdAt: stamp() },
-  ];
-
-  return { containers, units, booths, listings, fulfillments, orders, seq: { EX: 2, HX: 1, YX: 1, TX: 1, OFD: 2 } };
-}
-
 export function getStore(): Store {
-  if (!store) {
-    store = buildSeed();
+  return { containers, units, booths, listings, orders };
+}
+export const containerById = (id: string): Container | undefined =>
+  containers.find((c) => c.id === id);
+export const unitById = (id: string): Unit | undefined => units.find((u) => u.id === id);
+/** 生成业务自增 ID（演示版用长度计数） */
+export function nextSeq(kind: 'booth' | 'order'): string {
+  if (kind === 'booth') return `b-${booths.length + 1}0${Date.now() % 100}`;
+  const n = orders.length + 1008;
+  orderSeq = Math.max(orderSeq, n);
+  return `o-${n}`;
+}
+export function domainStats(): Record<string, { booths: number; listings: number; orders: number }> {
+  const acc: Record<string, { booths: number; listings: number; orders: number }> = {};
+  for (const b of booths) {
+    acc[b.domain] ??= { booths: 0, listings: 0, orders: 0 };
+    acc[b.domain].booths += 1;
   }
-  return store;
-}
-
-export function nextSeq(code: string): number {
-  const s = getStore();
-  const key = code === 'D-OFD' ? 'OFD' : code;
-  s.seq[key] = (s.seq[key] ?? 0) + 1;
-  return s.seq[key];
-}
-
-export function domainStats(): DomainStats[] {
-  const s = getStore();
-  return DOMAINS.map(d => {
-    const dom = d.code;
-    const domBooths = s.booths.filter(b => b.domain === dom);
-    const domListings = s.listings.filter(l => l.domain === dom);
-    const domOrders = s.orders.filter(o => o.domain === dom);
-    const turnover = domOrders.filter(o => o.status !== 'pending').reduce((sum, o) => sum + o.amount, 0);
-    return {
-      domain: dom,
-      booths: domBooths.length,
-      listings: domListings.length,
-      orders: domOrders.length,
-      turnover,
-    };
-  });
-}
-
-export function containerById(id: string): Container | undefined {
-  return getStore().containers.find(c => c.id === id);
+  for (const l of listings) {
+    acc[l.domain] ??= { booths: 0, listings: 0, orders: 0 };
+    acc[l.domain].listings += 1;
+  }
+  for (const o of orders) {
+    const b = booths.find((x) => x.id === o.boothId);
+    const dom = b?.domain ?? 'DE';
+    acc[dom] ??= { booths: 0, listings: 0, orders: 0 };
+    acc[dom].orders += 1;
+  }
+  return acc;
 }

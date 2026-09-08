@@ -1,7 +1,14 @@
-// API 客户端：统一封装与类型映射
+// API 客户端：统一封装与类型映射（X-MARKET-05 两套系统 + 三方链路）
+// 视图类型统一从 shared/types 导入（单一来源），client 只做别名与请求封装
 import type {
-  Booth, DemoAccount, DomainMeta, DomainStats, Fulfillment, JobSystem, Listing, Order, SessionUser, Unit,
+  BoothRow, Container, DemoAccount, DomainCode, DomainMeta, GovernanceCase, HatLine, HatRow, Inquiry, JobSystem,
+  Listing, Order, OrderRow, ProfessionalMarket, SessionUser, Unit, HatRole,
 } from '../../shared/types';
+
+export type DecoratedBooth = BoothRow;
+export type MarketGroup = ProfessionalMarket;
+export type InquiryRow = Inquiry;
+export type { OrderRow, GovernanceCase };
 
 const TOKEN_KEY = 'xm_token';
 
@@ -34,111 +41,83 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   return json.data as T;
 }
 
-export interface OverviewData {
-  stats: DomainStats[];
-  domainMeta: DomainMeta[];
-  totalListings: number;
-  totalBooths: number;
-  totalOrders: number;
-  totalTurnover: number;
-}
+/* ============ 视图类型（shared 单一来源；此处仅保留 server 专属组合视图） ============ */
 
-export interface MallListing extends Listing {
-  booth: Pick<Booth, 'id' | 'name' | 'code' | 'rating'> | null;
+export interface MarketsData {
+  markets: MarketGroup[];
+  jobSystems: JobSystem[];
+  jobSystemNote: string;
+  operatorDuties: string[];
+  valueChain: string;
 }
 
 export interface BoothDetail {
-  booth: Booth;
-  front: Listing[];
-  back: Fulfillment[];
+  booth: DecoratedBooth;
   owner: Unit | null;
-  ops?: Unit | null;
-  orders?: Order[];
+  exec: Unit | null;
+  operatorRole: string;
+  projectLine: string;
+  canFranchise: boolean;
+  clientFace: 'market' | 'mall';
+  listings: Listing[];
+  jobSystems: JobSystem[];
+  jobSystemNote: string;
 }
 
-export interface MarketBooth extends Booth {
-  owner: { id: string; name: string; code: string } | null;
-  frontCount: number;
-  backCount: number;
-  backLoad: number;
+export interface MallListing extends Listing {
+  booth: DecoratedBooth | null;
 }
 
-export interface ContainerView {
-  id: string;
-  type: string;
-  typeLabel: string;
+export interface OrderFamilyMeta {
+  family: string;
   name: string;
-  region: string;
-  credit: number;
-  hatCount: number;
-  boothCount: number;
+  desc: string;
 }
 
-export interface UnitView extends Unit {
-  containerName: string;
-}
-
-export interface HierarchyContainer {
-  id: string;
-  type: string;
-  typeLabel: string;
-  name: string;
-  hats: Array<{
-    id: string; code: string; name: string; role: string; side: string;
-    domainTags: string[]; dispatch?: boolean;
-    booths: Array<{ id: string; code: string; name: string; domain: string }>;
-  }>;
+export interface HatsModel {
+  base13U: HatRole[];
+  duExecHats: HatRole[];
+  clients: HatRole[];
+  suppliers: HatRole[];
+  duEntity: HatRole[];
+  execHats: HatRole[];
+  operators: HatRole[];
+  removedIndependent: string[];
+  execHatToBooth: Record<string, string>;
+  mallExecHat: HatRole;
+  parties: Record<string, { label: string; line: string; hats: string[]; desc: string }>;
+  domains: DomainMeta[];
+  jobSystems: JobSystem[];
+  jobSystemNote: string;
 }
 
 export interface AuthResult { token: string; user: SessionUser; }
 
-export interface HatLine {
-  domain: DomainMeta;
-  opsBoothId: string;
-  frontier: string;
-  backFactory: string;
+export interface GovernData {
+  cases: GovernanceCase[];
+  duties: string[];
+  domain: string | null;
 }
 
-export interface FamilyStat {
-  family: 'C' | 'D' | 'H' | 'E' | 'Y' | 'T';
-  label: string;
-  count: number;
+export interface OverviewStat {
+  domain: DomainCode;
+  booths: number;
   turnover: number;
-  boothHint: string;
-  stub?: boolean;
 }
-
-// X-MARKET-04 五大专业市场
-export interface MarketGroup {
-  code: string;
-  marketTitle: string;
-  marketName: string;
-  name: string;
-  boothCode: string;
-  ownerRoles: string[];
-  ownerLabels: string[];
-  hasFranchise: boolean;
-  operatorRole: string;
-  projectLine: string;
-  orderFamily: string;
-  color: string;
-  collectedFamily: string;
-  boothCount: number;
-  summary: string;
-  boothCodes: string[];
-}
-export interface MarketsData {
-  markets: MarketGroup[];
-  jobSystems: JobSystem[];
-  operatorDuties: string[];
+export interface OverviewData {
+  domainMeta: DomainMeta[];
+  totalBooths: number;
+  totalListings: number;
+  totalOrders: number;
+  totalTurnover: number;
+  stats: OverviewStat[];
 }
 
 export const api = {
+  overview: () => req<OverviewData>('/api/overview'),
   // ---- 认证 ----
-  login: (payload: { account: string; password: string; entry?: 'C' | 'B' }) =>
+  login: (payload: { account: string; password: string }) =>
     req<AuthResult>('/api/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
-  oneClick: (entry: 'C' | 'B') =>
-    req<AuthResult>('/api/auth/oneclick', { method: 'POST', body: JSON.stringify({ entry }) }),
   oneClickById: (demoId: string) =>
     req<AuthResult>('/api/auth/oneclick', { method: 'POST', body: JSON.stringify({ demoId }) }),
   demos: () => req<DemoAccount[]>('/api/auth/demos'),
@@ -146,42 +125,46 @@ export const api = {
   logout: () => req<{ loggedOut: boolean }>('/api/auth/logout', { method: 'POST', body: '{}' }),
 
   // ---- 数据模型查询 ----
-  containers: () => req<ContainerView[]>('/api/model/containers'),
-  container: (id: string) => req<{ container: { id: string; type: string; name: string }; hats: Unit[]; booths: Booth[] }>(`/api/model/containers/${id}`),
-  units: (opts?: { role?: string; side?: 'C' | 'B'; containerId?: string }) => {
-    const p = new URLSearchParams();
-    if (opts?.role) p.set('role', opts.role);
-    if (opts?.side) p.set('side', opts.side);
-    if (opts?.containerId) p.set('containerId', opts.containerId);
-    const q = p.toString();
-    return req<UnitView[]>(`/api/model/units${q ? `?${q}` : ''}`);
-  },
-  hierarchy: () => req<HierarchyContainer[]>('/api/model/hierarchy'),
-  hats: () => req<HatLine[]>('/api/model/hats'),
+  units: () => req<HatRow[]>('/api/model/units'),
+  hierarchy: () => req<Array<Record<string, unknown>>>('/api/model/hierarchy'),
+  containers: () => req<Array<Container & { containerTypeLabel: string }>>('/api/model/containers'),
+  hats: () => req<HatsModel>('/api/model/hats'),
   markets: () => req<MarketsData>('/api/model/markets'),
 
   // ---- 三流占位 ----
-  flows: () => req<Record<string, { caption: string; gate: string; status: string; note: string }>>('/api/flows'),
-  flow: (kind: string) => req<{ kind: string; caption: string; gate: string; status: string; items: unknown[] }>(`/api/flows/${kind}`),
-  tradables: () => req<{ listingCount: number; categories: string[]; capacityBooths: number }>('/api/tradables'),
+  flows: () => req<Array<Record<string, unknown>>>('/api/flows'),
 
-  // ---- 集市 ----
-  overview: () => req<OverviewData>('/api/overview'),
-  meta: () => req<{ domains: DomainMeta[]; stats: DomainStats[] }>('/api/meta'),
+  // ---- Mall（C 端 CU）----
   mallListings: (domain?: string) => req<MallListing[]>(`/api/mall/listings${domain ? `?domain=${domain}` : ''}`),
-  mallBooths: (domain?: string) => req<Booth[]>(`/api/mall/booths${domain ? `?domain=${domain}` : ''}`),
-  mallBooth: (id: string) => req<BoothDetail>(`/api/mall/booths/${id}`),
-  marketBooths: (domain?: string) => req<MarketBooth[]>(`/api/market/booths${domain ? `?domain=${domain}` : ''}`),
-  marketBooth: (id: string) => req<BoothDetail & { orders: Order[] }>(`/api/market/booths/${id}`),
-  createBooth: (payload: { domain: string; name: string; ownerUnitId: string; frontDesc?: string; backDesc?: string }) =>
-    req<Booth>('/api/market/booths', { method: 'POST', body: JSON.stringify(payload) }),
-  addListing: (id: string, payload: { title: string; spec?: string; unit: string; price: number; stock?: number }) =>
-    req<Listing>(`/api/market/booths/${id}/listings`, { method: 'POST', body: JSON.stringify(payload) }),
-  addFulfillment: (id: string, payload: { title: string; task?: string; capacity?: number }) =>
-    req<Fulfillment>(`/api/market/booths/${id}/fulfillments`, { method: 'POST', body: JSON.stringify(payload) }),
-  createOrder: (payload: { type?: 'MALL' | 'MARKET'; listingId: string; buyerUnitId: string; qty?: number }) =>
+  mallBooths: () => req<DecoratedBooth[]>('/api/mall/booths'),
+
+  // ---- Market（B 端 XU/DU/供给）----
+  marketBooths: (opts?: { domain?: string; kind?: 'supply' | 'du' }) => {
+    const p = new URLSearchParams();
+    if (opts?.domain) p.set('domain', opts.domain);
+    if (opts?.kind) p.set('kind', opts.kind);
+    const q = p.toString();
+    return req<DecoratedBooth[]>(`/api/market/booths${q ? `?${q}` : ''}`);
+  },
+  marketBooth: (id: string) => req<BoothDetail>(`/api/market/booths/${id}`),
+  createBooth: (payload: { domain: string; kind: 'supply' | 'du'; name: string; franchise?: 'direct' | 'franchise' }) =>
+    req<DecoratedBooth>('/api/market/booths', { method: 'POST', body: JSON.stringify(payload) }),
+
+  // ---- B2B 闭环：询价/报价/合同 ----
+  createInquiry: (payload: { boothId: string; domain?: string; title: string; detail: string }) =>
+    req<InquiryRow>('/api/market/inquiries', { method: 'POST', body: JSON.stringify(payload) }),
+  inquiries: () => req<InquiryRow[]>('/api/market/inquiries'),
+  quoteInquiry: (id: string, payload: { quoteCents: number; quoteNote?: string }) =>
+    req<InquiryRow>(`/api/market/inquiries/${id}/quote`, { method: 'POST', body: JSON.stringify(payload) }),
+  contractInquiry: (id: string) =>
+    req<InquiryRow>(`/api/market/inquiries/${id}/contract`, { method: 'POST', body: '{}' }),
+
+  // ---- 运营治理 ----
+  governCases: () => req<GovernData>('/api/govern/cases'),
+
+  // ---- 订单 ----
+  orders: () => req<OrderRow[]>('/api/orders'),
+  orderFamilies: () => req<OrderFamilyMeta[]>('/api/orders/families'),
+  createOrder: (payload: { boothId: string; listingId?: string; amountCents?: number; side?: 'C' | 'B'; inquiryId?: string }) =>
     req<Order>('/api/orders', { method: 'POST', body: JSON.stringify(payload) }),
-  orders: (type?: 'MALL' | 'MARKET') => req<Array<Order & { buyer: string; seller: string }>>(`/api/orders${type ? `?type=${type}` : ''}`),
-  orderFamilies: () => req<FamilyStat[]>('/api/orders/families'),
-  advanceOrder: (id: string) => req<Order>(`/api/orders/${id}/advance`, { method: 'POST', body: '{}' }),
 };

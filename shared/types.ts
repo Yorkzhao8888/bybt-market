@@ -14,9 +14,10 @@ export interface DomainMeta {
   code: DomainCode;
   name: string; // 域中文名，如 物资
   marketName: string; // E-Market
-  unitCode: string; // 供应帽码，如 EU
-  opCode: string; // 经营帽码，如 EDU
-  execCode: string; // 执行帽码，如 EDX
+  unitCode: string; // 供给帽码（源头产能），如 EU
+  supplyBoothCode: string; // 供给方实体铺，如 Booth-E
+  duBoothCode: string; // DU 经营实体铺，如 Booth-DE（无则空串）
+  duExecCode: string; // DU 经营执行帽，如 DEX
   marketTag: MarketTag; // 域标签
   mode: string; // 链路
   tradeCode: string; // 交易单编码前缀，如 EX
@@ -29,20 +30,40 @@ export interface DomainMeta {
   ownerRoles: string[]; // 铺主帽（可开铺），如 YU/YDU
   hasFranchise: boolean; // 有无平台加盟（加盟执业帽）
   operationsFamily: string; // 作业系统族：FAB/WH/DL/SVC/LAB
+  // ===== X-MARKET-05 三方链路 =====
+  clientFace: 'market' | 'mall'; // 该域客户界面：Market(B端 XU) / Mall(C端 CU)
+  duCanFranchise: boolean; // DU 是否可加盟开店（E/T 仅平台直营）
 }
 
-/** 五大专业市场（Y/E/H/T/DE）主视角，X-MARKET-04 定版 */
+/** Booth 实体两类（X-MARKET-05 两套系统）：
+ * supply = 供给方实体铺（源头产能，归 YU/EU/HU/TU/DU-产品）；
+ * du = DU 经营实体铺（组织经营，归 DU，执行帽 DYX/DHX/DTX/DEX/DCX） */
+export type BoothKind = 'supply' | 'du';
+
+/** Booth 归属系统：market=铺面层（交易/展示），entity=作业层（经营实体/作业系统） */
+export type BoothSystem = 'market' | 'entity';
+
+/** 五大专业市场（Y/E/H/T/DE）主视角（/api/model/markets 单项，服务端口径） */
 export interface ProfessionalMarket {
   code: DomainCode;
   marketTitle: string; // 智场/通货/人资/技术/产品
-  boothCode: string; // Booth-Y 等
-  ownerRoles: string[]; // 铺主帽
-  hasFranchise: boolean; // 有无加盟
+  marketName: string; // Y-Market 等
+  name: string; // 空间/物资/人力/技术/产品
+  clientFace: 'market' | 'mall'; // 客户界面：Market B 端 / Mall C 端
+  supplyBooth: string; // Booth-Y（供给方实体铺前缀）
+  supplyOwner: string; // YU（供给铺主帽）
+  supplyBoothCodes: string[]; // 已有供给实体铺编码
+  duBooth: string; // Booth-DY（DU 经营实体铺前缀）
+  duExecHat: string; // DYX（经营执行帽）
+  duBoothCodes: string[]; // 已有 DU 经营实体铺编码
+  canFranchise: boolean; // Y/H/DE 可加盟；E/T 仅直营
   operatorRole: string; // 平台运营方 V*M
   projectLine: string; // 项目线 *MX
   orderFamily: OrderFamily;
   color: string;
   summary: string; // 专业市场一句话定位
+  supplyCount: number;
+  duCount: number;
 }
 
 /** 铺主内置五大作业系统（拎包经营赋能） */
@@ -84,20 +105,25 @@ export interface Container {
 /** ===== 身份：帽体系 =====
  * 13U 基座帽（09-08 LOCKED）：12U + YU(域主)，PU→TU 合并。
  * 完整基座清单：CU/DU/TU/EU/HU/OU/GU/AU/FU/IU/VU/SU + YU
- * 拍板新增经营帽/执行帽：EDU/TDU（DU 戴域帽，"人不变帽子变"）与 EDX/TDX（经营执行帽 DX 系）
+ * X-MARKET-05 定版：
+ *  - DU 为唯一经营主体（平台直营或加盟），下辖五执行帽 DYX/DHX/DTX/DEX/DCX
+ *  - 取消 YDU/HDU/TDU/EDU 独立执业帽语义；EDX/TDX 由 DX 系五执行帽替代
  */
 export type UnitRole13 =
   | 'CU' | 'DU' | 'TU' | 'EU' | 'HU' | 'OU' | 'GU'
   | 'AU' | 'FU' | 'IU' | 'VU' | 'SU' | 'YU';
 
-/** B 端客户帽：XU（采购客户/买家，企业容器 XEPZ 或自然人容器 XHPZ 均可挂） */
+/** B 端客户帽：XU（采购客户/买家，企业容器 XEPZ 或自然人容器 XHPZ 均可挂，按域细分 XU-Y/E/H/T/DE） */
 export type ClientHat = 'XU';
 
 /** 平台运营管理方帽（V*M 运营长系）：VEM/VHM/VYM/VTM/VDM，挂平台容器 */
 export type OperatorHat = 'VEM' | 'VHM' | 'VYM' | 'VTM' | 'VDM';
 
-/** 完整帽角色（基座 13U + 经营帽 + 执行帽 + 客户帽 XU + 运营管理帽 V*M） */
-export type HatRole = UnitRole13 | 'EDU' | 'EDX' | 'TDU' | 'TDX' | ClientHat | OperatorHat;
+/** DU 经营实体五执行帽（DX 系，一一对应 Booth-DY/DH/DT/DE/DC） */
+export type DuExecHat = 'DYX' | 'DHX' | 'DTX' | 'DEX' | 'DCX';
+
+/** 完整帽角色（基座 13U + DU 五执行帽 + 客户帽 XU + 运营管理帽 V*M） */
+export type HatRole = UnitRole13 | DuExecHat | ClientHat | OperatorHat;
 
 /** 市场四方角色：客户/供应商/平台加盟商/平台运营管理方 */
 export type PartyRole = 'client' | 'supplier' | 'franchiser' | 'operator';
@@ -115,10 +141,10 @@ export const HAT_LINE_LABEL: Record<HatLine, string> = {
 
 export const UNIT_ROLE_LABEL: Record<HatRole, string> = {
   CU: '顾客',       // Mall C端消费者
-  DU: '门店产能',   // DE 门店供给
-  TU: '技术',       // T 技术供给（PU→TU 合并，仍为 13U 一员）
-  EU: '物资',       // E 物资供给
-  HU: '人力',       // H 人力供给
+  DU: '经营主体',   // 唯一经营主体（平台直营/加盟），下辖五执行帽
+  TU: '技术',       // T 技术供给（源头产能）
+  EU: '物资',       // E 物资供给（源头产能）
+  HU: '人力',       // H 人力供给（源头产能）
   OU: '组织需求',   // 组织/企业类需求帽
   GU: '政府需求',   // 政府类需求帽
   AU: '资产',       // 资产类帽
@@ -126,25 +152,25 @@ export const UNIT_ROLE_LABEL: Record<HatRole, string> = {
   IU: '信息',       // 信息类帽
   VU: '车辆',       // 运输车辆类帽
   SU: '服务',       // 综合服务类帽
-  YU: '空间·域主',  // Y 空间供给，兼作域主
-  EDU: '物资域经营', // DU 戴 E 域帽（产业经营者·物资域）
-  EDX: '物资域执行', // E 域经营执行帽（DX 系，归经营线）
-  TDU: '技术域经营', // DU 戴 T 域帽（产业经营者·技术域）
-  TDX: '技术域执行', // T 域经营执行帽（DX 系，归经营线）
+  YU: '空间·域主',  // Y 空间供给（源头产能），兼作域主
+  // DU 经营实体五执行帽（DX 系，归经营线）
+  DYX: '空间经营执行', // ↔ Booth-DY（Market）
+  DHX: '人力经营执行', // ↔ Booth-DH（Market）
+  DTX: '技术经营执行', // ↔ Booth-DT（Market）
+  DEX: '产品经营执行', // ↔ Booth-DE（Market）
+  DCX: '门店经营执行', // ↔ Booth-DC（Mall）
   // 市场四方角色补充
-  XU: '客户', // B 端采购客户帽（买家）
+  XU: '客户', // B 端采购客户帽（买家，走 Market）
   VEM: '物资域运营长', VHM: '人力域运营长', VYM: '空间域运营长',
   VTM: '技术域运营长', VDM: '门店产能域运营长', // V*M 平台运营管理方
 };
 
-/** 各帽归属线（供给执行 X 系归 YU/HU/EU/TU/DU；经营执行 DX 系归经营线） */
+/** 各帽归属线（供给/经营执行/需求/运营） */
 export const HAT_LINE_OF: Record<HatRole, HatLine> = {
-  // 供给线
+  // 供给线（源头产能）
   EU: 'supply', HU: 'supply', YU: 'supply', TU: 'supply', DU: 'supply',
-  // 经营线（DU 戴域帽：产业经营者）
-  EDU: 'ops', TDU: 'ops',
-  // 执行线（DX 系经营执行）
-  EDX: 'exec', TDX: 'exec',
+  // 经营线（DU 下辖五执行帽）
+  DYX: 'exec', DHX: 'exec', DTX: 'exec', DEX: 'exec', DCX: 'exec',
   // 需求线
   CU: 'demand', OU: 'demand', GU: 'demand',
   AU: 'demand', FU: 'demand', IU: 'demand', VU: 'demand', SU: 'demand',
@@ -168,35 +194,39 @@ export interface Unit {
   credit: number;
 }
 
-/** ===== 交易对象：摊位（双层） ===== */
+/** ===== Booth 实体（X-MARKET-05 两套系统） =====
+ * 供给方实体铺（Booth-Y/E/H/T）= 源头产能，归 YU/EU/HU/TU；
+ * DU 经营实体铺（Booth-DY/DH/DT/DE/DC）= 组织经营，全部归 DU，执行帽 DYX/DHX/DTX/DEX/DCX。
+ * Market 铺面仅引用 Booth 实体（铺面展示/询价报价/合同/订单），不实现作业执行。
+ */
 export interface Booth {
   id: string;
-  code: string; // Booth-E-01
+  code: string; // Booth-E-01 / Booth-DY-01
   domain: DomainCode;
+  kind: BoothKind; // supply=供给方实体；du=DU 经营实体
   name: string;
-  ownerUnitId: string; // 经营帽（B端经营者，E/T 域为 EDU/TDU）
+  ownerUnitId: string; // 权属帽：supply=YU/EU/HU/TU；du=DU
+  execUnitId?: string; // DU 经营实体对应的执行帽（DYX/DHX/DTX/DEX/DCX）
   operatorContainerId: string; // 经营主体容器
-  opsUnitId?: string; // 前店对接的经营帽视角（E→EDU / T→TDU）
-  mode: string; // 链路: EU → Booth-E
-  frontDesc: string; // 售卖面说明
-  backDesc: string; // 履约面说明
+  chain?: string; // 价值链层级：source(源头) / du(经营) / face(铺面)
+  mode: string; // 链路
+  frontDesc: string; // 售卖面说明（铺面）
+  backDesc: string; // 履约面说明（Booth 实体作业系统，占位）
+  franchise?: 'direct' | 'franchise'; // DU 经营实体：平台直营 / 加盟
   status: 'open' | 'closed';
   rating: number;
   listingCount: number;
 }
 
-/** 货架商品（售卖面前店条目） */
+/** 货架商品（售卖面前店条目；服务端口径） */
 export interface Listing {
   id: string;
   boothId: string;
   domain: DomainCode;
   title: string;
-  spec: string;
   unit: string; // 计量单位
-  price: number;
-  stock: number;
-  supplierUnitId: string;
-  category: string;
+  priceCents: number; // 分
+  tags: string[];
 }
 
 /** 履约任务（后厂条目） */
@@ -224,23 +254,79 @@ export const ORDER_FAMILY_LABEL: Record<OrderFamily, string> = {
   T: '技术采购',   // T 域（Order-T 新增）
 };
 
-/** 交易单（订单流；D 族为 D-OFD 门店产能履约汇聚码，T 族经 Booth-T → X-OFD 汇聚占位） */
+/** 交易单（订单流，服务端口径；D 族为 D-OFD 门店产能履约汇聚码） */
 export interface Order {
   id: string;
-  type: 'MALL' | 'MARKET'; // 双入口
+  code: string; // C-2026-0001 / EX-2026-0001 / D-OFD-2026-0001
   family: OrderFamily; // 订单六族
-  tradeCode: string; // EX-2024-0001 / D-OFD-2024-0001 / TDX-2024-0001
-  domain: DomainCode | null;
-  buyerUnitId: string;
-  sellerUnitId: string;
+  side: Side; // C=Mall CU / B=Market 企业采购
   boothId: string | null;
   listingId: string | null;
-  title: string;
-  qty: number;
-  amount: number;
+  buyerContainerId: string;
+  sellerContainerId: string;
+  tradeCode: string;
   status: 'pending' | 'paid' | 'fulfilling' | 'done';
+  amountCents: number;
+  settledAt?: string;
+  paid?: boolean;
+  note?: string;
+}
+
+/** 订单装饰行（/api/orders 返回：附带 booth/listing/买卖方名称） */
+export interface OrderRow extends Order {
+  boothCode: string;
+  boothName: string;
+  boothKind: string;
+  listingTitle: string;
+  buyerName: string;
+  sellerName: string;
+}
+
+/** B2B 询价→报价→合同→下单（Market 铺面层占位） */
+export interface Inquiry {
+  id: string;
+  code: string; // RFQ-0001
+  domain: string;
+  boothId: string;
+  buyerContainerId: string;
+  title: string;
+  detail: string;
+  status: 'inquiry' | 'quoted' | 'contracted' | 'ordered';
+  quoteCents?: number;
+  quoteNote?: string;
+  contractNo?: string;
   createdAt: string;
 }
+export type InquiryRow = Inquiry;
+
+/** 运营治理案件（V*M 市场秩序/规则/Booth 供给） */
+export interface GovernanceCase {
+  id: string;
+  domain: string;
+  opRole: string;
+  kind: string;
+  desc: string;
+  status: 'open' | 'closed';
+}
+
+/** 铺面视图行（Booth 装饰后返回行） */
+export interface BoothRow extends Booth {
+  marketCode: DomainCode;
+  kindLabel: string;
+  chainLabel: string;
+  ownerRoleLabel: string;
+  ownerName: string;
+  execHat: HatRole | null;
+  execName: string | null;
+  jobSystems: JobSystem['code'][];
+  franchiseLabel: string;
+  projectLine: string;
+  operatorRole: string;
+  clientFace: 'market' | 'mall';
+}
+
+/** 帽视图行（Unit 装饰后） */
+export type HatRow = Unit & { line: HatLine | undefined; roleLabel: string };
 
 /** 统计视图 */
 export interface DomainStats {
