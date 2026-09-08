@@ -102,6 +102,9 @@ export const orders: Order[] = [
   { id: 'o-1005', code: 'Y-2026-0001', family: 'Y', side: 'B', boothId: 'b-dy1', listingId: 'l10', buyerContainerId: 'c-gou', sellerContainerId: 'c-du', tradeCode: 'YX', status: 'fulfilling', amountCents: 2700000, note: '企业空间整包·3 月（Booth-DY/DYX 履约，捷租）' },
   { id: 'o-1006', code: 'D-2026-0001', family: 'D', side: 'B', boothId: 'b-de1', listingId: 'l14', buyerContainerId: 'c-hf', sellerContainerId: 'c-du', tradeCode: 'D-OFD', status: 'pending', amountCents: 9000000, note: '企业产品批量框架（Booth-DE/DEX→D-OFD 汇聚调度）' },
   { id: 'o-1007', code: 'C-2026-0003', family: 'C', side: 'C', boothId: 'b-dc1', listingId: 'l15', buyerContainerId: 'c-may', sellerContainerId: 'c-du', tradeCode: 'C', status: 'done', amountCents: 19900, settledAt: '2026-08-28', paid: true },
+  // DU 采购单（供给关系单据）：DU 向供给方 Booth 备货，仅 DU 与对应供给帽可见，客户不可见
+  { id: 'o-2001', code: 'EX-2026-1001', family: 'E', side: 'B', boothId: 'b-e1', listingId: null, buyerContainerId: 'c-du', sellerContainerId: 'c-qc', tradeCode: 'EX', status: 'done', amountCents: 2600000, settledAt: '2026-09-06', paid: true, note: 'DU 采购单：Booth-DE 备货（Booth-E 供给）' },
+  { id: 'o-2002', code: 'YX-2026-1002', family: 'Y', side: 'B', boothId: 'b-y1', listingId: null, buyerContainerId: 'c-du', sellerContainerId: 'c-yj', tradeCode: 'YX', status: 'pending', amountCents: 1800000, note: 'DU 采购单：Booth-DY 备货（Booth-Y 供给，捷租）' },
 ];
 
 export const nextOrderCode = (tradeCode: string, family: string): string => {

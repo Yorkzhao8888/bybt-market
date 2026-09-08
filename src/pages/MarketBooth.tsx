@@ -17,12 +17,35 @@ export default function MarketBooth() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [face, setFace] = useState<'sale' | 'fulfill'>('sale');
   const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
 
   useEffect(() => {
-    void api.marketBooth(id).then(setD);
-    if (user) void api.orders().then(setOrders);
+    setD(null);
+    setErr('');
+    void api
+      .marketBooth(id)
+      .then(setD)
+      .catch((e: unknown) => {
+        setErr(e instanceof Error ? e.message : '加载失败');
+      });
+    if (user) void api.orders().then(setOrders).catch(() => undefined);
   }, [id, user]);
 
+  if (err)
+    return (
+      <div className="mx-auto max-w-md py-20 text-center">
+        <p className="mb-2 text-4xl">🗂️</p>
+        <p className="text-base font-bold text-[#17181d]">铺面不存在或对你不可见</p>
+        <p className="mt-2 text-sm leading-6 text-[#8a8577]">
+          {err === 'Booth 不存在'
+            ? '该 Booth 为供给方实体铺或已下架。客户界面仅展示 DU 经营实体铺（信息隔离：不暴露供给方主体）。'
+            : err}
+        </p>
+        <Link to="/market" className="mt-5 inline-block rounded-lg bg-[#17181d] px-4 py-2 text-sm text-[#f5f2eb]">
+          返回 Market 铺面
+        </Link>
+      </div>
+    );
   if (!d) return <div className="py-20 text-center text-sm text-[#8a8577]">加载铺面…</div>;
   const { booth, owner, exec, listings, jobSystems } = d;
   const color = colorOf(booth.marketCode);

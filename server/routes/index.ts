@@ -92,12 +92,13 @@ const demoAccounts: DemoAccount[] = [
   { id: 'xu-huadong', entry: 'B', hatRole: 'XU', containerId: 'c-gou', hatId: 'u-xu1', label: '华东区采购办 · 客户 XU', note: 'B 端采购客户（走 Market，企业采购/询价报价）', domainView: 'E' },
   // 平台运营方 V*M
   { id: 'vdm', entry: 'B', hatRole: 'VDM', containerId: 'c-plat', hatId: 'u-vdm1', label: '产品市场运营长 VDM', note: '平台运营管理方·产品市场（DMX 项目线），市场秩序/规则/Booth 系统供给', domainView: 'DE' },
+  { id: 'vem-e', entry: 'B', hatRole: 'VEM', containerId: 'c-plat', hatId: 'u-vem1', label: '物资市场运营长 VEM', note: '平台运营管理方·通货市场（EMX 项目线），市场秩序/规则/Booth 系统供给', domainView: 'E' },
 ];
 const DEMO_ALIAS: Record<string, DemoAccount> = Object.fromEntries(demoAccounts.map((a) => [a.id, a]));
 // 帽角色路由 → 演示账号（快捷）
 const DEMO_ROUTE: Partial<Record<HatRole, DemoAccount>> = {
   EU: demoAccounts[3], HU: demoAccounts[4], TU: demoAccounts[5], YU: demoAccounts[6],
-  DU: demoAccounts[7], XU: demoAccounts[9], VDM: demoAccounts[10],
+  DU: demoAccounts[7], XU: demoAccounts[9], VDM: demoAccounts[10], VEM: demoAccounts[11],
 };
 
 function buildSession(acc: DemoAccount): SessionUser {
@@ -559,10 +560,14 @@ api.get('/orders', requireAuth, (req: AuthReq, res) => {
   if (can(user, 'view_all_orders')) {
     // 运营方：全局总账
   } else if (role === 'DU' || line === 'exec' || line === 'supply') {
-    // DU 经营主体/执行/供给：见名下多店
+    // DU 经营主体/执行/供给：见名下多店（数据血缘过滤）
     const myBoothIds = new Set(
       store.booths
-        .filter((b) => b.operatorContainerId === user.containerId || b.ownerUnitId === user.hatId || line === 'supply')
+        .filter((b) =>
+          line === 'supply'
+            ? b.ownerUnitId === user.hatId // 供给帽：仅名下供给实体 Booth（如 EU→Booth-E）
+            : b.operatorContainerId === user.containerId || b.ownerUnitId === user.hatId,
+        )
         .map((b) => b.id),
     );
     list = list.filter((o) => o.sellerContainerId === user.containerId || (o.boothId !== null && myBoothIds.has(o.boothId)));
