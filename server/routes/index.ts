@@ -3,7 +3,7 @@
 // 数据四级：容器(主体)→帽(13U 身份)→角色(域角色)→交易对象(商品/服务/产能)
 
 import { Router } from 'express';
-import { DOMAINS, domainByCode, familyOfDomain } from '../domainConfig';
+import { DOMAINS, domainByCode, familyOfDomain, marketMetaOf, PUBLIC_MARKETS, JOB_SYSTEMS, OPERATOR_DUTIES } from '../domainConfig';
 import { getStore, nextSeq, domainStats, containerById } from '../store';
 import { createToken, getUserByToken, revokeToken, DEV_PASSWORD } from '../auth';
 import type { Container, DemoAccount, DomainCode, HatRole, Order, SessionUser } from '../../shared/types';
@@ -59,6 +59,7 @@ const DEMO_ALIAS: Record<string, string> = {
   'de-haowei': 'u-du1',
   'xu-huadong': 'u-xu1',
   'vem-e': 'u-vem1',
+  'vdm-de': 'u-vdm1',
 };
 
 /** 按帽组装会话身份（含域视角/摊位落位） */
@@ -226,6 +227,40 @@ api.get('/model/hats', (_req, res) => {
       tradeCode: d.tradeCode,
       line: `${d.unitCode} → ${d.opCode === d.unitCode ? '—' : `${d.opCode} →`} Booth-${d.code} [${d.tradeCode}]`,
     })),
+  });
+});
+
+// 五大专业市场主视角（Y/E/H/T/DE）：Booth/铺主/运营方/项目线/作业系统
+api.get('/model/markets', (_req, res) => {
+  const s = getStore();
+  const markets: Array<Record<string, unknown>> = [];
+  for (const code of PUBLIC_MARKETS) {
+    const d = marketMetaOf(code);
+    if (!d) continue;
+    const boothCount = s.booths.filter(b => b.domain === code).length;
+    markets.push({
+      code: d.code,
+      marketTitle: d.marketTitle,
+      marketName: d.marketName,
+      name: d.name,
+      boothCode: `Booth-${d.code}`,
+      ownerRoles: d.ownerRoles,
+      ownerLabels: d.ownerRoles.map(r => UNIT_ROLE_LABEL[r as HatRole] ?? r),
+      hasFranchise: d.hasFranchise,
+      operatorRole: d.opRole,
+      projectLine: d.projectLine,
+      orderFamily: familyOfDomain(d.code),
+      color: d.color,
+      collectedFamily: d.operationsFamily,
+      boothCount,
+      summary: d.description,
+      boothCodes: s.booths.filter(b => b.domain === code).map(b => b.code),
+    });
+  }
+  ok(res, {
+    markets,
+    jobSystems: JOB_SYSTEMS,
+    operatorDuties: OPERATOR_DUTIES,
   });
 });
 

@@ -1,13 +1,14 @@
 // 13U 数据模型：容器(主体) → 帽(身份) → 域角色(交易对象)
 import { useEffect, useState } from 'react';
-import { Boxes, Layers, Link2 } from 'lucide-react';
-import { api, type ContainerView, type HierarchyContainer } from '../api/client';
+import { Boxes, Layers, Link2, Store } from 'lucide-react';
+import { api, type ContainerView, type HierarchyContainer, type MarketsData } from '../api/client';
 import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL } from '../../shared/types';
 import { PARTY_COLORS, partyOfRole } from '../lib/domain';
 
 export default function Model() {
   const [containers, setContainers] = useState<ContainerView[]>([]);
   const [hierarchy, setHierarchy] = useState<HierarchyContainer[]>([]);
+  const [markets, setMarkets] = useState<MarketsData | null>(null);
   const [flows, setFlows] = useState<Partial<Record<'ORDER' | 'RESOURCE' | 'FUND', { caption: string; gate: string; status: string; note: string }>> | null>(null);
   const [err, setErr] = useState('');
   const [party, setParty] = useState('');
@@ -15,10 +16,11 @@ export default function Model() {
   useEffect(() => {
     (async () => {
       try {
-        const [c, h, f] = await Promise.all([api.containers(), api.hierarchy(), api.flows()]);
+        const [c, h, f, m] = await Promise.all([api.containers(), api.hierarchy(), api.flows(), api.markets()]);
         setContainers(c);
         setHierarchy(h);
         setFlows(f);
+        setMarkets(m);
       } catch (error) {
         setErr(error instanceof Error ? error.message : '加载失败');
       }
@@ -30,9 +32,40 @@ export default function Model() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-serif-display text-2xl font-black">13U 数据模型</h1>
-        <p className="mt-1 text-sm text-[#8a8577]">主体(容器) → 身份(帽) → 域角色(交易对象) · 13U 口径：PU→TU；13 = 12U + YU(域主)</p>
+        <h1 className="font-serif-display text-2xl font-black">13U 数据模型 · 五大专业市场</h1>
+        <p className="mt-1 text-sm text-[#8a8577]">主视角：五大专业市场（Y 智场 / E 通货 / H 人资 / T 技术 / DE 产品）；辅助：主体(容器) → 身份(帽) → 域角色(交易对象) · 13U 口径：PU→TU；13 = 12U + YU(域主)</p>
       </div>
+
+      {/* 五大专业市场主视角（X-MARKET-04） */}
+      {markets && (
+        <section className="mb-8">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#17181d]"><Store className="h-4 w-4 text-[#b8862b]" /> 五大专业市场（专业视角，不混杂）</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {markets.markets.map(mk => (
+              <div key={mk.code} className="paper-card hard-shadow rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <span className="rounded px-1.5 py-0.5 text-xs font-black text-white" style={{ background: mk.color }}>M-{mk.code}</span>
+                  <span className="ticker-font text-[11px] text-[#8a8577]">{mk.boothCode}</span>
+                </div>
+                <div className="mt-2 font-serif-display text-base font-bold">{mk.marketTitle}市场</div>
+                <div className="mt-1 text-xs text-[#6b665a]">{mk.name}域 · {mk.summary}</div>
+                <dl className="mt-3 space-y-1 text-[11px]">
+                  <div className="flex justify-between"><dt className="text-[#8a8577]">铺主</dt><dd className="font-semibold">{mk.ownerLabels.join(' / ')}{mk.hasFranchise ? ' ·含加盟' : ''}</dd></div>
+                  <div className="flex justify-between"><dt className="text-[#8a8577]">运营方</dt><dd className="font-semibold">{mk.operatorRole}</dd></div>
+                  <div className="flex justify-between"><dt className="text-[#8a8577]">项目线</dt><dd className="ticker-font font-black">{mk.projectLine}</dd></div>
+                  <div className="flex justify-between"><dt className="text-[#8a8577]">订单族</dt><dd className="ticker-font font-black">{mk.orderFamily}</dd></div>
+                  <div className="flex justify-between"><dt className="text-[#8a8577]">作业系统</dt><dd className="ticker-font font-black">{mk.collectedFamily}</dd></div>
+                  <div className="flex justify-between"><dt className="text-[#8a8577]">在营摊</dt><dd>{mk.boothCount}</dd></div>
+                </dl>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#6b665a]">
+            <span className="font-semibold text-[#17181d]">平台运营方五职：</span>
+            {markets.operatorDuties.map(d => <span key={d} className="rounded-full border border-[#e4ded2] bg-white px-2 py-0.5">{d}</span>)}
+          </div>
+        </section>
+      )}
 
       {/* 容器概览 */}
       <section className="mb-8">
@@ -56,7 +89,7 @@ export default function Model() {
 
       {/* 三级结构 */}
       <section className="mb-8">
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#17181d]"><Layers className="h-4 w-4 text-[#b8862b]" /> 容器 → 帽 → 摊位</h2>
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#17181d]"><Layers className="h-4 w-4 text-[#b8862b]" /> 容器 → 帽 → 摊位 <span className="text-[11px] font-normal text-[#8a8577]">（帽归属分类作辅助筛选）</span></h2>
         <div className="mb-4 flex flex-wrap gap-2 text-xs">
           {(['客户','供应商','加盟商','运营管理方','组织管理'] as const).map((p) => (
             <button key={p} type="button" onClick={() => setParty(p === party ? '' : p)}

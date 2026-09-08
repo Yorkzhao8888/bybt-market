@@ -22,7 +22,42 @@ export interface DomainMeta {
   tradeCode: string; // 交易单编码前缀，如 EX
   color: string; // 域主题色
   description: string;
+  // ===== X-MARKET-04 五大专业市场 =====
+  marketTitle: string; // 专业市场标题，如 智场/通货/人资/技术/产品
+  opRole: string; // 平台运营方帽，如 VYM/VEM/VHM/VTM/VDM
+  projectLine: string; // 项目线，如 YMX/EMX/HMX/TMX/DMX
+  ownerRoles: string[]; // 铺主帽（可开铺），如 YU/YDU
+  hasFranchise: boolean; // 有无平台加盟（加盟执业帽）
+  operationsFamily: string; // 作业系统族：FAB/WH/DL/SVC/LAB
 }
+
+/** 五大专业市场（Y/E/H/T/DE）主视角，X-MARKET-04 定版 */
+export interface ProfessionalMarket {
+  code: DomainCode;
+  marketTitle: string; // 智场/通货/人资/技术/产品
+  boothCode: string; // Booth-Y 等
+  ownerRoles: string[]; // 铺主帽
+  hasFranchise: boolean; // 有无加盟
+  operatorRole: string; // 平台运营方 V*M
+  projectLine: string; // 项目线 *MX
+  orderFamily: OrderFamily;
+  color: string;
+  summary: string; // 专业市场一句话定位
+}
+
+/** 铺主内置五大作业系统（拎包经营赋能） */
+export interface JobSystem {
+  code: 'FAB' | 'WH' | 'DL' | 'SVC' | 'LAB';
+  label: string; // 中文名
+  scene: string; // 场景说明
+}
+export const JOB_SYSTEMS: JobSystem[] = [
+  { code: 'FAB', label: '制造', scene: '生产/制作作业系统' },
+  { code: 'WH', label: '仓储', scene: '库存/仓配作业系统' },
+  { code: 'DL', label: '配送', scene: '物流/履约配送系统' },
+  { code: 'SVC', label: '服务', scene: '服务/履约作业系统' },
+  { code: 'LAB', label: '实验', scene: '研发/测试实验系统' },
+];
 
 /** 双入口标识 */
 export type Side = 'C' | 'B'; // Mall(C端 CU 消费者) / Market(B端 经营·企业采购中心)

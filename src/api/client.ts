@@ -1,6 +1,6 @@
 // API 客户端：统一封装与类型映射
 import type {
-  Booth, DemoAccount, DomainMeta, DomainStats, Fulfillment, Listing, Order, SessionUser, Unit,
+  Booth, DemoAccount, DomainMeta, DomainStats, Fulfillment, JobSystem, Listing, Order, SessionUser, Unit,
 } from '../../shared/types';
 
 const TOKEN_KEY = 'xm_token';
@@ -108,6 +108,31 @@ export interface FamilyStat {
   stub?: boolean;
 }
 
+// X-MARKET-04 五大专业市场
+export interface MarketGroup {
+  code: string;
+  marketTitle: string;
+  marketName: string;
+  name: string;
+  boothCode: string;
+  ownerRoles: string[];
+  ownerLabels: string[];
+  hasFranchise: boolean;
+  operatorRole: string;
+  projectLine: string;
+  orderFamily: string;
+  color: string;
+  collectedFamily: string;
+  boothCount: number;
+  summary: string;
+  boothCodes: string[];
+}
+export interface MarketsData {
+  markets: MarketGroup[];
+  jobSystems: JobSystem[];
+  operatorDuties: string[];
+}
+
 export const api = {
   // ---- 认证 ----
   login: (payload: { account: string; password: string; entry?: 'C' | 'B' }) =>
@@ -133,6 +158,7 @@ export const api = {
   },
   hierarchy: () => req<HierarchyContainer[]>('/api/model/hierarchy'),
   hats: () => req<HatLine[]>('/api/model/hats'),
+  markets: () => req<MarketsData>('/api/model/markets'),
 
   // ---- 三流占位 ----
   flows: () => req<Record<string, { caption: string; gate: string; status: string; note: string }>>('/api/flows'),

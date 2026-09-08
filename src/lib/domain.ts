@@ -2,6 +2,22 @@
 // 口径（P0）：Market=交易平台，不经营、不持有资源；经营户=五域铺子(Booth)；帽=铺子经营者身份，不单独开店/入驻。
 export const BOOTH_OPENER_ROLES: string[] = ['EU', 'HU', 'YU', 'TU', 'DU'];
 
+// X-MARKET-04：按专业市场约束开铺铺主帽（Y/H 供应帽+加盟执业帽；E/T 仅供应帽；DE 直营/加盟）
+export const MARKET_OWNER_ROLES: Record<string, string[]> = {
+  Y: ['YU', 'YDU'],
+  E: ['EU'],
+  H: ['HU', 'HDU'],
+  T: ['TU'],
+  DE: ['DU'],
+};
+export const MARKET_TITLES: Record<string, string> = {
+  Y: '智场',
+  E: '通货',
+  H: '人资',
+  T: '技术',
+  DE: '产品',
+};
+
 export const DOMAIN_COLORS: Record<string, string> = {
   E: '#C27A1B',
   H: '#E4572E',

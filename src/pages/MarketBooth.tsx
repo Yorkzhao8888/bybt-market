@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Store, Warehouse, Plus, Star } from 'lucide-react';
-import { api, type BoothDetail } from '../api/client';
+import { ArrowLeft, Store, Warehouse, Plus, Star, Box } from 'lucide-react';
+import { api, type BoothDetail, type MarketsData } from '../api/client';
 import { DomainLine, EmptyState } from '../components/ui';
 import { DOMAIN_COLORS, ORDER_STATUS } from '../lib/domain';
-import type { Order, Listing } from '../../shared/types';
+import type { JobSystem, Order, Listing } from '../../shared/types';
 
 type Detail = BoothDetail & { orders: Order[] };
 
 export default function MarketBooth() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<Detail | null>(null);
+  const [mk, setMk] = useState<MarketsData | null>(null);
   const [layer, setLayer] = useState<'front' | 'back'>('front');
   const [notice, setNotice] = useState('');
   const [lForm, setLForm] = useState({ title: '', spec: '', unit: '', price: '', stock: '' });
@@ -18,10 +19,13 @@ export default function MarketBooth() {
 
   const load = () => { if (id) api.marketBooth(id).then(setData).catch(console.error); };
   useEffect(() => { load(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [id]);
+  useEffect(() => { api.markets().then(setMk).catch(console.error); }, []);
 
   if (!data) return <div className="py-20 text-center text-[#8a8577]">加载中…</div>;
   const { booth, front, back, orders, owner, ops } = data;
   const color = DOMAIN_COLORS[booth.domain] ?? '#17181d';
+  const market = mk?.markets.find(m => m.code === booth.domain) ?? null;
+  const jobSystems: JobSystem[] = mk?.jobSystems ?? [];
 
   const addListing = async () => {
     const price = Number(lForm.price);
@@ -62,7 +66,20 @@ export default function MarketBooth() {
         </div>
         <p className="mt-2 text-xs text-[#8f8a7d]">链路 {booth.mode} · 铺子经营者身份（供给帽）{owner?.name}（{owner?.code}）</p>
         {ops && <p className="mt-1 text-xs text-[#b8862b]">经营者身份（经营帽视角）：{ops.name}（{ops.code} · {ops.role}）</p>}
-        <p className="mt-1 text-xs text-[#8f8a7d]">经营户 = 本铺子（Booth），帽为经营/操作本铺子的身份，不单独入驻</p>
+        {market && (
+          <p className="mt-1 text-xs text-[#8f8a7d]">专业市场 {market.marketTitle} · 项目线 <span className="ticker-font font-black text-[#f5f2eb]">{market.projectLine}</span> · 平台运营 <span className="ticker-font font-black text-[#f5f2eb]">{market.operatorRole}</span> {market.hasFranchise ? '· 含加盟' : ''}</p>
+        )}
+        {market && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-[#222329] p-3">
+            <span className="text-xs font-semibold text-[#e7e2d6]">拎包经营 · 内置作业系统：</span>
+            {jobSystems.map(js => (
+              <span key={js.code} className="flex items-center gap-1 rounded-full border border-[#3a3b44] bg-[#2a2b34] px-2 py-0.5 text-[11px] text-[#d8d3c7]">
+                <Box className="h-3 w-3" style={{ color }} /> <b>{js.code}</b> {js.label}
+              </span>
+            ))}
+          </div>
+        )}
+        <p className="mt-2 text-xs text-[#8f8a7d]">经营户 = 本铺子（Booth），帽为经营/操作本铺子的身份，不单独入驻</p>
       </div>
 
       {notice && <div className="mb-3 mt-4 rounded-lg bg-[#e8e0cb] px-4 py-2 text-sm text-[#7a5c16]">{notice}</div>}

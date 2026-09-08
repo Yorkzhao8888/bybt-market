@@ -94,7 +94,10 @@ function buildSeed(): Store {
     u('u-xu2', 'XU-802', '华东采购办·技术客户', 'XU', 'B', 'c-eq', ['T', 'T_MARKET']),   // T 域采购客户 XU-T
     // ===== V*M 平台运营管理方（挂平台容器 c-plat）=====
     u('u-vem1', 'VEM-901', '物资域运营长', 'VEM', 'B', 'c-plat', ['E', 'E_MARKET']),
+    u('u-vym1', 'VYM-903', '智场域运营长', 'VYM', 'B', 'c-plat', ['Y', 'Y_MARKET']),
+    u('u-vhm1', 'VHM-904', '人资域运营长', 'VHM', 'B', 'c-plat', ['H', 'H_MARKET']),
     u('u-vtm1', 'VTM-902', '技术域运营长', 'VTM', 'B', 'c-plat', ['T', 'T_MARKET']),
+    u('u-vdm1', 'VDM-905', '产品域运营长', 'VDM', 'B', 'c-plat', ['DE', 'DE_MARKET']),
     // GU 政府需求
     u('u-gu1', 'GU-001', '华东采购办·需求', 'GU', 'B', 'c-gou', ['E', 'Y']),
     // AU 资产
