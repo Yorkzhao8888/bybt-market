@@ -23,7 +23,8 @@ export default function Home() {
           </h1>
           <p className="mt-4 max-w-xl text-[#cfcabb]">
             物资 · 人力 · 空间 · 技术 · 门店产能 五域联动交易。摊位双层：前店售卖面，后厂履约面。<br aria-hidden />
-            双入口双路并进 —— 消费者逛 <b className="text-[#f5f2eb]">Mall</b>，经营者在 <b className="text-[#f5f2eb]">Market</b> 开铺经营。
+            <b className="text-[#f5f2eb]">Market</b> = 企业采购中心 / B2B 撮合平台 · 承载五域集市与 Booth 群。
+            消费者逛 <b className="text-[#f5f2eb]">Mall</b>（C端），经营者在 Market 开铺撮合（B端）。
           </p>
           <div className="mt-8 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
             <Link to="/mall" className="group hard-shadow rounded-xl bg-[#b8862b] p-5 text-[#fff] transition">
@@ -36,10 +37,10 @@ export default function Home() {
             </Link>
             <Link to="/market" className="group hard-shadow rounded-xl border border-[#3a3b44] p-5 text-[#fff] transition">
               <div className="flex items-center justify-between">
-                <span className="font-serif-display text-lg font-bold">Market · B端经营</span>
+                <span className="font-serif-display text-lg font-bold">Market · 企业采购中心</span>
                 <ArrowRight className="h-5 w-5 transition group-hover:translate-x-1" />
               </div>
-              <p className="mt-1 text-sm text-[#cfcabb]">EU/HU/YU/TU/DU 开铺上架，管理前店售卖面与后厂履约面。</p>
+              <p className="mt-1 text-sm text-[#cfcabb]">B2B 撮合平台：EU/HU/YU(TU)/DU 开铺上架，管理前店售卖面与后厂履约面。</p>
               <LayoutGrid className="mt-3 h-5 w-5 opacity-70" />
             </Link>
           </div>
@@ -75,7 +76,9 @@ export default function Home() {
                   <span className="font-serif-display text-2xl font-black">{s.domain}</span>
                   <DomainLine code={s.domain} />
                 </div>
-                <div className="text-sm font-semibold">{DOMAIN_NAMES[s.domain]}域</div>
+                <div className="text-sm font-semibold">{DOMAIN_NAMES[s.domain]}域
+                  {s.domain === 'Y' && <span className="ml-1.5 rounded bg-[#17a290]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#17a290]">捷租 Jezoom</span>}
+                </div>
                 <div className="ticker-font mt-2 text-xs text-[#6b665a]">
                   {s.booths} 铺 · ¥{s.turnover.toLocaleString()}
                 </div>

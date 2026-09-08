@@ -20,7 +20,7 @@ export default function MarketBooth() {
   useEffect(() => { load(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [id]);
 
   if (!data) return <div className="py-20 text-center text-[#8a8577]">加载中…</div>;
-  const { booth, front, back, orders, owner } = data;
+  const { booth, front, back, orders, owner, ops } = data;
   const color = DOMAIN_COLORS[booth.domain] ?? '#17181d';
 
   const addListing = async () => {
@@ -60,7 +60,8 @@ export default function MarketBooth() {
           <div className="rounded-lg bg-[#222329] p-3"><span className="text-[#8f8a7d]">前店（售卖面）</span><p className="text-[#e7e2d6]">{booth.frontDesc}</p></div>
           <div className="rounded-lg bg-[#222329] p-3"><span className="text-[#8f8a7d]">后厂（履约面）</span><p className="text-[#e7e2d6]">{booth.backDesc}</p></div>
         </div>
-        <p className="mt-2 text-xs text-[#8f8a7d]">链路 {booth.mode} · 经营单元 {owner?.name}（{owner?.code}）</p>
+        <p className="mt-2 text-xs text-[#8f8a7d]">链路 {booth.mode} · 供给/经营单元 {owner?.name}（{owner?.code}）</p>
+        {ops && <p className="mt-1 text-xs text-[#b8862b]">经营帽视角：{ops.name}（{ops.code} · {ops.role}）</p>}
       </div>
 
       {notice && <div className="mb-3 mt-4 rounded-lg bg-[#e8e0cb] px-4 py-2 text-sm text-[#7a5c16]">{notice}</div>}

@@ -3,11 +3,11 @@
 // 数据四级：容器(主体)→帽(13U 身份)→角色(域角色)→交易对象(商品/服务/产能)
 
 import { Router } from 'express';
-import { DOMAINS, domainByCode } from '../domainConfig';
+import { DOMAINS, domainByCode, familyOfDomain } from '../domainConfig';
 import { getStore, nextSeq, domainStats, containerById } from '../store';
 import { createToken, getUserByToken, revokeToken, DEV_PASSWORD } from '../auth';
-import type { Container, Order, SessionUser } from '../../shared/types';
-import { CONTAINER_TYPE_LABEL } from '../../shared/types';
+import type { Container, DemoAccount, DomainCode, HatRole, Order, SessionUser } from '../../shared/types';
+import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL } from '../../shared/types';
 
 const router = Router();
 const api = Router();
@@ -30,18 +30,101 @@ function requireAuth(req: { headers: { authorization?: string } }, res: { status
 }
 
 // ================= 认证（底座·开发版）=================
-// 已知账号 → 预设身份（密码统一 test123）
-const ACCOUNTS: Record<string, SessionUser> = {
-  xiaolin: { containerId: 'c-xl', containerType: 'XHPZ', containerName: '消费者·小林', entry: 'C', hatId: 'u-cu1', hat: '小林 (CU 顾客)' },
-  amay: { containerId: 'c-may', containerType: 'XHPZ', containerName: '消费者·阿May', entry: 'C', hatId: 'u-cu2', hat: '阿May (CU 顾客)' },
-  hefeng: { containerId: 'c-hf', containerType: 'XEPZ', containerName: '恒丰供应链', entry: 'B', hatId: 'u-op1', hat: '恒丰·经营帽 (OU 组织需求)' },
-  qiuchen: { containerId: 'c-qc', containerType: 'XEPZ', containerName: '启辰物资', entry: 'B', hatId: 'u-eu1', hat: '启辰物资 (EU 物资)' },
-  xunche: { containerId: 'c-xc', containerType: 'XEPZ', containerName: '迅驰人力', entry: 'B', hatId: 'u-hu1', hat: '迅驰人力 (HU 人力)' },
+// 密码统一 test123；一键登录进入预设身份（C 端 + B 端五域供给帽/经营帽）
+/** 帽 → 域视角落位（经营/执行帽归对应 Booth 视角） */
+const DEMO_ROUTE: Partial<Record<HatRole, { domain: DomainCode; booth: string }>> = {
+  EU: { domain: 'E', booth: 'b-e1' },
+  EDU: { domain: 'E', booth: 'b-e1' },
+  EDX: { domain: 'E', booth: 'b-e1' },
+  HU: { domain: 'H', booth: 'b-h1' },
+  YU: { domain: 'Y', booth: 'b-y1' },
+  TU: { domain: 'T', booth: 'b-t1' },
+  TDU: { domain: 'T', booth: 'b-t1' },
+  TDX: { domain: 'T', booth: 'b-t1' },
+  DU: { domain: 'DE', booth: 'b-de1' },
 };
+
+const DEMO_ALIAS: Record<string, string> = {
+  xiaolin: 'u-cu1',
+  amay: 'u-cu2',
+  hefeng: 'u-op1',
+  'eu-qiuchen': 'u-eu1',
+  edu: 'u-edu1',
+  edx: 'u-edx1',
+  'hu-xunche': 'u-hu1',
+  'yu-yunjie': 'u-yu1',
+  'tu-xingmai': 'u-tu1',
+  tdu: 'u-tdu1',
+  tdx: 'u-tdx1',
+  'de-haowei': 'u-du1',
+};
+
+/** 按帽组装会话身份（含域视角/摊位落位） */
+function sessionOfHat(hatId: string): SessionUser | null {
+  const s = getStore();
+  const u = s.units.find(x => x.id === hatId);
+  if (!u) return null;
+  const c = containerById(u.containerId);
+  if (!c) return null;
+  const route = DEMO_ROUTE[u.role as HatRole];
+  const user: SessionUser = {
+    containerId: c.id,
+    containerType: c.type,
+    containerName: c.name,
+    entry: u.side,
+    hatId: u.id,
+    hatRole: u.role,
+    hat: `${u.name} (${u.role} ${UNIT_ROLE_LABEL[u.role]})`,
+  };
+  if (route) {
+    user.domainView = route.domain;
+    user.boothTarget = route.booth;
+  }
+  return user;
+}
+
+/** 演示账号表（由 13U 帽派生，登录/一键登录共用） */
+function demoAccounts(): DemoAccount[] {
+  const s = getStore();
+  return Object.entries(DEMO_ALIAS)
+    .map(([id, hatId]) => {
+      const u = s.units.find(x => x.id === hatId);
+      if (!u) return null;
+      const c = containerById(u.containerId);
+      if (!c) return null;
+      const route = DEMO_ROUTE[u.role as HatRole];
+      const acc: DemoAccount = {
+        id,
+        entry: u.side,
+        hatRole: u.role,
+        containerId: c.id,
+        hatId: u.id,
+        label: `${u.name} · ${UNIT_ROLE_LABEL[u.role]}`,
+        note: `${c.name} · ${CONTAINER_TYPE_LABEL[c.type]}`,
+      };
+      if (route) {
+        acc.domainView = route.domain;
+        acc.boothTarget = route.booth;
+      }
+      return acc;
+    })
+    .filter((x): x is DemoAccount => x !== null);
+}
+
+const ACCOUNTS: Record<string, SessionUser> = {};
+for (const acc of demoAccounts()) {
+  const u = sessionOfHat(acc.hatId);
+  if (u) ACCOUNTS[acc.id] = u;
+}
 
 function defaultUser(entry: string): SessionUser {
   return entry === 'B' ? ACCOUNTS.hefeng : ACCOUNTS.xiaolin;
 }
+
+// 一键登录演示账号清单（C 端 + B 端五域供给帽/经营帽）
+api.get('/auth/demos', (_req, res) => {
+  ok(res, demoAccounts());
+});
 
 // 账号密码登录（口令 test123）
 api.post('/auth/login', (req, res) => {
@@ -57,9 +140,15 @@ api.post('/auth/login', (req, res) => {
   ok(res, { token, user });
 });
 
-// 一键登录（免密，进入预设身份）
+// 一键登录（免密，进入预设身份；可指定演示账号）
 api.post('/auth/oneclick', (req, res) => {
-  const entry = (req.body as { entry?: 'C' | 'B' }).entry === 'B' ? 'B' : 'C';
+  const body = req.body as { entry?: 'C' | 'B'; demoId?: string };
+  if (body.demoId && ACCOUNTS[body.demoId]) {
+    const user = ACCOUNTS[body.demoId];
+    ok(res, { token: createToken(user), user });
+    return;
+  }
+  const entry = body.entry === 'B' ? 'B' : 'C';
   const user = defaultUser(entry);
   const token = createToken(user);
   ok(res, { token, user });
@@ -101,6 +190,25 @@ api.get('/model/containers/:id', (req, res) => {
   const hats = s.units.filter(u => u.containerId === container.id);
   const booths = s.booths.filter(b => b.operatorContainerId === container.id);
   ok(res, { container, hats, booths });
+});
+
+// 五域帽表（供给帽/经营帽/执行帽，含线归属）——由 domainConfig 驱动
+api.get('/model/hats', (_req, res) => {
+  ok(res, {
+    base13U: ['CU', 'DU', 'TU', 'EU', 'HU', 'OU', 'GU', 'AU', 'FU', 'IU', 'VU', 'SU', 'YU'],
+    opExt: ['EDU', 'TDU'],
+    execExt: ['EDX', 'TDX'],
+    domains: DOMAINS.map(d => ({
+      code: d.code,
+      name: d.name,
+      supplyHat: d.unitCode,
+      opHat: d.opCode,
+      execHat: d.execCode,
+      booth: `Booth-${d.code}`,
+      tradeCode: d.tradeCode,
+      line: `${d.unitCode} → ${d.opCode === d.unitCode ? '—' : `${d.opCode} →`} Booth-${d.code} [${d.tradeCode}]`,
+    })),
+  });
 });
 
 api.get('/model/units', (req, res) => {
@@ -148,7 +256,17 @@ api.get('/flows', (_req, res) => {
   ok(res, {
     ORDER: { caption: '订单流', gate: 'XCASE', status: 'stub', note: '待对接 ERP 与 XCASE 收口' },
     RESOURCE: { caption: '资源流', gate: 'XCASE', status: 'stub', note: '履约资源调度台账占位' },
-    FUND: { caption: '资金流', gate: 'XCASE', status: 'stub', note: '结算/清算流水占位' },
+    FUND: {
+      caption: '资金流',
+      gate: 'XCASE → ERP → X-FIN',
+      status: 'stub',
+      note: '结算收口、总账入账、财务分析三段分工',
+      segments: [
+        { id: 'XCASE', label: '结算流水（收口结算）', owner: 'XCASE', note: '订单/退款/回款实时结算流水，收口资金口径' },
+        { id: 'ERP', label: '总账/资产（管账）', owner: 'ERP', note: '结算对账入总账、应收应付与资产台账' },
+        { id: 'X-FIN', label: '财务分析（分析）', owner: 'X-FIN', note: '现金流/毛利率/产能收益等财务分析' },
+      ],
+    },
   });
 });
 
@@ -248,6 +366,7 @@ api.get('/market/booths/:id', (req, res) => {
     front: s.listings.filter(l => l.boothId === booth.id),
     back: s.fulfillments.filter(f => f.boothId === booth.id),
     owner: s.units.find(u => u.id === booth.ownerUnitId) ?? null,
+    ops: booth.opsUnitId ? s.units.find(u => u.id === booth.opsUnitId) ?? null : null,
     orders: s.orders.filter(o => o.boothId === booth.id),
   });
 });
@@ -383,6 +502,7 @@ api.post('/orders', (req, res) => {
   const order: Order = {
     id: `o-${Date.now()}`,
     type: body.type === 'MARKET' ? 'MARKET' : 'MALL',
+    family: body.type === 'MARKET' ? familyOfDomain(listing.domain) : 'C',
     tradeCode,
     domain: listing.domain,
     buyerUnitId: body.buyerUnitId,
@@ -398,6 +518,28 @@ api.post('/orders', (req, res) => {
   s.orders.push(order);
   listing.stock -= qty;
   ok(res, order);
+});
+
+// 订单六族占位（C/D/H/E/Y/T）
+api.get('/orders/families', (_req, res) => {
+  const s = getStore();
+  const FAMILY_META = [
+    { family: 'C', caption: '客户订单族', lead: 'C 端消费者直购（Shop B2C）' },
+    { family: 'D', caption: '门店产能订单族', lead: 'DU → Booth-DE → D-OFD 履约' },
+    { family: 'H', caption: '人力订单族', lead: 'HU → HDU → Booth-H → HX' },
+    { family: 'E', caption: '物资订单族', lead: 'EU → Booth-E → EX' },
+    { family: 'Y', caption: '空间订单族', lead: 'YU → YDU → Booth-Y → YX' },
+    { family: 'T', caption: '技术订单族 Order-T', lead: 'TU/TDU → Booth-T → TDX，经 X-OFD 汇聚（占位）' },
+  ] as const;
+  const withCount = FAMILY_META.map(m => ({
+    ...m,
+    count: s.orders.filter(o => o.family === m.family).length,
+    status: m.family === 'T' ? 'placeholder' : 'active',
+  }));
+  ok(res, {
+    families: withCount,
+    mapping: { C: '客户端', D: '门店产能', H: '人力', E: '物资', Y: '空间', T: '技术(Order-T)' },
+  });
 });
 
 // 订单列表

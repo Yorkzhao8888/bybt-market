@@ -37,6 +37,10 @@ export default function Market() {
 
   return (
     <div>
+      <div className="layer-back hard-shadow mb-4 rounded-xl p-4 text-white">
+        <div className="font-serif-display text-lg font-bold">Market · 企业采购中心 / B2B 撮合平台</div>
+        <p className="mt-1 text-xs text-[#c9c4b8]">第五产品定位：承载五域集市（E 物资 / H 人力 / Y 空间 / T 技术 / DE 门店产能）与 Booth 群，企业买方一站式撮合；<span className="text-[#25c2ad]">Y-Market 保留捷租 Jezoom 子品牌</span>。前店对接经营帽（E/T 由 EDU/TDU 视角），后厂依域路由履约。</p>
+      </div>
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <span className="mr-1 font-serif-display font-bold">Market 经营台</span>
         <DomainChip code="" active={domain === ''} onClick={() => setDomain('')} />

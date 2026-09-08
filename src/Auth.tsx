@@ -9,6 +9,7 @@ interface AuthCtx {
   isAuthed: boolean;
   login: (account: string, password: string, entry?: 'C' | 'B') => Promise<void>;
   oneClick: (entry: 'C' | 'B') => Promise<void>;
+  loginDemo: (demoId: string) => Promise<SessionUser>;
   logout: () => Promise<void>;
 }
 
@@ -56,13 +57,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user);
   }, []);
 
+  const loginDemo = useCallback(async (demoId: string) => {
+    const res = await api.oneClickById(demoId);
+    setToken(res.token);
+    setUser(res.user);
+    return res.user;
+  }, []);
+
   const logout = useCallback(async () => {
     try { await api.logout(); } catch { /* ignore */ }
     clear();
   }, [clear]);
 
   return (
-    <Ctx.Provider value={{ user, loading, isAuthed: !!user, login, oneClick, logout }}>
+    <Ctx.Provider value={{ user, loading, isAuthed: !!user, login, oneClick, loginDemo, logout }}>
       {children}
     </Ctx.Provider>
   );

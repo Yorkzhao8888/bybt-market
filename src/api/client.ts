@@ -1,6 +1,6 @@
 // API 客户端：统一封装与类型映射
 import type {
-  Booth, DomainMeta, DomainStats, Fulfillment, Listing, Order, SessionUser, Unit,
+  Booth, DemoAccount, DomainMeta, DomainStats, Fulfillment, Listing, Order, SessionUser, Unit,
 } from '../../shared/types';
 
 const TOKEN_KEY = 'xm_token';
@@ -52,6 +52,7 @@ export interface BoothDetail {
   front: Listing[];
   back: Fulfillment[];
   owner: Unit | null;
+  ops?: Unit | null;
   orders?: Order[];
 }
 
@@ -91,12 +92,31 @@ export interface HierarchyContainer {
 
 export interface AuthResult { token: string; user: SessionUser; }
 
+export interface HatLine {
+  domain: DomainMeta;
+  opsBoothId: string;
+  frontier: string;
+  backFactory: string;
+}
+
+export interface FamilyStat {
+  family: 'C' | 'D' | 'H' | 'E' | 'Y' | 'T';
+  label: string;
+  count: number;
+  turnover: number;
+  boothHint: string;
+  stub?: boolean;
+}
+
 export const api = {
   // ---- 认证 ----
   login: (payload: { account: string; password: string; entry?: 'C' | 'B' }) =>
     req<AuthResult>('/api/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
   oneClick: (entry: 'C' | 'B') =>
     req<AuthResult>('/api/auth/oneclick', { method: 'POST', body: JSON.stringify({ entry }) }),
+  oneClickById: (demoId: string) =>
+    req<AuthResult>('/api/auth/oneclick', { method: 'POST', body: JSON.stringify({ demoId }) }),
+  demos: () => req<DemoAccount[]>('/api/auth/demos'),
   me: () => req<SessionUser>('/api/auth/me'),
   logout: () => req<{ loggedOut: boolean }>('/api/auth/logout', { method: 'POST', body: '{}' }),
 
@@ -112,6 +132,7 @@ export const api = {
     return req<UnitView[]>(`/api/model/units${q ? `?${q}` : ''}`);
   },
   hierarchy: () => req<HierarchyContainer[]>('/api/model/hierarchy'),
+  hats: () => req<HatLine[]>('/api/model/hats'),
 
   // ---- 三流占位 ----
   flows: () => req<Record<string, { caption: string; gate: string; status: string; note: string }>>('/api/flows'),
@@ -135,5 +156,6 @@ export const api = {
   createOrder: (payload: { type?: 'MALL' | 'MARKET'; listingId: string; buyerUnitId: string; qty?: number }) =>
     req<Order>('/api/orders', { method: 'POST', body: JSON.stringify(payload) }),
   orders: (type?: 'MALL' | 'MARKET') => req<Array<Order & { buyer: string; seller: string }>>(`/api/orders${type ? `?type=${type}` : ''}`),
+  orderFamilies: () => req<FamilyStat[]>('/api/orders/families'),
   advanceOrder: (id: string) => req<Order>(`/api/orders/${id}/advance`, { method: 'POST', body: '{}' }),
 };
