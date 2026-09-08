@@ -92,7 +92,7 @@ const demoAccounts: DemoAccount[] = [
   { id: 'xu-huadong', entry: 'B', hatRole: 'XU', containerId: 'c-gou', hatId: 'u-xu1', label: '华东区采购办 · 客户 XU', note: 'B 端采购客户（走 Market，企业采购/询价报价）', domainView: 'E' },
   // 平台运营方 V*M
   { id: 'vdm', entry: 'B', hatRole: 'VDM', containerId: 'c-plat', hatId: 'u-vdm1', label: '产品市场运营长 VDM', note: '平台运营管理方·产品市场（DMX 项目线），市场秩序/规则/Booth 系统供给', domainView: 'DE' },
-  { id: 'vem-e', entry: 'B', hatRole: 'VEM', containerId: 'c-plat', hatId: 'u-vem1', label: '物资市场运营长 VEM', note: '平台运营管理方·通货市场（EMX 项目线），市场秩序/规则/Booth 系统供给', domainView: 'E' },
+  { id: 'vem-e', entry: 'B', hatRole: 'VEM', containerId: 'c-plat', hatId: 'u-vem1', label: '通货市场运营长 VEM', note: '平台运营管理方·通货市场（EMX 项目线），市场秩序/规则/Booth 系统供给', domainView: 'E' },
 ];
 const DEMO_ALIAS: Record<string, DemoAccount> = Object.fromEntries(demoAccounts.map((a) => [a.id, a]));
 // 帽角色路由 → 演示账号（快捷）
