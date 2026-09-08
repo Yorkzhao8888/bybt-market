@@ -5,19 +5,24 @@ import { api, type MarketBooth } from '../api/client';
 import { DomainChip, DomainLine, SectionTitle } from '../components/ui';
 import { DOMAIN_NAMES } from '../lib/domain';
 import type { Unit } from '../../shared/types';
+import { useAuth } from '../Auth';
 
 export default function Market() {
+  const { user } = useAuth();
   const [booths, setBooths] = useState<MarketBooth[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [domain, setDomain] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [notice, setNotice] = useState('');
-  const [form, setForm] = useState({ name: '', ownerUnitId: 'u-xu1', frontDesc: '', backDesc: '' });
+  const [form, setForm] = useState({ name: '', ownerUnitId: 'u-eu1', frontDesc: '', backDesc: '' });
 
   const domains = useMemo(() => ['E', 'H', 'Y', 'T', 'DE'], []);
   const load = () => api.marketBooths(domain || undefined).then(setBooths).catch(console.error);
   useEffect(() => { load(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [domain]);
-  useEffect(() => { api.units('XU').then(setUnits).catch(console.error); }, []);
+  useEffect(() => { api.units({ side: 'B' }).then(setUnits).catch(console.error); }, []);
+  useEffect(() => {
+    if (user && user.entry === 'B' && user.hatId) setForm(f => ({ ...f, ownerUnitId: user.hatId as string }));
+  }, [user]);
 
   const create = async () => {
     if (!domain || !form.name.trim()) { setNotice('请选择域并填写摊位名'); return; }
@@ -25,7 +30,7 @@ export default function Market() {
       await api.createBooth({ domain, name: form.name, ownerUnitId: form.ownerUnitId, frontDesc: form.frontDesc, backDesc: form.backDesc });
       setNotice(`${DOMAIN_NAMES[domain]}域摊位「${form.name}」已开张`);
       setShowForm(false);
-      setForm({ name: '', ownerUnitId: 'u-xu1', frontDesc: '', backDesc: '' });
+      setForm({ name: '', ownerUnitId: 'u-eu1', frontDesc: '', backDesc: '' });
       load();
     } catch (e) { setNotice((e as Error).message); }
   };
@@ -69,7 +74,7 @@ export default function Market() {
       )}
 
       <div className="mb-4 flex items-center gap-2 text-sm text-[#8a8577]">
-        <Users className="h-4 w-4" /> 经营侧：XU 统筹 · {units.length} 个经营单元
+        <Users className="h-4 w-4" /> 经营侧（B端）· {units.length} 顶经营帽可统辖摊位
       </div>
 
       <SectionTitle sub={`${booths.length} 个`}>在营摊位（双层）</SectionTitle>

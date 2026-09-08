@@ -15,7 +15,7 @@ export default function MallBooth() {
   const [notice, setNotice] = useState('');
 
   useEffect(() => { if (id) api.mallBooth(id).then(setData).catch(console.error); }, [id]);
-  useEffect(() => { api.units('CU').then(setCus).catch(console.error); }, []);
+  useEffect(() => { api.units({ role: 'CU' }).then(setCus).catch(console.error); }, []);
 
   if (!data) return <div className="py-20 text-center text-[#8a8577]">加载中…</div>;
   const { booth, front, back } = data;

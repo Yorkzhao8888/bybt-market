@@ -5,8 +5,10 @@ import { api, type MallListing } from '../api/client';
 import { DomainChip, DomainLine, EmptyState, SectionTitle } from '../components/ui';
 import { DOMAIN_COLORS } from '../lib/domain';
 import type { Unit } from '../../shared/types';
+import { useAuth } from '../Auth';
 
 export default function Mall() {
+  const { user } = useAuth();
   const [params, setParams] = useSearchParams();
   const active = params.get('domain') ?? '';
   const [listings, setListings] = useState<MallListing[]>([]);
@@ -15,7 +17,10 @@ export default function Mall() {
   const [notice, setNotice] = useState('');
 
   useEffect(() => { api.mallListings(active || undefined).then(setListings).catch(console.error); }, [active]);
-  useEffect(() => { api.units('CU').then(setCus).catch(console.error); }, []);
+  useEffect(() => { api.units({ role: 'CU' }).then(setCus).catch(console.error); }, []);
+  useEffect(() => {
+    if (user && user.entry === 'C' && user.hatId) setBuyer(user.hatId);
+  }, [user]);
 
   const domains = useMemo(() => ['E', 'H', 'Y', 'T', 'DE'], []);
 

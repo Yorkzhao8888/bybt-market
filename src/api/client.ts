@@ -1,13 +1,32 @@
 // API 客户端：统一封装与类型映射
 import type {
-  Booth, DomainMeta, DomainStats, Fulfillment, Listing, Order, Unit,
+  Booth, DomainMeta, DomainStats, Fulfillment, Listing, Order, SessionUser, Unit,
 } from '../../shared/types';
 
+const TOKEN_KEY = 'xm_token';
+
+export function getToken(): string | null {
+  return typeof localStorage === 'undefined' ? null : localStorage.getItem(TOKEN_KEY);
+}
+export function setToken(token: string | null): void {
+  if (typeof localStorage === 'undefined') return;
+  if (token) localStorage.setItem(TOKEN_KEY, token);
+  else localStorage.removeItem(TOKEN_KEY);
+}
+
+let onUnauthorized: (() => void) | null = null;
+export function setOnUnauthorized(fn: () => void): void {
+  onUnauthorized = fn;
+}
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
-  });
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(path, { headers, ...init });
+  if (res.status === 401 && path !== '/api/auth/login') {
+    onUnauthorized?.();
+  }
   const json = (await res.json().catch(() => ({ success: false, error: '解析失败' }))) as { success: boolean; data?: T; error?: string };
   if (!res.ok || !json.success) {
     throw new Error(json.error || `请求失败 ${res.status}`);
@@ -43,13 +62,68 @@ export interface MarketBooth extends Booth {
   backLoad: number;
 }
 
+export interface ContainerView {
+  id: string;
+  type: string;
+  typeLabel: string;
+  name: string;
+  region: string;
+  credit: number;
+  hatCount: number;
+  boothCount: number;
+}
+
+export interface UnitView extends Unit {
+  containerName: string;
+}
+
+export interface HierarchyContainer {
+  id: string;
+  type: string;
+  typeLabel: string;
+  name: string;
+  hats: Array<{
+    id: string; code: string; name: string; role: string; side: string;
+    domainTags: string[]; dispatch?: boolean;
+    booths: Array<{ id: string; code: string; name: string; domain: string }>;
+  }>;
+}
+
+export interface AuthResult { token: string; user: SessionUser; }
+
 export const api = {
+  // ---- 认证 ----
+  login: (payload: { account: string; password: string; entry?: 'C' | 'B' }) =>
+    req<AuthResult>('/api/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
+  oneClick: (entry: 'C' | 'B') =>
+    req<AuthResult>('/api/auth/oneclick', { method: 'POST', body: JSON.stringify({ entry }) }),
+  me: () => req<SessionUser>('/api/auth/me'),
+  logout: () => req<{ loggedOut: boolean }>('/api/auth/logout', { method: 'POST', body: '{}' }),
+
+  // ---- 数据模型查询 ----
+  containers: () => req<ContainerView[]>('/api/model/containers'),
+  container: (id: string) => req<{ container: { id: string; type: string; name: string }; hats: Unit[]; booths: Booth[] }>(`/api/model/containers/${id}`),
+  units: (opts?: { role?: string; side?: 'C' | 'B'; containerId?: string }) => {
+    const p = new URLSearchParams();
+    if (opts?.role) p.set('role', opts.role);
+    if (opts?.side) p.set('side', opts.side);
+    if (opts?.containerId) p.set('containerId', opts.containerId);
+    const q = p.toString();
+    return req<UnitView[]>(`/api/model/units${q ? `?${q}` : ''}`);
+  },
+  hierarchy: () => req<HierarchyContainer[]>('/api/model/hierarchy'),
+
+  // ---- 三流占位 ----
+  flows: () => req<Record<string, { caption: string; gate: string; status: string; note: string }>>('/api/flows'),
+  flow: (kind: string) => req<{ kind: string; caption: string; gate: string; status: string; items: unknown[] }>(`/api/flows/${kind}`),
+  tradables: () => req<{ listingCount: number; categories: string[]; capacityBooths: number }>('/api/tradables'),
+
+  // ---- 集市 ----
   overview: () => req<OverviewData>('/api/overview'),
   meta: () => req<{ domains: DomainMeta[]; stats: DomainStats[] }>('/api/meta'),
   mallListings: (domain?: string) => req<MallListing[]>(`/api/mall/listings${domain ? `?domain=${domain}` : ''}`),
   mallBooths: (domain?: string) => req<Booth[]>(`/api/mall/booths${domain ? `?domain=${domain}` : ''}`),
   mallBooth: (id: string) => req<BoothDetail>(`/api/mall/booths/${id}`),
-  units: (role?: string) => req<Unit[]>(`/api/market/units${role ? `?role=${role}` : ''}`),
   marketBooths: (domain?: string) => req<MarketBooth[]>(`/api/market/booths${domain ? `?domain=${domain}` : ''}`),
   marketBooth: (id: string) => req<BoothDetail & { orders: Order[] }>(`/api/market/booths/${id}`),
   createBooth: (payload: { domain: string; name: string; ownerUnitId: string; frontDesc?: string; backDesc?: string }) =>

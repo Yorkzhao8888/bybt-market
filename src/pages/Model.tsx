@@ -1,0 +1,109 @@
+// 13U 数据模型：容器(主体) → 帽(身份) → 域角色(交易对象)
+import { useEffect, useState } from 'react';
+import { Boxes, Layers, Link2 } from 'lucide-react';
+import { api, type ContainerView, type HierarchyContainer } from '../api/client';
+import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL } from '../../shared/types';
+
+export default function Model() {
+  const [containers, setContainers] = useState<ContainerView[]>([]);
+  const [hierarchy, setHierarchy] = useState<HierarchyContainer[]>([]);
+  const [flows, setFlows] = useState<Partial<Record<'ORDER' | 'RESOURCE' | 'FUND', { caption: string; gate: string; status: string; note: string }>> | null>(null);
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [c, h, f] = await Promise.all([api.containers(), api.hierarchy(), api.flows()]);
+        setContainers(c);
+        setHierarchy(h);
+        setFlows(f);
+      } catch (error) {
+        setErr(error instanceof Error ? error.message : '加载失败');
+      }
+    })();
+  }, []);
+
+  const activeContainers = containers.filter(c => c.hatCount > 0 || c.boothCount > 0);
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="font-serif-display text-2xl font-black">13U 数据模型</h1>
+        <p className="mt-1 text-sm text-[#8a8577]">主体(容器) → 身份(帽) → 域角色(交易对象) · 13U 口径：PU→TU；13 = 12U + YU(域主)</p>
+      </div>
+
+      {/* 容器概览 */}
+      <section className="mb-8">
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#17181d]"><Boxes className="h-4 w-4 text-[#b8862b]" /> 容器（主体）</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {activeContainers.map(c => (
+            <div key={c.id} className="rounded-lg border border-[#e4ded2] bg-white p-4 shadow-[4px_4px_0_rgba(23,24,29,0.06)]">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold">{c.name}</span>
+                <span className="rounded-full bg-[#f5f2eb] px-2 py-0.5 text-[10px] font-semibold text-[#6b665a]">{c.typeLabel}</span>
+              </div>
+              <div className="mt-2 flex gap-4 text-xs text-[#8a8577]">
+                <span>{c.hatCount} 顶帽</span>
+                <span>{c.boothCount} 个摊位</span>
+                <span>信用 {c.credit}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 三级结构 */}
+      <section className="mb-8">
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#17181d]"><Layers className="h-4 w-4 text-[#b8862b]" /> 容器 → 帽 → 摊位</h2>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {hierarchy.map(c => (
+            <div key={c.id} className="rounded-lg border border-[#e4ded2] bg-white/70 p-4">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-sm font-bold">{c.name}</span>
+                <span className="rounded bg-[#f5f2eb] px-1.5 py-0.5 text-[10px] text-[#6b665a]">{c.typeLabel}</span>
+              </div>
+              <ul className="space-y-1.5">
+                {c.hats.length === 0 && <li className="text-xs text-[#b8b2a4]">暂无帽</li>}
+                {c.hats.map(h => (
+                  <li key={h.id} className="flex items-center justify-between rounded-md bg-white px-2 py-1.5 text-xs">
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-bold">{UNIT_ROLE_LABEL[h.role as keyof typeof UNIT_ROLE_LABEL] ?? h.role}</span>
+                      <span className="text-[#8a8577]">{h.name}</span>
+                      {h.dispatch && <span className="rounded bg-[#e4572e]/10 px-1 text-[10px] text-[#e4572e]">调度</span>}
+                      <span className="text-[10px] text-[#b8b2a4]">{h.domainTags.join('·') || '无域'}</span>
+                    </span>
+                    {h.booths.length > 0 && (
+                      <span className="flex items-center gap-0.5 text-[10px] text-[#b8862b]"><Link2 className="h-3 w-3" />{h.booths.length}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 三流占位 */}
+      <section>
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#17181d]">三流预留（XCASE 收口）</h2>
+        {flows && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {Object.entries(flows).map(([k, v]) => (
+              <div key={k} className="rounded-lg border border-dashed border-[#e4ded2] bg-white/50 p-4">
+                <div className="text-sm font-bold">{v.caption}</div>
+                <div className="mt-1 text-xs text-[#8a8577]">{v.note}</div>
+                <div className="mt-2 flex gap-2 text-[10px]">
+                  <span className="rounded bg-[#f5f2eb] px-1.5 py-0.5 text-[#6b665a]">闸口 {v.gate}</span>
+                  <span className="rounded bg-[#b8862b]/10 px-1.5 py-0.5 text-[#b8862b]">{v.status}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {err && <p className="mt-4 text-sm text-[#c0392b]">{err}</p>}
+      <p className="mt-6 text-xs text-[#8a8577]">* 容器读侧 API 待对接 ERP-TENANT-READ-01，本单先立结构、读侧收口后对接。{CONTAINER_TYPE_LABEL.XOPZ}</p>
+    </div>
+  );
+}
