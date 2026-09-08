@@ -5,6 +5,8 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Store, Factory, ListChecks } from 'lucide-react';
 import { api } from '../api/client';
 import type { BoothDetail, OrderRow } from '../api/client';
+import type { TrustExposure } from '../../shared/types';
+import { TRUST_EXPOSURE } from '../../shared/types';
 import { useAuth } from '../Auth';
 import { colorOf, marketLabel, hatLabel, canOperate, canOperateBooth } from '../lib/domain';
 
@@ -94,6 +96,18 @@ export default function MarketBooth() {
                 <div className="mt-2 flex flex-wrap gap-1">
                   {l.tags.map((t) => <span key={t} className="rounded bg-[#f3eee3] px-1.5 py-0.5 text-[10px] text-[#8a8577]">{t}</span>)}
                 </div>
+                {/* 补充单2：强隔离+脱敏露出（质检/产地脱敏/服务等级/时效/售后），不含供给方名称/报价 */}
+                {(() => {
+                  const exp: TrustExposure | undefined = TRUST_EXPOSURE[l.domain];
+                  if (!exp) return null;
+                  return (
+                    <div className="mt-2 rounded-md bg-[#faf7f0] px-2 py-1.5 text-[11px] leading-5 text-[#6b665a]">
+                      <p>{exp.quality.join(' · ')}</p>
+                      <p>产地 {exp.originMask} · {exp.serviceLevel} · {exp.leadTime}</p>
+                      <p>售后：{exp.afterSales}</p>
+                    </div>
+                  );
+                })()}
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-xs text-[#8a8577]">铺面挂单（库存/批次归 Booth 实体系统）</span>
                   {/* P1：客户不可见上架等铺主操作 */}
@@ -105,6 +119,13 @@ export default function MarketBooth() {
                 </div>
               </div>
             ))}
+          </div>
+          {/* 补充单2：DU 承载 —— 售后入口指向 DU，发票流供给方→DU→客户，客户不可见采购合同 */}
+          <div className="mt-4 rounded-lg border border-[#e4ded2] bg-[#faf7f0] p-3 text-xs leading-5 text-[#6b665a]">
+            <p className="font-bold text-[#17181d]">售后与发票（DU 承载）</p>
+            <p>售后：仅联系合同对手 {owner ? `${owner.name}（DU 经营主体）` : 'DU 经营主体'}，责任转移点 = 交付回执；DU 向供给方追偿。</p>
+            <p>发票：供给方 → DU（进项票） → 客户（销售票，由 DU 开具）。</p>
+            <p>DU 与供给方的采购/服务合同仅 DU 经营台可见，客户不可见。</p>
           </div>
         </div>
       ) : (

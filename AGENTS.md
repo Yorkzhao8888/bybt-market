@@ -48,8 +48,10 @@
 - mall: GET listings / booths（DCX 门店，C 端）
 - market: GET booths / GET booths/:id / POST booths（开新铺，按域校验铺主帽）/ POST inquiries / GET inquiries / POST inquiries/:id/quote / inquiries/:id/contract
 - orders: GET（按身份过滤：客户只见自己、DU 见名下多店、运营方见管辖域）/ POST（支持 side/inquiryId）/ GET families
-- flows: GET（订单流/资源流/资金流三段）
+- flows: GET（订单流/资源流/资金流三段 + INVOICE 发票流（供给方→DU→客户）+ AFTER_SALES 售后 SLA（责任转移点=交付回执））
 - govern: GET cases（V*M 运营治理：市场秩序/规则制定/Booth 系统供给）
+- market: GET supply-contracts（DU 采购合同，仅 DU/V*M 可见，客户 403）
+- 隔离口径（补充单2）：客户视角 GET market/booths 只下发 kind='du' 铺；供给实体铺对客户 404；客户界面经 TRUST_EXPOSURE（shared/types）露出质检/脱敏产地/服务等级/交付时效/售后，严禁露出供给方名称/进价/联系方式/DU 采购合同
 
 ## 权限口径（服务端强制）
 

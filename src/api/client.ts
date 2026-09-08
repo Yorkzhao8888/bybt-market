@@ -2,7 +2,7 @@
 // 视图类型统一从 shared/types 导入（单一来源），client 只做别名与请求封装
 import type {
   BoothRow, Container, DemoAccount, DomainCode, DomainMeta, GovernanceCase, HatLine, HatRow, Inquiry, JobSystem,
-  Listing, Order, OrderRow, ProfessionalMarket, SessionUser, Unit, HatRole,
+  Listing, Order, OrderRow, ProfessionalMarket, SessionUser, SupplyContract, Unit, HatRole,
 } from '../../shared/types';
 
 export type DecoratedBooth = BoothRow;
@@ -161,6 +161,8 @@ export const api = {
 
   // ---- 运营治理 ----
   governCases: () => req<GovernData>('/api/govern/cases'),
+  // DU 采购合同（DU 与供给方之间，仅经营台可见；客户 403）
+  supplyContracts: () => req<SupplyContract[]>('/api/market/supply-contracts'),
 
   // ---- 订单 ----
   orders: () => req<OrderRow[]>('/api/orders'),

@@ -365,4 +365,34 @@ export interface DemoAccount {
 }
 
 /** 三流占位（订单流/资源流/资金流） */
-export type FlowKind = 'ORDER' | 'RESOURCE' | 'FUND';
+export type FlowKind = 'ORDER' | 'RESOURCE' | 'FUND' | 'INVOICE' | 'AFTER_SALES';
+
+/** 客户界面脱敏露出（X-MARKET-05 补充单2·强隔离+信任锚点）：按域给非价格敏感信任信息 */
+export interface TrustExposure {
+  quality: string[];      // 质检/认证标识
+  originMask: string;     // 脱敏产地（不得含供给方名称）
+  serviceLevel: string;   // 服务等级
+  leadTime: string;       // 交付时效
+  afterSales: string;     // 售后政策（对手=DU）
+}
+
+/** DU 采购合同（供给方→DU，仅 DU 经营台/V*M 可见，客户不可见） */
+export interface SupplyContract {
+  id: string;
+  duBoothId: string;      // DU 经营实体铺
+  duBoothCode: string;
+  supplyBoothCode: string; // 供给方实体铺（DU 可见）
+  supplyOwner: string;     // 供给方名称（仅 DU/V*M 可见）
+  items: string;
+  amountCents: number;
+  period: string;
+  invoiceFlow: string;     // 发票流：供给方开进项票 → DU 开销售票给客户
+}
+
+export const TRUST_EXPOSURE: Record<DomainCode, TrustExposure> = {
+  E: { quality: ['GB/T 检测合格', 'ISO9001'], originMask: '华东产区', serviceLevel: 'SLA-A（48h 响应）', leadTime: '72h 出仓', afterSales: '由合同对手 DU 承担售后，7 天质量问题包换' },
+  H: { quality: ['技能认证库核验', '社保合规'], originMask: '华东人力池', serviceLevel: 'SLA-A（24h 到岗）', leadTime: '48h 组队', afterSales: '由合同对手 DU 承担售后，人员 24h 置换' },
+  Y: { quality: ['消防验收', '产权核验'], originMask: '华东园区带', serviceLevel: 'SLA-B（工作日响应）', leadTime: '24h 入驻', afterSales: '由合同对手 DU 承担售后，7 天无理由退租' },
+  T: { quality: ['等保二级', '源码托管'], originMask: '华东交付中心', serviceLevel: 'SLA-A（2h 故障响应）', leadTime: '2 周启动', afterSales: '由合同对手 DU 承担售后，90 天质保维护' },
+  DE: { quality: ['3C 认证', '批次抽检'], originMask: '华东门店网', serviceLevel: 'SLA-A（24h 上门）', leadTime: '48h 交付', afterSales: '由合同对手 DU 承担售后，门店 15 天退换' },
+};

@@ -10,12 +10,11 @@ import {
 } from '../domainConfig';
 import {
   getStore, nextSeq, containerById,
-  inquiries, governanceCases, nextOrderCode,
-  type Inquiry,
+  inquiries, governanceCases, nextOrderCode, supplyContracts,
 } from '../store';
 import { createToken, getUserByToken, revokeToken, DEV_PASSWORD } from '../auth';
 import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth } from '../../shared/types';
-import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL, HAT_LINE_OF } from '../../shared/types';
+import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL, HAT_LINE_OF, type Inquiry } from '../../shared/types';
 
 const router = Router();
 const api = Router();
@@ -36,6 +35,14 @@ function requireAuth(req: AuthReq, res: AuthRes, next: () => void): void {
     return;
   }
   req.user = user;
+  next();
+}
+
+/** 可选鉴权：匿名放行，req.user 可为空（客户视角强隔离用） */
+function optionalAuth(req: AuthReq, _res: AuthRes, next: () => void): void {
+  const h = req.headers.authorization || '';
+  const token = h.startsWith('Bearer ') ? h.slice(7) : '';
+  req.user = (token ? getUserByToken(token) : null) ?? undefined;
   next();
 }
 
@@ -282,20 +289,29 @@ api.get('/mall/booths', (_req, res) => {
 });
 
 // ================= Market（B 端 XU）：企业采购中心 · 五大专业市场铺面 =================
-api.get('/market/booths', (req, res) => {
+/** 客户（CU/XU）或匿名视角判定：强隔离 + 脱敏露出（X-MARKET-05 补充单2） */
+function isClientView(req: AuthReq): boolean {
+  const u = req.user;
+  return !u || u.hatRole === 'CU' || u.hatRole === 'XU';
+}
+
+api.get('/market/booths', optionalAuth, (req: AuthReq, res) => {
   const store = getStore();
   const domain = (req.query?.domain as string) || null;
   const kind = (req.query?.kind as string) || null; // supply | du
   let list = [...store.booths];
+  // 客户/匿名视角：供给实体铺（源头产能）不下发，仅 DU 经营实体铺（合同对手=DU）
+  if (isClientView(req)) list = list.filter((b) => b.kind === 'du');
   if (domain) list = list.filter((b) => b.domain === domain);
   if (kind === 'supply' || kind === 'du') list = list.filter((b) => b.kind === kind);
   ok(res, list.map(decorateBooth(store)));
 });
 
-api.get('/market/booths/:id', (req, res) => {
+api.get('/market/booths/:id', optionalAuth, (req: AuthReq, res) => {
   const store = getStore();
   const booth = store.booths.find((b) => b.id === req.params?.id);
-  if (!booth) {
+  if (!booth || (booth.kind === 'supply' && isClientView(req))) {
+    // 供给实体铺对客户不存在（防探测：同样返回"不存在"）
     res.status(404).json({ success: false, error: 'Booth 不存在' });
     return;
   }
@@ -341,6 +357,17 @@ function decorateBooth(store: ReturnType<typeof getStore>) {
     };
   };
 }
+
+/** DU 采购合同（DU 与供给方之间）——仅经营台可见（补充单2：二-3） */
+api.get('/market/supply-contracts', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  const role = roleOf(user);
+  if (role !== 'DU' && HAT_LINE_OF[role] !== 'admin') {
+    res.status(403).json({ success: false, error: 'DU 采购合同仅经营台（DU/运营方）可见，客户不可见' });
+    return;
+  }
+  ok(res, supplyContracts);
+});
 
 /** 新开 Booth（B 端经营）：按专业市场约束铺主帽与权属（P4/P5）
  *  Y/H：供给帽(YU/HU) 或 DU 经营均可；E/T：供给帽(EU/TU) 或平台直营 DU（无加盟）；DE：DU 直营/加盟。
@@ -597,6 +624,16 @@ api.get('/flows', (_req, res) => {
         { stage: 'XCASE', role: '结算流水', desc: '收口交易结算/支付流水（Market 交易资金归集）' },
         { stage: 'ERP', role: '总账/资产', desc: '企业资源计划记总账与资产（对接方：ERP-TENANT）' },
         { stage: 'X-FIN', role: '财务分析', desc: '财务数据建模与经营分析' },
+      ] },
+    { kind: 'INVOICE', label: '发票/税务流', desc: '供给方 → DU → 客户', status: '占位',
+      segments: [
+        { stage: '进项', role: '供给方 → DU', desc: 'DU 收供给方进项票（DU 采购合同对手方，仅经营台可见）' },
+        { stage: '销项', role: 'DU → 客户', desc: 'DU 对客户开销售票（客户合同对手 = DU）' },
+      ] },
+    { kind: 'AFTER_SALES', label: '售后 SLA', desc: '客户只找 DU · 责任转移点 = 交付回执', status: '占位',
+      segments: [
+        { stage: '客户 → DU', role: '全责承担', desc: '客户售后仅向 DU（合同对手）发起，DU 对客户负全责' },
+        { stage: 'DU → 供给方', role: '内部追偿', desc: '交付回执确认后责任转移，DU 凭采购/服务合同向供给方追偿（客户不可见）' },
       ] },
   ]);
 });

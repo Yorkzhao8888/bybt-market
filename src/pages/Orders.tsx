@@ -30,6 +30,7 @@ export default function Orders() {
   const role = user?.hatRole;
   const isAdmin = isAdminRole(role);
   const operator = canOperate(role);
+  const isClientRole = !operator; // 客户（XU/CU）：对手恒为 DU，供给方不出现在客户侧
   const scopeNote = isAdmin
     ? '运营方/平台视角：可见管辖域全部订单（全局总账）。'
     : operator
@@ -63,6 +64,14 @@ export default function Orders() {
         <div className="paper-card hard-shadow rounded-lg px-4 py-3"><div className="text-xs text-[#8a8577]">累计金额</div><div className="ticker-font text-2xl font-black text-[#b8862b]">¥{totals.amount.toLocaleString()}</div></div>
       </div>
 
+      {isClientRole && (
+        <div className="mb-4 rounded-lg border border-[#e4ded2] bg-[#faf7f0] px-3 py-2 text-xs leading-5 text-[#6b665a]">
+          <p className="font-bold text-[#17181d]">合同对手与售后（DU 承载）</p>
+          <p>合同对手：{user?.hatRole === 'CU' ? 'Booth-DC 门店（DU 直营）' : 'DU 经营主体'}；供给方名称与 DU 采购合同不对客户展示。</p>
+          <p>发票流：供给方 → DU（进项票）→ 客户（DU 开具销售票）。售后：联系 DU，责任转移点 = 交付回执，DU 向供给方追偿。</p>
+        </div>
+      )}
+
       {orders.length === 0 ? (
         <div className="paper-card rounded-lg p-10 text-center text-sm text-[#8a8577]">当前视角暂无交易单</div>
       ) : (
@@ -88,7 +97,9 @@ export default function Orders() {
                     <span className="text-sm text-[#6b665a]">{o.listingTitle}</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
-                    <span className="text-[#8a8577]">{o.buyerName} → {o.sellerName}</span>
+                    <span className="text-[#8a8577]">
+                      合同对手：{isClientRole ? 'DU' : o.sellerName}
+                    </span>
                     <span className="ticker-font font-bold">¥{(o.amountCents / 100).toLocaleString()}</span>
                     <span className="rounded px-2 py-0.5 text-xs font-semibold" style={{ color: st.color, background: `${st.color}18` }}>{st.label}</span>
                   </div>

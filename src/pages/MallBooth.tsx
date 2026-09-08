@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Store, ShoppingCart } from 'lucide-react';
 import { api } from '../api/client';
 import type { BoothDetail } from '../api/client';
+import { TRUST_EXPOSURE } from '../../shared/types';
 import { colorOf, marketLabel, hatLabel } from '../lib/domain';
 import { useAuth } from '../Auth';
 
@@ -60,6 +61,14 @@ export default function MallBooth() {
                   {l.tags.map((t) => <span key={t} className="rounded bg-[#f3eee3] px-1.5 py-0.5 text-[10px] text-[#8a8577]">{t}</span>)}
                 </div>
                 <div className="mt-2 text-2xl font-black" style={{ color }}>¥{(l.priceCents / 100).toFixed(0)} <span className="text-xs font-normal text-[#8a8577]">/ {l.unit}</span></div>
+                <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[11px] text-[#6b665a]">
+                  {TRUST_EXPOSURE[l.domain].quality.map((q) => (
+                    <span key={q} className="rounded bg-[#eaf3ee] px-1.5 py-0.5 font-semibold">质检 {q}</span>
+                  ))}
+                  <span>产地：{TRUST_EXPOSURE[l.domain].originMask}</span>
+                  <span>服务：{TRUST_EXPOSURE[l.domain].serviceLevel}</span>
+                  <span>时效：{TRUST_EXPOSURE[l.domain].leadTime}</span>
+                </div>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-xs text-[#8a8577]">库存/批次归 Booth 实体系统</span>
                   <button onClick={() => buy(l)} className="flex items-center gap-1 rounded-md bg-[#b8862b] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90">
@@ -70,6 +79,11 @@ export default function MallBooth() {
             ))}
           </div>
         )}
+      </div>
+      <div className="mt-4 rounded-lg border border-[#e4ded2] bg-[#faf7f0] p-3 text-xs leading-5 text-[#6b665a]">
+        <p className="font-bold text-[#17181d]">售后与发票（DU 直营承载）</p>
+        <p>售后：{TRUST_EXPOSURE[listings[0]?.domain ?? 'DE'].afterSales}；责任转移点 = 交付回执。</p>
+        <p>发票：供给方 → DU（进项票） → 客户（销售票，由 DU 开具）。</p>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@
 // X-MARKET-05：两套系统 + 三方链路 + Booth 权属定版
 //   容器(主体) → 帽(身份) → 域角色(标签) → Booth 实体(作业层) / 交易对象(铺面层)
 
-import type { Container, Unit, Booth, Order, Listing } from '../shared/types';
+import type { Container, Unit, Booth, Order, Listing, Inquiry, SupplyContract } from '../shared/types';
 
 /* ============ 容器（主体） ============ */
 export const containers: Container[] = [
@@ -109,22 +109,15 @@ export const nextOrderCode = (tradeCode: string, family: string): string => {
   return `${family === 'C' ? 'C' : tradeCode}-2026-${String(orderSeq - 1000).padStart(4, '0')}`;
 };
 
-/* ============ B2B 询价/报价/合同（Market 铺面层，占位内存态） ============ */
-export interface Inquiry {
-  id: string;
-  code: string;
-  domain: string;
-  boothId: string;
-  buyerContainerId: string;
-  title: string;
-  detail: string;
-  status: 'inquiry' | 'quoted' | 'contracted' | 'ordered';
-  quoteCents?: number;
-  quoteNote?: string;
-  contractNo?: string;
-  createdAt: string;
-}
+/* ============ B2B 询价/报价/合同（Market 铺面层，占位内存态；类型口径 shared/types.Inquiry） ============ */
 export const inquiries: Inquiry[] = [];
+
+/** DU 采购合同（供给方→DU）：仅 DU 经营台 / V*M 可见，客户界面严禁下发 */
+export const supplyContracts: SupplyContract[] = [
+  { id: 'sc1', duBoothId: 'b-dy1', duBoothCode: 'Booth-DY-01', supplyBoothCode: 'Booth-Y-01', supplyOwner: '捷租空间（YU）', items: '园区席位季度采购 200 席', amountCents: 3600000, period: '2026-Q4', invoiceFlow: '捷租空间开进项票 → 合和 DU 开销售票给客户' },
+  { id: 'sc2', duBoothId: 'b-de1', duBoothCode: 'Booth-DE-01', supplyBoothCode: 'Booth-E-01', supplyOwner: '启辰物资（EU）', items: 'MRO 物料集采框架（月结）', amountCents: 5200000, period: '2026-09', invoiceFlow: '启辰物资开进项票 → 合和 DU 开销售票给客户' },
+  { id: 'sc3', duBoothId: 'b-dh1', duBoothCode: 'Booth-DH-01', supplyBoothCode: 'Booth-H-01', supplyOwner: '合致人力（HU）', items: '运维班组 12 人外协服务', amountCents: 2880000, period: '2026-Q4', invoiceFlow: '合致人力开进项票 → 丰石 DU 开销售票给客户' },
+];
 
 /* ============ 运营治理（V*M，占位） ============ */
 export const governanceCases: { id: string; domain: string; opRole: string; kind: string; desc: string; status: 'open' | 'closed' }[] = [

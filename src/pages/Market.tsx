@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Store, ShieldCheck, Briefcase, ArrowRight, Plus, Send, Factory, Network } from 'lucide-react';
+import { Store, ShieldCheck, Briefcase, ArrowRight, Plus, Send, Factory, Network, FileText } from 'lucide-react';
 import { api } from '../api/client';
 import type { MarketGroup } from '../api/client';
-import type { BoothRow, Container, HatRow, InquiryRow } from '../../shared/types';
+import type { BoothRow, Container, HatRow, InquiryRow, SupplyContract } from '../../shared/types';
 import { useAuth } from '../Auth';
 import { colorOf, marketLabel, canOperate, canOpenMarket, isAdminRole, hatLabel, roleLabel, PRO_MARKET_ORDER } from '../lib/domain';
 
@@ -21,6 +21,7 @@ export default function Market() {
   const [containers, setContainers] = useState<Container[]>([]);
   const [hats, setHats] = useState<HatRow[]>([]);
   const [inq, setInq] = useState<InquiryRow[]>([]);
+  const [supplyCs, setSupplyCs] = useState<SupplyContract[]>([]);
   const [active, setActive] = useState<string>('Y');
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
@@ -42,6 +43,12 @@ export default function Market() {
     void api.units().then(setHats);
     void api.inquiries().then(setInq);
   }, []);
+
+  // DU 采购合同：仅 DU/运营方可拉取（客户接口 403，静默置空）
+  useEffect(() => {
+    if (user?.hatRole !== 'DU' && !isAdminRole(user?.hatRole)) return;
+    void api.supplyContracts().then(setSupplyCs).catch(() => setSupplyCs([]));
+  }, [user?.hatRole]);
 
   const ordered = useMemo(
     () => PRO_MARKET_ORDER.map((c) => markets.find((m) => m.code === c)).filter((m): m is MarketGroup => Boolean(m)),
@@ -156,6 +163,27 @@ export default function Market() {
               </Link>
             ))}
           </div>
+          {supplyCs.length > 0 && (
+            <div className="mt-4 rounded-lg border border-white/15 p-3">
+              <p className="text-sm font-bold"><FileText className="mr-1 inline h-4 w-4" />DU 采购合同（仅经营台可见，客户不可见）</p>
+              <table className="mt-2 w-full text-xs">
+                <thead><tr className="text-left text-white/60"><th className="py-1">供给铺</th><th>供给方</th><th>标的</th><th>金额</th><th>发票流</th><th>周期</th></tr></thead>
+                <tbody>
+                  {supplyCs.map((sc) => (
+                    <tr key={sc.id} className="border-t border-white/10">
+                      <td className="py-1.5 font-mono">{sc.supplyBoothCode}</td>
+                      <td>{sc.supplyOwner}</td>
+                      <td>{sc.items}</td>
+                      <td className="font-mono">¥{(sc.amountCents / 100).toLocaleString()}</td>
+                      <td className="text-white/70">{sc.invoiceFlow}</td>
+                      <td className="text-white/70">{sc.period}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-2 text-[10px] text-white/50">发票流：供给方 → DU → 客户（DU 开销售票、收进项票）；责任转移点 = 交付回执。</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -167,7 +195,7 @@ export default function Market() {
           <div className="mt-3 grid gap-2 md:grid-cols-3">
             <select value={inqBooth} onChange={(e) => setInqBooth(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
               <option value="">选择询价铺面</option>
-              {duBooths.concat(supplyBooths).map((b) => <option key={b.id} value={b.id}>{b.code} · {b.name}</option>)}
+              {duBooths.map((b) => <option key={b.id} value={b.id}>{b.code} · {b.name}</option>)}
             </select>
             <input value={inqItem} onChange={(e) => setInqItem(e.target.value)} placeholder="采购品类/规格" className="rounded-md border px-3 py-2 text-sm" />
             <input value={inqMsg} onChange={(e) => setInqMsg(e.target.value)} placeholder="数量/交期/备注" className="rounded-md border px-3 py-2 text-sm" />
