@@ -166,6 +166,17 @@
 - **前端**：`src/x-supply/api/du-supply.ts` 扩 `supplyOrders={list,create,accept,quote,confirm}`；新建 `src/x-supply/pages/SupplyPurchaseDesk.tsx`（命名导出，DU/执行帽渲染：四源货源卡发起弹层+我的供给单列表+状态徽标+quoted「确认成单」按钮+D*U 分拨预留说明卡；执行帽 D*X 看单不代办——发起/确认禁用并提示管位口径）；新建 `src/x-supply/pages/SupplyInboxPanel.tsx`（命名导出，供给方渲染：收件列表+接单/报价表单（元→分 quotedCents）；EX/EXX 只读+办位看单提示）；`SupplyHub.tsx` 挂接 `isProcure`（DU/DYX/DHX/DTX/DEX/DCX→采购台）/`isSupplierSide`（EU/HU/YU/TU/EX/EXX→收件箱）分面+DU 指引条更新。术语 `terminology.ts` 补 `supplyOrder{big:'供货单',sys:'X-Supply 供给单 XS'}`/`supplyInbox{big:'供货收件箱',sys:'供给方收件（仅本铺）'}`。
 - **回归口径（冒烟全绿）**：E 源全闭环 xo-1/XS-2026-0001（DU initiate b-e1→EX accept 403 权位→EU accept→EU quote 2580000 分→DU confirmed）；Y 源全闭环 xo-2/XS-2026-0002（DU initiate b-y1→YU accept/quote→DU confirm）；事件流 initiate/accept 双字段 actor_user=u-du1+actor_hat=DU、u-eu1+EU 留痕；XU list/initiate 403+VDM list 403（治理分线）；VEM 仅见 E 域单/VXM 全域 2 条；audit supply_order_confirm allowed×2；VDM cases/XU orders/SPA 六路由 200。
 
+## Market 登入端框架（X-MARKET-ENTRANCE-01，一角色一登入 P0）
+
+- **定位**：专注/收敛/务实——只做「容器分流 → 登录 → 角色选择 → 视角容器」闭环（设计方案 v1.0），不动各视角业务内容（P1 客户侧收敛/P2 经营采购侧收敛/P3 治理侧收敛为后续单）。独立模块 `src/entrance/`（登入端代码独立成组，仅依赖底座 Auth/api/lib）。
+- **容器分流（/entrance）**：`EntranceGate.tsx`——#xhpz 个人容器 / #xepz 企业容器 两入口卡（进入 → `/entrance/login?container=personal|enterprise`）；#xgpz 政府容器/#xopz 平台容器 置灰「预留 · 未开放」（不做功能）。容器映射 `entrance.ts containerOf`：XU/CU→personal（客户侧兼容）、其余（DU/*U/EX/V*M/VDM）→enterprise；**不做容器数据迁移**。已登录用户访问 /entrance*：activeRole 在→直进工作台、不在→角色选择页。
+- **登录表单（/entrance/login）**：`EntranceLogin.tsx`——账号+密码（password=test123）+ demo 快捷网格按容器过滤（personal 只显 XU/CU、enterprise 显其余，demos 现含 CU×2/DU×2/各 1）；企业容器顶部企业徽标（Building2+「企业容器 XEPZ」）。**落点分流**：表单 login → `/entrance/role`（强制走角色选择）；demo 一键 loginDemo → `roleHomeOf` 直进视角（oneclick 调试通道 V6 不破坏）。旧链 `/login` 保留渲染 Login.tsx（goLogin→/entrance/role、goDemo→直进，同口径）。
+- **角色选择页（/entrance/role）**：`EntranceRole.tsx`——卡片列当前账号可担任角色（P0 单帽数组 `[user.hatRole]`，多帽扩展预留）；每卡含：角色大号称呼+小号帽名（roleTerm 双称呼）、所属面（ROLE_BRIEF.face：Market 客户/经营/经营治理面 · Mall 客户面 · Supply 供给/四源治理面，归位矩阵 v3 口径）、职责一句话（ROLE_BRIEF.duty）、进入按钮；`workbenchOf` 默认落点标「默认进入」徽标（P0 单帽恒默认）。顶部容器徽标（enterprise→containerName 企业名；personal→自然人）。进入按钮 → `setActiveRole(role)` → `roleHomeOf`。
+- **视角状态（AuthContext.activeRole）**：`src/Auth.tsx` 扩 `activeRole: HatRole | null`（sessionStorage key `entrance.activeRole`，刷新不丢）+ `setActiveRole/clearActiveRole`。规则：`login()` 成功 → clearActiveRole（强制角色选择）；`oneClick/loginDemo` 成功 → setActiveRole(user.hatRole)（一键带默认角色直进）；`logout`/初始化 hatRole 漂移 → clear。
+- **视角容器+路由守卫（App.tsx RoleGuard P0 升级）**：未登录直访工作台 → `/entrance`（原 /login 改）；`activeRole` 空或不等于 `user.hatRole` → `/entrance/role`（V4 重定向）；其余 403 逻辑不变。**五路由 /market /mall /operator /govern /supply 全部挂入守卫，页面业务内容零改动**。Header（user 存在时）加「切换角色」按钮（Repeat 图标 → clearActiveRole + nav /entrance/role，V5 清空当前视角会话状态）；未登录 Header 按钮改挂 /entrance。
+- **落点函数**：`entrance.ts roleHomeOf(u)`=（entry==='C' 且 workbenchOf='client' → '/mall'，否则 WORKBENCH_HOME[workbenchOf]）——V3 映射：du-hehe→/operator、vxm-cloud→/supply、vdm→/govern、xu-huadong→/market、xiaolin→/mall。
+- **回归口径（冒烟全绿）**：SPA 十路由（/entrance /entrance/login /entrance/role /market /mall /operator /govern /supply /login /）全 200；五角色 oneclick /api/orders 全 200（du-hehe/eu-qiuchen/xu-huadong/xiaolin/vxm-cloud）；overview/demos/me 200；lint+ts-check 一次过。
+
 ## 调试要点
 
 - dev server（tsx watch）修改 server 代码后**不会**可靠热重载路由/store：需 `kill -9 $(cat /app/work/logs/bypass/server.pid)` + `pkill -9 -f 'ts[x] watch'` 后 `(nohup bash ./scripts/dev.sh > logs/dev-start.log 2>&1 &)` 重启。

@@ -1,8 +1,8 @@
 // X-MARKET-09：四类角色工作台路由壳。
 // 客户→/market（蓝）· 供应商→/supplier（绿）· 经营者→/operator（橙）· 治理者→/govern（紫）；
 // 导航按角色收敛，越权直访由 RoleGuard 403 兜底；全局背景浅米白+炭黑不变。
-import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { Store, ShoppingBag, ReceiptText, Boxes, ShieldCheck, LogOut, ShieldBan, LayoutDashboard, Sprout, Crown, ClipboardCheck, Bell, Monitor, Smartphone } from 'lucide-react';
+import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Store, ShoppingBag, ReceiptText, Boxes, ShieldCheck, LogOut, ShieldBan, LayoutDashboard, Sprout, Crown, ClipboardCheck, Bell, Monitor, Smartphone, Repeat } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { AuthProvider, useAuth } from './Auth';
@@ -23,13 +23,17 @@ import OperatorDesk from './pages/OperatorDesk';
 import Board from './pages/Board';
 import OperatorMobile from './pages/OperatorMobile';
 import OrderStatusBadge from './components/OrderStatusBadge';
+import EntranceGate from './entrance/EntranceGate';
+import EntranceLogin from './entrance/EntranceLogin';
+import EntranceRole from './entrance/EntranceRole';
 import { workbenchOf, workbenchThemeOf, WORKBENCH_HOME, WORKBENCH_THEME } from './lib/domain';
 import type { WorkbenchKind } from './lib/domain';
 import { roleTerm, conceptTerm } from './lib/terminology';
 import { api } from './api/client';
 
 function Header() {
-  const { user, logout } = useAuth();
+  const { user, logout, clearActiveRole } = useAuth();
+  const navigate = useNavigate();
   const wb: WorkbenchKind = workbenchOf(user?.hatRole);
   const theme = workbenchThemeOf(user?.hatRole);
   const loc = useLocation();
@@ -154,12 +158,20 @@ function Header() {
                   )}
                 </Link>
               )}
+              {/* X-MARKET-ENTRANCE-01 V5：视角内切换角色 → 回角色选择页并清空当前视角会话状态 */}
+              <button
+                onClick={() => { clearActiveRole(); navigate('/entrance/role'); }}
+                title="切换角色（一角色一登入）"
+                className="flex items-center gap-1 rounded-md border bg-white px-2.5 py-1 text-xs hover:bg-[#efeae0]"
+              >
+                <Repeat className="h-3.5 w-3.5" /> 切换角色
+              </button>
               <button onClick={() => void api.logout().then(logout)} className="flex items-center gap-1 rounded-md border bg-white px-2.5 py-1 text-xs hover:bg-[#efeae0]">
                 <LogOut className="h-3.5 w-3.5" /> 退出
               </button>
             </>
           ) : (
-            <Link to="/login" className="rounded-md px-3 py-1.5 text-xs font-medium text-white hover:opacity-90" style={{ background: theme.accent }}>演示登录</Link>
+            <Link to="/entrance" className="rounded-md px-3 py-1.5 text-xs font-medium text-white hover:opacity-90" style={{ background: theme.accent }}>进入登入端</Link>
           )}
         </div>
       </div>
@@ -167,11 +179,13 @@ function Header() {
   );
 }
 
-/** X-MARKET-09 路由守卫：按工作台类型拦截，未授权 403 兜底。 */
+/** X-MARKET-09 路由守卫：按工作台类型拦截，未授权 403 兜底。
+ *  X-MARKET-ENTRANCE-01 视角容器守卫（V4）：未登录 → 容器类型页；未选角色（activeRole 空/与登录帽不一致）→ 角色选择页。 */
 function RoleGuard({ wb, children }: { wb: WorkbenchKind | WorkbenchKind[]; children: ReactNode }) {
-  const { user, isAuthed, loading } = useAuth();
+  const { user, isAuthed, loading, activeRole } = useAuth();
   if (loading) return <p className="p-10 text-center text-sm text-[#8a8577]">身份校验中…</p>;
-  if (!isAuthed || !user) return <Navigate to="/login" replace />;
+  if (!isAuthed || !user) return <Navigate to="/entrance" replace />;
+  if (!activeRole || activeRole !== user.hatRole) return <Navigate to="/entrance/role" replace />;
   const allowed: WorkbenchKind[] = Array.isArray(wb) ? wb : [wb];
   if (!allowed.includes(workbenchOf(user.hatRole))) return <Forbidden hatRole={user.hatRole} need={workbenchThemeOf(user.hatRole)} want={allowed[0]} />;
   return <>{children}</>;
@@ -216,6 +230,11 @@ function AllRoutes() {
           <Shell>
             <Routes>
               <Route path="/" element={<Home />} />
+              {/* X-MARKET-ENTRANCE-01 登入端框架：容器类型 → 登录 → 角色选择（一角色一登入 P0） */}
+              <Route path="/entrance" element={<EntranceGate />} />
+              <Route path="/entrance/login" element={<EntranceLogin />} />
+              <Route path="/entrance/role" element={<EntranceRole />} />
+              {/* 旧登录链保留兼容（内部已对接 ENTRANCE-01 流程） */}
               <Route path="/login" element={<Login />} />
               <Route path="/mall" element={<Mall />} />
               <Route path="/mall/booth/:id" element={<MallBooth />} />

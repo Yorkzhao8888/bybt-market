@@ -60,6 +60,7 @@ export default function Login() {
   const land = (u: { hatRole?: string | null; entry?: string | null } | null): void => {
     // X-MARKET-09 + UE-01-FIX：登录落点 = 四类角色专属工作台优先；
     // demo 账号 boothTarget（示例铺面）不再抢跳铺面页——DU→/operator、供给帽→/supplier 必达
+    // X-MARKET-ENTRANCE-01 V6：oneclick 通道带默认角色直进视角（AuthContext.loginDemo 已 setActiveRole）
     const wb = workbenchOf(u?.hatRole);
     nav(u?.entry === 'C' && wb === 'client' ? '/mall' : WORKBENCH_HOME[wb], { replace: true });
   };
@@ -69,8 +70,9 @@ export default function Login() {
     setErr('');
     setBusy(true);
     try {
-      const u = await login(account, password, entry);
-      land(u ?? {});
+      await login(account, password, entry);
+      // X-MARKET-ENTRANCE-01 V2：表单登录统一进入角色选择页（一角色一登入闭环；login 已清空旧视角）
+      nav('/entrance/role', { replace: true });
     } catch (error) {
       setErr(error instanceof Error ? error.message : '登录失败');
     } finally {
@@ -104,6 +106,7 @@ export default function Login() {
         </span>
         <h1 className="font-serif-display mt-3 text-2xl font-black">X-Market · 登录</h1>
         <p className="mt-1 text-sm text-[#8a8577]">底座认证（开发版）· 口令统一 test123</p>
+        <Link to="/entrance" className="mt-2 inline-block text-xs text-[#b8862b] underline">一角色一登入 · 从容器类型页进入 →</Link>
       </div>
 
       {/* 双入口切换 */}
