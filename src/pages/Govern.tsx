@@ -3,11 +3,12 @@
 // X-MARKET-09：治理者工作台 —— 紫色管控型：顶部全局统计 + 左侧导航（供应商审核/治理案件/治理规则/全局数据）
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Scale, ScrollText, Boxes, ArrowRight, BadgeCheck, XCircle, PackageMinus, CloudCog, Gavel, Database, Ban, Lock } from 'lucide-react';
+import { ShieldCheck, Scale, ScrollText, Boxes, ArrowRight, BadgeCheck, XCircle, PackageMinus, CloudCog, Gavel, Database, Ban, Lock, FileClock } from 'lucide-react';
 import { api, type GovernData, type OrderRow } from '../api/client';
 import { useAuth } from '../Auth';
 import { colorOf, marketLabel, hatLabel, workbenchThemeOf } from '../lib/domain';
 import type { SupplierApplication, SupplierProduct } from '../../shared/types';
+import PowerAuditList from '../components/PowerAuditList';
 
 const PURPLE = '#6d28d9';
 const PURPLE_SOFT = '#f0e9fc';
@@ -136,7 +137,7 @@ const RULES: Array<{ icon: ReactNode; title: string; desc: string }> = [
   { icon: <Lock className="h-4 w-4" />, title: 'Booth 权属（LOCKED）', desc: '供给实体归各自供给帽；五类 DU 经营实体全部归 DU；跨主体使用他方 Booth = 越权禁止。' },
 ];
 
-type GovernSec = 'review' | 'cases' | 'rules' | 'data';
+type GovernSec = 'review' | 'cases' | 'rules' | 'data' | 'audit';
 
 export default function Govern() {
   const { user } = useAuth();
@@ -178,6 +179,7 @@ export default function Govern() {
     { key: 'cases', label: '治理案件', icon: <Scale className="h-4 w-4" /> },
     { key: 'rules', label: '治理规则', icon: <ScrollText className="h-4 w-4" /> },
     { key: 'data', label: '全局数据', icon: <Database className="h-4 w-4" /> },
+    { key: 'audit', label: '三权审计', icon: <FileClock className="h-4 w-4" /> },
   ];
 
   return (
@@ -227,6 +229,11 @@ export default function Govern() {
           {sec === 'review' && isVxm && (
             <Section icon={<CloudCog className="h-5 w-5" />} title="云中心 · 供应商准入评估与货品治理（VXM）" sub="登记评估：通过 → 合格纳入 DU 采购商城；驳回附原因可重提。交易单向：供给方唯一交易对手 = DU。">
               <CloudReview />
+            </Section>
+          )}
+          {sec === 'audit' && (
+            <Section icon={<FileClock className="h-5 w-5" />} title="三权审计（治-管-办全量留痕）" sub="越权 → 403 → 审计 → 可查闭环：10 个写入口的 allowed/denied 全量记录，govern 位动作回填治理人；按动作/结果筛选，时间倒序。">
+              <PowerAuditList scope="all" accent={PURPLE} />
             </Section>
           )}
           {sec === 'cases' && (

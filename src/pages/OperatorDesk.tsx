@@ -4,19 +4,20 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Briefcase, LayoutDashboard, Building2, MessagesSquare, ShoppingCart,
-  ClipboardList, FileText, Store, Coins, Receipt, Boxes, ChevronRight,
+  ClipboardList, FileText, FileClock, Store, Coins, Receipt, Boxes, ChevronRight,
 } from 'lucide-react';
 import { api, type MarketGroup, type OrderRow } from '../api/client';
 import type { BoothRow, SupplyContract, InquiryRow, Container, HatRow, DomainCode, BoothKind } from '../../shared/types';
 import { useAuth } from '../Auth';
 import { colorOf, canOpenMarket, workbenchOf, WORKBENCH_THEME } from '../lib/domain';
 import InquiryList from '../components/InquiryList';
+import PowerAuditList from '../components/PowerAuditList';
 
 const ACCENT = WORKBENCH_THEME.operator.accent; // #B45309
 const SOFT = WORKBENCH_THEME.operator.accentSoft; // #fbf0e0
 const TEXT = WORKBENCH_THEME.operator.accentText; // #92400e
 
-type Section = 'overview' | 'booths' | 'inquiries' | 'procurement' | 'contracts' | 'newbooth';
+type Section = 'overview' | 'booths' | 'inquiries' | 'procurement' | 'contracts' | 'newbooth' | 'audit';
 
 const yuan = (cents: number): string => (cents / 100).toLocaleString('zh-CN', { style: 'currency', currency: 'CNY' });
 
@@ -68,6 +69,7 @@ export default function OperatorDesk() {
     { key: 'procurement', label: '采购单', icon: <ClipboardList className="h-4 w-4" /> },
     { key: 'contracts', label: '采购合同', icon: <FileText className="h-4 w-4" /> },
     { key: 'newbooth', label: '上新铺', icon: <Store className="h-4 w-4" /> },
+    { key: 'audit', label: '我的留痕', icon: <FileClock className="h-4 w-4" /> },
   ];
 
   const kpis: { label: string; value: string; icon: ReactNode }[] = [
@@ -242,6 +244,13 @@ export default function OperatorDesk() {
               </div>
               <button onClick={submitBooth} className="mt-3 rounded-md px-4 py-2 text-sm font-medium text-white hover:opacity-90" style={{ background: ACCENT }}>创建铺面</button>
               {nMsg && <p className="mt-2 text-xs" style={{ color: TEXT }}>{nMsg}</p>}
+            </div>
+          )}
+          {sec === 'audit' && (
+            <div className="rounded-xl border bg-white p-5">
+              <p className="flex items-center gap-2 font-serif-display text-lg font-black"><FileClock className="h-4 w-4" style={{ color: ACCENT }} /> 我的留痕（三权审计）</p>
+              <p className="mt-1 text-xs text-[#8a8577]">经营动作（开铺/询价/报价/签约/采购）与越权尝试全部留痕，仅本人可见。</p>
+              <PowerAuditList scope="mine" accent={ACCENT} compact />
             </div>
           )}
         </main>

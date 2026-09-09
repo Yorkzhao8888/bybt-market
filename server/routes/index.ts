@@ -1018,9 +1018,19 @@ api.get('/power/map', requireAuth, (_req: AuthReq, res) => {
   ok(res, marketPowerMap);
 });
 api.get('/power/audit', requireAuth, (req: AuthReq, res) => {
-  const hat = normalizePowerHat(roleOf(req.user!));
-  // 治位帽（V*M/VXM）见全量审计；其余身份仅见本人动作留痕
-  ok(res, (HAT_POWER_BITS[hat] ?? []).includes('govern') ? marketPowerAudit : marketPowerAudit.filter((a) => a.actor_hat === hat));
+  const user = req.user!;
+  const hat = normalizePowerHat(roleOf(user));
+  // 治位帽（V*M/VXM）见全量审计；其余身份仅见本人（actor_user）动作留痕（X-MARKET-13：本人口径，含 denied 越权尝试）
+  const isGovern = (HAT_POWER_BITS[hat] ?? []).includes('govern');
+  const base = isGovern ? marketPowerAudit : marketPowerAudit.filter((a) => a.actor_user === user.hatId);
+  // 可选筛选（X-MARKET-13）：action=动作码 / result=allowed|denied；无参行为不变
+  const query = req.query ?? {};
+  const action = typeof query.action === 'string' ? query.action : '';
+  const result = typeof query.result === 'string' ? query.result : '';
+  const rows = base
+    .filter((a) => (action ? a.action_code === action : true))
+    .filter((a) => (result === 'allowed' || result === 'denied' ? a.result === result : true));
+  ok(res, rows);
 });
 
 router.use('/api', api);

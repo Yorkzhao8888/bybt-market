@@ -2,8 +2,8 @@
 // 视图类型统一从 shared/types 导入（单一来源），client 只做别名与请求封装
 import type {
   BoothRow, Container, DemoAccount, DomainCode, DomainMeta, GovernanceCase, HatLine, HatRow, Inquiry, JobSystem,
-  Listing, Order, OrderRow, ProfessionalMarket, SessionUser, SupplyContract, SupplierApplication, SupplierProduct,
-  SupplyMallItem, Unit, HatRole,
+  Listing, MarketPowerAuditRow, Order, OrderRow, ProfessionalMarket, SessionUser, SupplyContract, SupplierApplication,
+  SupplierProduct, SupplyMallItem, Unit, HatRole,
 } from '../../shared/types';
 
 export type DecoratedBooth = BoothRow;
@@ -184,4 +184,12 @@ export const api = {
   toggleProduct: (id: string) => req<SupplierProduct>(`/api/supply/products/${id}/toggle`, { method: 'POST' }),
   takeDownProduct: (id: string) => req<SupplierProduct>(`/api/supply/products/${id}/take-down`, { method: 'POST' }),
   supplyMall: () => req<SupplyMallItem[]>('/api/supply/mall'),
+  // X-MARKET-13 三权审计：治位帽全量 / 其余本人留痕；action / result 可选筛选（无参默认行为不变）
+  powerAudit: (query?: { action?: string; result?: 'allowed' | 'denied' }) => {
+    const p = new URLSearchParams();
+    if (query?.action) p.set('action', query.action);
+    if (query?.result) p.set('result', query.result);
+    const qs = p.toString();
+    return req<MarketPowerAuditRow[]>(`/api/power/audit${qs ? `?${qs}` : ''}`);
+  },
 };

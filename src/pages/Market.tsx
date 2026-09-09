@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Store, Briefcase, Send, Factory } from 'lucide-react';
+import { Store, Briefcase, Send, Factory, FileClock } from 'lucide-react';
 import { api } from '../api/client';
 import type { MarketGroup } from '../api/client';
 import type { BoothRow, Container, HatRow, InquiryRow } from '../../shared/types';
 import { useAuth } from '../Auth';
 import { colorOf, canOperate, isAdminRole, roleLabel, hatLabel, PRO_MARKET_ORDER, workbenchOf, WORKBENCH_THEME } from '../lib/domain';
 import InquiryList from '../components/InquiryList';
+import PowerAuditList from '../components/PowerAuditList';
 
 function kindLabel(kind: string): string {
   return kind === 'supply' ? '供给方实体铺' : 'DU 经营实体铺';
@@ -143,6 +144,15 @@ export default function Market() {
 
       {/* 询价/报价清单（按身份可见） */}
       <InquiryList inquiries={inq} booths={booths} containerName={containerName} hatOf={hatOf} isAdmin={isAdmin} canOperate={mayOperate} viewerUnit={user?.hatId ?? ''} refresh={refreshInq} />
+
+      {/* 我的留痕（X-MARKET-13：询价/签约/下单与越权尝试全留痕，仅本人可见） */}
+      {user && (
+        <div className="rounded-xl border bg-white p-5">
+          <p className="flex items-center gap-2 font-serif-display text-lg font-black"><FileClock className="h-4 w-4" style={{ color: WORKBENCH_THEME.client.accent }} /> 我的留痕（三权审计）</p>
+          <p className="mt-1 text-xs text-[#8a8577]">询价/签约/下单等交易动作与越权尝试全部留痕，仅本人可见。</p>
+          <PowerAuditList scope="mine" accent={WORKBENCH_THEME.client.accent} compact />
+        </div>
+      )}
     </div>
   );
 }

@@ -1,9 +1,10 @@
 // Mall = C 端客户商城（CU 自然人），承载 DCX（Booth-DC）零售产品；DEX/DYX/DHX/DTX 在 Market B 端。
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart } from 'lucide-react';
+import { FileClock, ShoppingCart } from 'lucide-react';
 import { api } from '../api/client';
 import type { MallListing, DecoratedBooth } from '../api/client';
+import PowerAuditList from '../components/PowerAuditList';
 import { DomainChip, SectionTitle, EmptyState } from '../components/ui';
 import { colorOf, marketLabel } from '../lib/domain';
 import { useAuth } from '../Auth';
@@ -85,6 +86,14 @@ export default function Mall() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {user && (
+        <div className="mt-5 rounded-xl border bg-white p-5">
+          <p className="flex items-center gap-2 font-serif-display text-lg font-black"><FileClock className="h-4 w-4" style={{ color: '#b8862b' }} /> 我的留痕（三权审计）</p>
+          <p className="mt-1 text-xs text-[#8a8577]">购买与越权尝试全部留痕，仅本人可见。</p>
+          <PowerAuditList scope="mine" accent="#b8862b" compact />
         </div>
       )}
     </div>

@@ -3,8 +3,9 @@
 // 主题色 = 源头供给绿 #15803D（顶栏徽标/侧栏激活态/主按钮）
 // 能力（X-MARKET-08）：准入登记 → VXM 评估 → 合格后上架货品 → 供给单据（DU 采购）→ 产能概览
 import { useCallback, useEffect, useState } from 'react';
-import { BadgeCheck, Boxes, Clock3, ClipboardList, Gauge, PackagePlus, ShieldAlert, Warehouse, XCircle } from 'lucide-react';
+import { BadgeCheck, Boxes, Clock3, ClipboardList, FileClock, Gauge, PackagePlus, ShieldAlert, Warehouse, XCircle } from 'lucide-react';
 import { api } from '../api/client';
+import PowerAuditList from '../components/PowerAuditList';
 import { useAuth } from '../Auth';
 import { colorOf } from '../lib/domain';
 import type { BoothRow, OrderRow, SupplierApplication, SupplierProduct } from '../../shared/types';
@@ -13,13 +14,14 @@ const GREEN = '#15803D';
 const GREEN_SOFT = '#e8f5ec';
 const GREEN_TEXT = '#166534';
 
-type Sec = 'register' | 'products' | 'orders' | 'capacity';
+type Sec = 'register' | 'products' | 'orders' | 'capacity' | 'audit';
 
 const SECS: { id: Sec; label: string; icon: typeof ShieldAlert }[] = [
   { id: 'register', label: '准入登记', icon: ShieldAlert },
   { id: 'products', label: '货品上架', icon: Warehouse },
   { id: 'orders', label: '采购单', icon: ClipboardList },
   { id: 'capacity', label: '产能概览', icon: Gauge },
+  { id: 'audit', label: '我的留痕', icon: FileClock },
 ];
 
 export default function SupplyDesk() {
@@ -287,6 +289,13 @@ export default function SupplyDesk() {
                   {booths.length === 0 && <p className="text-sm text-[#8a8577]">名下暂无供给实体铺。</p>}
                 </div>
               </div>
+            </div>
+          )}
+          {sec === 'audit' && (
+            <div className="rounded-xl border bg-white p-5">
+              <p className="flex items-center gap-2 font-serif-display text-lg font-black"><FileClock className="h-4 w-4" style={{ color: GREEN }} /> 我的留痕（三权审计）</p>
+              <p className="mt-1 text-xs text-[#8a8577]">登记/上架/下架等供给动作与越权尝试全部留痕，仅本人可见。</p>
+              <PowerAuditList scope="mine" accent={GREEN} compact />
             </div>
           )}
         </main>
