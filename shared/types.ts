@@ -444,49 +444,6 @@ export interface SupplierApplication {
   boothCode?: string;        // 展示冗余（供给实体铺码）
 }
 
-/* ============ X-Supply 供给四源集市（X-SUPPLY-01：EU → Booth-E → X-Supply → DU → X-Market） ============ */
-
-/** 供给集市铺卡（读权限：EU/HU/YU/TU/EX/EXX/DU/执行帽/V*M；XU/CU 一律 403） */
-export interface SupplyHubBooth {
-  id: string;
-  code: string;              // Booth-E-01
-  domain: DomainCode;
-  name: string;              // 铺名
-  ownerContainerId: string;  // 供给方容器
-  ownerName: string;         // 供货商（大号，系统称呼=EU 等供给帽单位名）
-  ownerHatRole: HatRole;     // 铺主帽
-  execHat: HatRole | '';     // 执行端帽（E 域=EXX；他域扩展随 X-SUPPLY-02+）
-  frontDesc: string;         // 前店售卖面描述
-  backDesc: string;          // 后厂履约面描述
-  rating: number;
-  status: 'open' | 'closed';
-}
-
-/** X-SUPPLY-01 供给集市入驻登记记录（EX/EXX 办位登记，归属供给容器；仅 EU/供给线/治理/DU 可见，客户 403） */
-export interface SupplyHubEntry {
-  id: string;
-  hatRole: HatRole;          // 登记执行帽（EX/EXX 办位）
-  containerId: string;       // 归属供给容器（供货商）
-  containerName: string;     // 供货商名（大号：供货商）
-  boothId: string;           // 目标供给实体铺（Booth-E）
-  boothCode: string;         // 铺码展示
-  domain: DomainCode;        // 域
-  qualification: string;     // 资质摘要（消防验收/产权核验/SLA/售后）
-  note: string;              // 登记说明
-  status: 'registered';
-  ts: string;
-}
-
-/** GET /api/supply/hub 响应：供给列表只读 + 办位能力位 */
-export interface SupplyHubData {
-  viewer: { hatRole: HatRole; containerId: string; containerName: string };
-  canRegister: boolean;      // EX/EXX 办位
-  canMaintain: boolean;      // EX/EXX 办位（仅本铺）
-  maintainBoothCode: string; // 本铺 Booth 码（EX/EXX：Booth-E-01）
-  booths: SupplyHubBooth[];
-  entries: SupplyHubEntry[];
-}
-
 /** 供应商货品（合格供应商上架；仅 DU 采购商城/供给方本人/V*M 可见，客户不可见） */
 export interface SupplierProduct {
   id: string;

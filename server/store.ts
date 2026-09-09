@@ -3,7 +3,6 @@
 //   容器(主体) → 帽(身份) → 域角色(标签) → Booth 实体(作业层) / 交易对象(铺面层)
 
 import type { Container, Unit, Booth, Order, Listing, Inquiry, SupplyContract, SupplierApplication, SupplierProduct, MarketPowerMapRow, MarketPowerAuditRow, GovernThresholds, PowerHat } from '../shared/types';
-import type { SupplyHubEntry } from '../shared/types';
 
 /* ============ 容器（主体） ============ */
 export const containers: Container[] = [
@@ -191,16 +190,7 @@ export function nextPowerAuditId(): string {
   return `pa-${powerAuditSeq}`;
 }
 
-/* ============ X-SUPPLY-01 供给四源集市（/supply 路由域） ============ */
-
-/** 入驻登记记录（办位 EX/EXX 执行；重启随种子清空） */
-export const supplyHubEntries: SupplyHubEntry[] = [];
-
-let supplyEntrySeq = 0;
-export function nextSupplyEntryId(): string {
-  supplyEntrySeq += 1;
-  return `se-${supplyEntrySeq}`;
-}
+/* ============ X-SUPPLY-01：供给集市数据层已迁 server/x-supply/store.ts（补充约束：供给表与经营数据隔离） ============ */
 
 /** 把请求方帽规范化为映射口径：客户端帽（XU/CU）与无帽一律记 NONE（客户无帽，直访管理/治理动作=403） */
 export function normalizePowerHat(hatRole: string | undefined | null): PowerHat {

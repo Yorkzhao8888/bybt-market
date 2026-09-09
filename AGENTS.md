@@ -22,16 +22,21 @@
 
 ```
 ├── scripts/            # 构建与启动脚本（dev.sh 含 1200s 自动回收）
-├── shared/types.ts     # 共享类型（DomainMeta/Booth/BoothRow/Order/Inquiry/ProfessionalMarket/SessionUser 等）
+├── shared/
+│   ├── types.ts        # 共享类型（DomainMeta/Booth/BoothRow/Order/Inquiry/ProfessionalMarket/SessionUser 等，唯一公共底座）
+│   └── x-supply.ts     # X-Supply 独立类型契约（XSupplyEntry/XSupplyBooth/XSupplyHubData，仅依赖 ./types）
 ├── server/
 │   ├── domainConfig.ts # 五域元信息、帽表、JOB_SYSTEMS、chainLabel、duExecHatOf/boothOwnerRole/canOpenMarket
 │   ├── store.ts        # 种子数据 + store() 单例 + nextSeq/nextOrderCode/containerById/unitById/domainStats
-│   ├── auth.ts         # xm_ token 会话
-│   ├── routes/index.ts # 全部 API（含身份权限过滤 P1/P3/P5）
+│   ├── auth.ts         # xm_ token 会话 + 登录底座公共契约（AuthReq/AuthRes/requireAuth/optionalAuth/roleOf）
+│   ├── power.ts        # 三权公共底座（checkPower/powerAudit/boothCodeOf/crossCheckPowerMap）
+│   ├── x-supply/       # X-Supply 后端域（routes.ts 三端点 + store.ts 独立供给表 xSupplyEntries）
+│   ├── routes/index.ts # X-Market 全部 API（含身份权限过滤 P1/P3/P5；mount /api/supply → x-supply/routes）
 │   ├── server.ts       # Express 入口
 │   └── vite.ts         # Vite 中间件
 ├── src/
-│   ├── api/client.ts   # api.*（login/oneclick/markets/marketBooths/inquiries/orders/governCases/supply*...）
+│   ├── api/client.ts   # api.*（login/oneclick/markets/marketBooths/inquiries/orders/governCases...）+ export req http 原语
+│   ├── x-supply/       # X-Supply 前端域（api/du-supply.ts 数据层 + pages/SupplyHub.tsx 组件 XSupplyHub + index.ts）
 │   ├── lib/domain.ts   # 颜色/帽标签/canOperate/canOpenMarket/marketLabel 等 helper
 │   ├── components/     # ui.tsx / InquiryList.tsx（B2B 询价列表，Market 与 OperatorDesk 共用）
 │   ├── pages/          # Home/Login/Mall/MallBooth/Market(客户工作台)/MarketBooth/Orders/Model/Govern(治理工作台)/SupplyMall/SupplyDesk(供应商工作台)/OperatorDesk(经营者工作台)
@@ -109,10 +114,20 @@
 - **EX/EXX 供给执行帽（X-SUPPLY-01 新增，办位）**：`SupplyExecHat='EX'|'EXX'`（types HatRole 扩展）；EX=物资供给执行（Booth-E 驻场执行）、EXX=Booth-E 执行端（铺内作业）。UNIT_ROLE_LABEL/HAT_LINE_OF（='supply'）/HAT_POWER_BITS（=['operate']）三表同步；BOOTH_OF_EXEC_HAT 补 EX/EXX→Booth-E。demo `ex-qiuchen`（EX 帽，u-ex1，c-qc 启辰，boothTarget b-e1，DEMO_ROUTE 末位 index13——**demoAccounts 中段插行会错位硬编码索引路由，只能追加末尾**）。store.units 增 u-ex1（L3 tier）/u-exx1（L2）。workbenchOf(EX/EXX)→'supplier'。
 - **落点迁移**：WORKBENCH_HOME.supplier='/supply'（eu-qiuchen/tu-chiyuan/ex-qiuchen 登录落 X-Supply 集市）；`/supplier` 保留渲染 SupplyDesk（X-09 供给工作台，旧链接不 404=同渲染兼容）；Header：supplier nav「供给集市」/supply+「供给工作台」/supplier，operator/govern nav 加「供给集市」，**客户（CU/XU）无 /supply 入口（前端隐藏）**。
 - **marketPowerMap 15 动作**：新增 `supply_register`（办位 operate，allow=[EX,EXX]，forbid 含 EU/HU/YU/TU/DU/执行帽/治位/XU/CU/NONE）与 `supply_booth_maintain`（办位，allow=[EX,EXX]）——dashboard coverage total 自适应。**防呆要点：EU 是管位，不能代办办位动作**（EU 调 supply_register→403「属办位」；EX 调 supplier_apply→403「属管位」、supplier_evaluate→403「属治位」）。
-- **API（/api 前缀）**：GET `/api/supply/hub`（读权限=供给帽+EX/EXX+DU+执行帽+V*M；XU/CU 403 双保险——前端 RoleGuard wb=['supplier','operator','govern']+后端 isSupplyReader 拒绝；返回 viewer/canRegister/canMaintain/booths（kind='supply' 四源铺：ownerContainerId 经 unitById 反查、ownerName=containerById(unit.containerId).name=供货商名、execHat 域映射 E→EXX、frontDesc/backDesc/rating）+entries 登记台账）；POST `/api/supply/register`（EX/EXX checkPower，body {boothId,qualification,note}，落 store.supplyHubEntries id=`se-N`）；POST `/api/supply/booths/:id/maintain`（前置校验：非供给铺 404「非供给实体铺」、非本铺 403「仅可维护本铺」——归属=unitById(booth.ownerUnitId).containerId===user.containerId，不入审计；后 checkPower('supply_booth_maintain') 更新 frontDesc/backDesc）。
-- **前端**：`src/api/du-supply.ts` 供给数据源归一（supplyApi={hub,register,maintain} 命名空间+X-08 供给方法 re-export）；`src/pages/SupplyHub.tsx`（双称呼 UI：供给集市/供货商/入驻登记/店铺维护词条入 CONCEPT_TERMS；EX/EXX 登记表单+维护面板（用 hub.maintainBoothCode）、EU 只读+办位说明、DU 采购者视角占位（X-SUPPLY-02）、VXM 治理视角占位（X-SUPPLY-02）；供给列表卡=域色+准入徽章（TRUST_EXPOSURE quality/serviceLevel/afterSales+entry.qualification））；App.tsx 路由 `/supply`。
+- **API（/api 前缀）**：GET `/api/supply/hub`（读权限=供给帽+EX/EXX+DU+执行帽+V*M；XU/CU 403 双保险——前端 RoleGuard wb=['supplier','operator','govern']+后端 isSupplyReader 拒绝；返回 viewer/canRegister/canMaintain/maintainBoothCode/booths（kind='supply' 四源铺：ownerContainerId 经 unitById 反查、ownerName=containerById(unit.containerId).name=供货商名、execHat 域映射 E→EXX、frontDesc/backDesc/rating）+entries 登记台账）；POST `/api/supply/register`（EX/EXX checkPower，body {boothId,qualification,note}，落 server/x-supply/store.ts xSupplyEntries id=`se-N`）；POST `/api/supply/booths/:id/maintain`（id 支持 boothId/boothCode 双形态；前置校验：非供给铺 404「非供给实体铺」、非本铺 403「仅可维护本铺」——归属=unitById(booth.ownerUnitId).containerId===user.containerId，不入审计；后 checkPower('supply_booth_maintain') 更新 frontDesc/backDesc）。
+- **前端**：`src/x-supply/api/du-supply.ts` 供给数据源归一（xSupplyApi={hub,register,maintain} 命名空间，仅依赖 client req 原语+shared/x-supply 契约）；`src/x-supply/pages/SupplyHub.tsx` 组件 XSupplyHub（双称呼 UI：供给集市/供货商/入驻登记/店铺维护词条入 CONCEPT_TERMS；EX/EXX 登记表单+维护面板（用 hub.maintainBoothCode）、EU 只读+办位说明、DU 采购者视角占位（X-SUPPLY-02）、VXM 治理视角占位（X-SUPPLY-02）；供给列表卡=域色+准入徽章（TRUST_EXPOSURE quality/serviceLevel/afterSales+entry.qualification））；App.tsx 路由 `/supply` import 自 `./x-supply`。
 - **明确不在首单（X-SUPPLY-02）**：货品维护、DU 采购视图、X-Supply 供给单→X-Market 采购单→ERP 采购入库单串联、EMX 资质审核流（办→管 EU→EMX）、VXM 准入治理页。
 - **红线**：四源入口不对客户露出（双保险）；X-Supply 不是第二个 X-Market；穿透字段（actor_hat/actor_user/booth_code）保留系统标识不大号化。
+
+## X-SUPPLY-01 补充约束（模块化与未来独立化预留，硬约束）
+
+- **①路由域边界（目录归置）**：X-Supply 代码统一收独立目录，不散落 X-Market 业务代码——前端 `src/x-supply/{api,pages,index.ts}`（数据层 du-supply.ts / 页面 SupplyHub.tsx→组件 XSupplyHub / 桶导出）、后端 `server/x-supply/{store,routes}.ts`（独立供给表 xSupplyEntries+nextSupplyEntryId / 三端点 Router）、类型契约 `shared/x-supply.ts`（XSupply* 前缀：XSupplyEntry/XSupplyBooth/XSupplyHubData，viewer=Pick<SessionUser,...>）。旧位已清：routes/index.ts 三权定义段迁 server/power.ts、requireAuth/optionalAuth/AuthReq/AuthRes/roleOf 迁 server/auth.ts（登录底座公共契约）、SupplyHub* 三接口迁 shared/x-supply.ts、client.ts 仅 export req 原语（supplyApi 三方法已删）。
+- **②依赖单向（白名单）**：X-Supply 只依赖公共底座，禁止反向依赖 X-Market 业务模块（禁 import 对方页面组件/routes/index 业务段）。前端白名单：`../../../shared/x-supply`、`../../api/client`（仅 req http 原语）、`../../components/{ui,PowerBadge,DualTerm}`、`../../lib/{domain,terminology}`、`../../Auth`；后端白名单：`../../shared/{types,x-supply}`、`../auth`、`../power`（checkPower 系）、`../domainConfig`、`../store`（getStore/unitById 等）、express。跨域扩展走服务层（未来 X-SUPPLY-02 供给单→采购单串联也走服务层接口，禁页面互引）。
+- **③命名空间**：组件/页面 `XSupplyHub`（src/x-supply/pages/SupplyHub.tsx）、API `xSupplyApi={hub,register,maintain}`（src/x-supply/api/du-supply.ts）、路由文件 server/x-supply/routes.ts（app.use('/supply', xSupplyRouter) 挂载于 routes/index.ts）、类型 XSupply*、store 前缀 xSupply*（xSupplyEntries/xSupplyNextEntryId）。
+- **④数据层独立成层**：前端 du-supply.ts 独立成层（x-supply 前缀命名空间，X-Market 面数据不混入）；后端供给表 xSupplyEntries 独立于 store 主数据（供给登记/查询与经营数据隔离，未来迁独立库有准备——只搬 server/x-supply/store.ts 与 shared/x-supply.ts 即可解耦）。
+- **⑤路由稳定**：`/supply` 前缀与 `/supplier` 别名规则固定（别名渲染 SupplyDesk 同渲染兼容，旧链接不 404）；`/api/supply/*` 前缀固定；maintain 路径支持 boothId 与 boothCode 双形态（b-e1/Booth-E-01）。
+- **⑥隔离不降级**：前端 RoleGuard wb=['supplier','operator','govern']（客户直访 403 兜底）+ Header 无 /supply 入口（前端隐藏）；后端 hub/register/maintain 全部 isSupplyReader/isSupplyExecHat 校验（XU/CU 403 双保险），X-08 supply/mall DU-only 403 照旧。
+- **回归口径**：冒烟全绿——hub 403 矩阵（EX/EU/DU/VXM 200，XU/CU 403）、register EX allowed+EU/XU 403 权位文案、审计 actor_user=u-ex1+actor_hat=EX 双字段、maintain 本铺 200/他铺 403/编码路径兼容、B2B 链（RFQ→quoted→contracted→YX-2026-0018）、power-map 15 动作、dashboard 治位、SPA /supply+/supplier 200。
 
 ## 调试要点
 

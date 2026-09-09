@@ -3,7 +3,7 @@
 import type {
   BoothRow, Container, DemoAccount, DomainCode, DomainMeta, FulfillmentReceipt, GovernanceCase, GovernThresholds, HatLine, HatRow, Inquiry, JobSystem,
   Listing, MarketPowerAuditRow, Order, OrderRow, PowerDashboard, ProfessionalMarket, SessionUser, SupplyContract, SupplierApplication,
-  SupplierProduct, SupplyMallItem, Unit, HatRole, SupplyHubData, SupplyHubEntry, SupplyHubBooth,
+  SupplierProduct, SupplyMallItem, Unit, HatRole,
 } from '../../shared/types';
 
 export type DecoratedBooth = BoothRow;
@@ -27,7 +27,8 @@ export function setOnUnauthorized(fn: () => void): void {
   onUnauthorized = fn;
 }
 
-async function req<T>(path: string, init?: RequestInit): Promise<T> {
+/** 公共 http 底座（X-Supply 数据层 du-supply.ts 同样复用本函数；X-SUPPLY-01 补充约束：依赖单向） */
+export async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -194,12 +195,7 @@ export const api = {
   toggleProduct: (id: string) => req<SupplierProduct>(`/api/supply/products/${id}/toggle`, { method: 'POST' }),
   takeDownProduct: (id: string) => req<SupplierProduct>(`/api/supply/products/${id}/take-down`, { method: 'POST' }),
   supplyMall: () => req<SupplyMallItem[]>('/api/supply/mall'),
-  /* ============ X-Supply 供给四源集市（X-SUPPLY-01；XU/CU 一律 403） ============ */
-  supplyHub: () => req<SupplyHubData>('/api/supply/hub'),
-  supplyRegister: (payload: { boothId: string; qualification: string; note?: string }) =>
-    req<SupplyHubEntry>('/api/supply/register', { method: 'POST', body: JSON.stringify(payload) }),
-  supplyBoothMaintain: (boothId: string, payload: { frontDesc?: string; backDesc?: string }) =>
-    req<SupplyHubBooth>(`/api/supply/booths/${boothId}/maintain`, { method: 'POST', body: JSON.stringify(payload) }),
+  // X-Supply 供给集市三接口已收口至 src/x-supply/api/du-supply.ts（X-SUPPLY-01 补充约束：数据层归一/依赖单向）
   // X-MARKET-13 三权审计：治位帽全量 / 其余本人留痕；action / result 可选筛选（无参默认行为不变）
   powerAudit: (query?: { action?: string; result?: 'allowed' | 'denied' }) => {
     const p = new URLSearchParams();

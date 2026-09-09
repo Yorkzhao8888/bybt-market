@@ -18,7 +18,7 @@ import Model from './pages/Model';
 import Govern from './pages/Govern';
 import SupplyMall from './pages/SupplyMall';
 import SupplyDesk from './pages/SupplyDesk';
-import SupplyHub from './pages/SupplyHub';
+import { XSupplyHub } from './x-supply';
 import OperatorDesk from './pages/OperatorDesk';
 import Board from './pages/Board';
 import OperatorMobile from './pages/OperatorMobile';
@@ -219,7 +219,7 @@ function AllRoutes() {
               <Route path="/supply-mall" element={<SupplyMall />} />
               <Route path="/supplier" element={<RoleGuard wb="supplier"><SupplyDesk /></RoleGuard>} />
               {/* X-SUPPLY-01 供给四源集市：EU/EX/EXX/V*M/DU 可进；客户直访 403 兜底 */}
-              <Route path="/supply" element={<RoleGuard wb={['supplier', 'operator', 'govern']}><SupplyHub /></RoleGuard>} />
+              <Route path="/supply" element={<RoleGuard wb={['supplier', 'operator', 'govern']}><XSupplyHub /></RoleGuard>} />
               <Route path="/operator" element={<RoleGuard wb="operator"><OperatorDesk /></RoleGuard>} />
               <Route path="/operator/mobile" element={<RoleGuard wb="operator"><OperatorMobile /></RoleGuard>} />
               <Route path="/govern" element={<RoleGuard wb="govern"><Govern /></RoleGuard>} />

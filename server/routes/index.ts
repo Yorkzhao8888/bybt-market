@@ -12,11 +12,12 @@ import {
   getStore, nextSeq, containerById, unitById,
   inquiries, governanceCases, nextOrderCode, supplyContracts,
   supplierApplications, supplierProducts, nextSupplierId, nextFulfillId,
-  marketPowerMap, marketPowerAudit, nextPowerAuditId, normalizePowerHat, governThresholds,
-  supplyHubEntries, nextSupplyEntryId,
+  marketPowerMap, marketPowerAudit, normalizePowerHat, governThresholds,
 } from '../store';
-import { createToken, getUserByToken, revokeToken, DEV_PASSWORD } from '../auth';
-import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth, SupplierApplication, SupplierProduct, SupplyMallItem, MarketPowerMapRow, MarketPowerAuditRow, PowerHat, FulfillmentReceipt, SupplyHubEntry } from '../../shared/types';
+import { createToken, getUserByToken, revokeToken, DEV_PASSWORD, requireAuth, optionalAuth, roleOf, type AuthReq, type AuthRes } from '../auth';
+import { checkPower, boothCodeOf, powerAudit } from '../power';
+import xSupply from '../x-supply/routes';
+import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth, SupplierApplication, SupplierProduct, SupplyMallItem, MarketPowerMapRow, MarketPowerAuditRow, PowerHat, FulfillmentReceipt } from '../../shared/types';
 import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL, HAT_LINE_OF, HAT_POWER_BITS, type Inquiry } from '../../shared/types';
 
 const router = Router();
@@ -24,29 +25,6 @@ const api = Router();
 
 function ok(res: { json: (v: unknown) => void }, data: unknown): void {
   res.json({ success: true, data });
-}
-
-type AuthReq = { headers: { authorization?: string }; user?: SessionUser; body?: unknown; query?: Record<string, unknown>; params?: Record<string, string> };
-type AuthRes = { status: (n: number) => { json: (v: unknown) => void }; json: (v: unknown) => void };
-
-function requireAuth(req: AuthReq, res: AuthRes, next: () => void): void {
-  const h = req.headers.authorization || '';
-  const token = h.startsWith('Bearer ') ? h.slice(7) : '';
-  const user = token ? getUserByToken(token) : null;
-  if (!user) {
-    res.status(401).json({ success: false, error: '未登录或会话已过期' });
-    return;
-  }
-  req.user = user;
-  next();
-}
-
-/** 可选鉴权：匿名放行，req.user 可为空（客户视角强隔离用） */
-function optionalAuth(req: AuthReq, _res: AuthRes, next: () => void): void {
-  const h = req.headers.authorization || '';
-  const token = h.startsWith('Bearer ') ? h.slice(7) : '';
-  req.user = (token ? getUserByToken(token) : null) ?? undefined;
-  next();
 }
 
 /* ============ 身份/权限判定（X-MARKET-05 P1/P2/P3/P5） ============ */
@@ -70,8 +48,6 @@ function can(user: SessionUser, cap: Capability): boolean {
 }
 /** 是否为客户（下游买家）：C 端 CU / B 端 XU */
 const isClient = (role: HatRole | null): boolean => role === 'CU' || role === 'XU';
-/** 当前会话帽角色（兜底 SU，理论上登录后必有） */
-const roleOf = (user: SessionUser): HatRole => user.hatRole ?? 'OU';
 /** 当前帽归属线 */
 const lineOf = (user: SessionUser): string => (user.hatRole ? (HAT_LINE_OF[user.hatRole] as string) : '');
 
@@ -125,80 +101,6 @@ function buildSession(acc: DemoAccount): SessionUser {
   };
 }
 
-/* ============ X-MARKET-12 三权映射落库（治-管-办防呆约束） ============ */
-// 治（govern：VXM/VEM/VDM 云审批评估）、管（manage：DU 经营决策、*U 供给经营）、办（operate：执行帽作业）
-// 写入口统一查 market_power_map：无映射行默认拒绝；帽 ∉ allow_hats 或 ∈ forbid_hats → 403（错误信息带权位口径）；全部动作写 market_power_audit 审计
-const POWER_BIT_LABEL: Record<string, string> = {
-  govern: '治位（云审批评估）',
-  manage: '管位（经营决策）',
-  operate: '办位（执行作业）',
-};
-
-const isCloudHat = (hat: PowerHat): boolean => HAT_POWER_BITS[hat]?.includes('govern') === true;
-
-function powerAudit(row: MarketPowerMapRow | null, actionCode: string, req: AuthReq, actorHat: PowerHat, boothCode: string, result: 'allowed' | 'denied' | 'escalated', detail: string): void {
-  const user = req.user;
-  marketPowerAudit.push({
-    id: nextPowerAuditId(),
-    action_code: actionCode,
-    power_bit: row?.power_bit ?? 'unknown',
-    actor_user: user?.hatId ?? 'anonymous',
-    actor_hat: actorHat,
-    actor_tenant: user?.containerId ?? 'anonymous',
-    booth_code: boothCode,
-    governor: result === 'allowed' && row?.power_bit === 'govern' ? actorHat : '',
-    result,
-    detail,
-    ts: new Date().toISOString(),
-  });
-}
-
-// 返回 true=放行；false=已写 403 响应+审计。boothCode：能解析到的铺面码（booth_new/supplier_apply 无预存上下文传空）
-function checkPower(actionCode: string, req: AuthReq, res: AuthRes, boothCode = '', actorHatOverride?: HatRole): boolean {
-  const row = marketPowerMap.find((r) => r.action_code === actionCode) ?? null;
-  // X-MARKET-16 穿透追责：执行帽动作可传入域映射执行帽（服务端裁定，客户端不可伪造）；缺省仍按登录帽
-  const actorHat = actorHatOverride ?? normalizePowerHat(req.user?.hatRole ?? '');
-  const deny = (detail: string): boolean => {
-    powerAudit(row, actionCode, req, actorHat, boothCode, 'denied', detail);
-    res.status(403).json({ success: false, error: detail });
-    return false;
-  };
-  if (!row) return deny(`动作 ${actionCode} 无三权映射行，默认拒绝（防呆：未授权动作不可执行）`);
-  if (!row.enabled) return deny(`动作 ${row.action_name}（${actionCode}）已停用，拒绝执行`);
-  if (row.forbid_hats.includes(actorHat)) {
-    return deny(`${row.action_name}（${actionCode}）属${POWER_BIT_LABEL[row.power_bit] ?? row.power_bit}，帽 ${actorHat} 为禁帽（forbid），无此权；治理口径：${row.governance}`);
-  }
-  if (!row.allow_hats.includes(actorHat)) {
-    return deny(`${row.action_name}（${actionCode}）属${POWER_BIT_LABEL[row.power_bit] ?? row.power_bit}，帽 ${actorHat} 无此权（需 ${row.allow_hats.join('/')}）；治理口径：${row.governance}`);
-  }
-  if (row.tier === 'cloud' && !isCloudHat(actorHat)) {
-    return deny(`${row.action_name}（${actionCode}）为 ${row.tier}/cloud 层动作，帽 ${actorHat} 非云帽，tier 不匹配`);
-  }
-  powerAudit(row, actionCode, req, actorHat, boothCode, 'allowed', `allow：tier=${row.tier}/scope=${row.scope}（${row.governance}）`);
-  return true;
-}
-
-// 由铺面 id 解析铺面码（checkPower 审计留痕用；查不到回退原 id）
-function boothCodeOf(boothId: string | null | undefined): string {
-  if (!boothId) return '';
-  return getStore().booths.find((b) => b.id === boothId)?.code ?? boothId;
-}
-
-// 启动交叉校验：market_power_map.allow_hats 与 HAT_POWER_BITS 交叉检查（不一致告警，不阻断）
-function crossCheckPowerMap(): void {
-  for (const row of marketPowerMap) {
-    if (!row.enabled) continue;
-    for (const hat of row.allow_hats) {
-      // XU/CU 无帽（归一 NONE），B2B 双边 allow 属客户通行口径而非权位授予，不参与权位交叉校验
-      if (hat === 'XU' || hat === 'CU') continue;
-      const bits = HAT_POWER_BITS[hat];
-      if (!bits || !bits.includes(row.power_bit)) {
-        console.warn(`[POWER-MAP] 启动校验告警：${row.action_code}(${row.power_bit}) allow_hats 含 ${hat}，但 HAT_POWER_BITS 未授予该权位（${bits ? bits.join('+') : '无权位'}），请核对映射与帽矩阵`);
-      }
-    }
-  }
-}
-crossCheckPowerMap();
 
 api.post('/auth/login', (req, res) => {
   const { account, password } = (req.body ?? {}) as { account?: string; password?: string };
@@ -1116,100 +1018,6 @@ api.get('/supply/mall', requireAuth, (req: AuthReq, res) => {
   ok(res, items);
 });
 
-/* ============ X-Supply 供给四源集市（X-SUPPLY-01：路由域 /supply 后端，客户隔离双保险） ============ */
-// 读权限：供给帽 + 供给线执行帽 + DU/执行帽 + V*M（治理读）；XU/CU 一律 403（XU/CU 是 X-Market 面，不入供给集市）
-const SUPPLY_HUB_READ_HATS: HatRole[] = ['EU', 'HU', 'YU', 'TU', 'EX', 'EXX', 'DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX', 'VXM', 'VEM', 'VHM', 'VYM', 'VTM', 'VDM'];
-const isSupplyExecHat = (h: HatRole): boolean => h === 'EX' || h === 'EXX';
-
-api.get('/supply/hub', requireAuth, (req: AuthReq, res) => {
-  const user = req.user!;
-  const hat = roleOf(user);
-  if (!SUPPLY_HUB_READ_HATS.includes(hat)) {
-    res.status(403).json({ success: false, error: '供给集市仅对供给方/DU 经营者/平台治理开放（XU/CU 客户走 X-Market 面，信息隔离）' });
-    return;
-  }
-  const store = getStore();
-  const supplyBooths = store.booths.filter((b) => b.kind === 'supply');
-  ok(res, {
-    viewer: { hatRole: hat, hatId: user.hatId, containerId: user.containerId, containerName: containerById(user.containerId)?.name ?? '' },
-    canRegister: isSupplyExecHat(hat),
-    canMaintain: isSupplyExecHat(hat),
-    booths: supplyBooths.map((b) => ({
-      id: b.id,
-      code: b.code,
-      domain: b.domain,
-      name: b.name,
-      ownerContainerId: unitById(b.ownerUnitId)?.containerId ?? '',
-      ownerName: containerById(unitById(b.ownerUnitId)?.containerId ?? '')?.name ?? '',
-      ownerHatRole: boothOwnerRole(b.domain, b.kind),
-      // 供给线执行端帽（X-SUPPLY-01 首单 E 域；H/Y/T 域随后续单扩展，禁用 DU 线 BOOTH_OF_EXEC_HAT）
-      execHat: b.domain === 'E' ? 'EXX' : '',
-      frontDesc: b.frontDesc,
-      backDesc: b.backDesc,
-      rating: b.rating,
-      status: b.status,
-    })),
-    maintainBoothCode:
-      isSupplyExecHat(hat)
-        ? (supplyBooths.find((b) => b.domain === 'E' && unitById(b.ownerUnitId)?.containerId === user.containerId)?.code ?? '')
-        : '',
-    entries: supplyHubEntries,
-  });
-});
-
-// 入驻登记（办位 EX/EXX 专属；EU 管位不代办即 403——X-SUPPLY-01 权限矩阵）
-api.post('/supply/register', requireAuth, (req: AuthReq, res) => {
-  const user = req.user!;
-  const hat = roleOf(user);
-  const body = (req.body ?? {}) as { qualification?: string; note?: string; boothId?: string };
-  const booth = getStore().booths.find((b) => b.kind === 'supply' && b.id === (body.boothId ?? 'b-e1'));
-  if (!booth) {
-    res.status(404).json({ success: false, error: '供给实体铺不存在' });
-    return;
-  }
-  checkPower('supply_register', req, res, booth.code);
-  if (!res.writableEnded) {
-    const entry: SupplyHubEntry = {
-      id: nextSupplyEntryId(),
-      hatRole: hat,
-      containerId: user.containerId,
-      containerName: containerById(user.containerId)?.name ?? '',
-      boothId: booth.id,
-      boothCode: booth.code,
-      domain: booth.domain,
-      qualification: String(body.qualification ?? '').slice(0, 200),
-      note: String(body.note ?? '').slice(0, 200),
-      status: 'registered',
-      ts: new Date().toISOString(),
-    };
-    supplyHubEntries.push(entry);
-    ok(res, entry);
-  }
-});
-
-// Booth 铺面维护（办位 EX/EXX 仅本铺：跨铺前置 403 不入审计，与 X-MARKET-16 状态校验同口径）
-api.post('/supply/booths/:id/maintain', requireAuth, (req: AuthReq, res) => {
-  const user = req.user!;
-  const hat = roleOf(user);
-  const store = getStore();
-  const booth = store.booths.find((b) => b.id === req.params?.id);
-  if (!booth || booth.kind !== 'supply') {
-    res.status(404).json({ success: false, error: '供给实体铺不存在' });
-    return;
-  }
-  const ownerUnit = unitById(booth.ownerUnitId);
-  if (!isSupplyExecHat(hat) || !ownerUnit || ownerUnit.containerId !== user.containerId) {
-    res.status(403).json({ success: false, error: '铺面维护仅限本铺执行（办位 EX/EXX 维护归属本容器 Booth）' });
-    return;
-  }
-  const body = (req.body ?? {}) as { frontDesc?: string; backDesc?: string };
-  checkPower('supply_booth_maintain', req, res, booth.code);
-  if (!res.writableEnded) {
-    if (typeof body.frontDesc === 'string' && body.frontDesc.trim() !== '') booth.frontDesc = body.frontDesc.trim().slice(0, 120);
-    if (typeof body.backDesc === 'string' && body.backDesc.trim() !== '') booth.backDesc = body.backDesc.trim().slice(0, 120);
-    ok(res, { id: booth.id, code: booth.code, frontDesc: booth.frontDesc, backDesc: booth.backDesc });
-  }
-});
 api.get('/power/map', requireAuth, (_req: AuthReq, res) => {
   ok(res, marketPowerMap);
 });
@@ -1308,6 +1116,9 @@ api.get('/power/dashboard', requireAuth, (req: AuthReq, res) => {
     generatedAt: new Date().toISOString(),
   });
 });
+
+// X-Supply 独立路由域（X-SUPPLY-01 补充约束：/supply 前缀固定，域内路由整体迁出预留）
+api.use('/supply', xSupply);
 
 router.use('/api', api);
 export default router;
