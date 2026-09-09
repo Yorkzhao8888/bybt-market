@@ -64,6 +64,16 @@
 - **VXM（云中心运营审批统筹，demoId=vxm-cloud）**：供应商审核（通过/驳回附原因）、治理下架违规货品；审核列表 V*M 可见、审批操作仅 VXM。
 - 交易单向（P0）：供给实体铺仅 DU/执行帽可下单；客户越权采购 403；采购商城数据只在 DU/供给方/V*M 间流转。
 
+## 三权映射（X-MARKET-12，治-管-办防呆）
+
+- **权位**：治 govern（VXM/VEM/VHM/VYM/VTM/VDM 云审批评估）/ 管 manage（DU 经营决策 + YU/EU/HU/TU 供给经营）/ 办 operate（执行帽作业）；匿名/无帽归 `NONE`（`normalizePowerHat`），XU/CU 保留原帽参与 allow/forbid 匹配（B2B 双边 allow 依赖原帽，归一 NONE 会让 allow 失效）。权位→帽授予表：`shared/types.ts` `HAT_POWER_BITS`。
+- **结构**（内存 store，重启清空）：`server/store.ts` `marketPowerMap`（10 动作种子）+ `marketPowerAudit`（审计留痕，allowed/denied 全记）。
+- **执行点**：`server/routes/index.ts` `checkPower(actionCode, req, res, boothCode?)`——9 个写入口前置校验：`booth_new`/`market_inquiry`/`bid_quote`/`contract_sign`/`procurement_order`/`supplier_apply`/`supplier_evaluate`/`product_publish`/`product_remove`/`product_govern_remove`。无映射行默认拒绝+告警；帽∉allow 或∈forbid→403 带权位口径文案（如「supplier_evaluate 属治位，DU 无此权」）；tier=cloud 需云帽。
+- **查询**：GET `/api/power/map`（任意登录）；GET `/api/power/audit`（治位帽全量，其余见本人留痕；界面归 13）。
+- **启动交叉校验**：`crossCheckPowerMap()` 启动时比对 map.allow_hats 与 HAT_POWER_BITS，不一致 `console.warn('[POWER-MAP] ...')` 不阻断。
+- **B2B 双边 allow 偏差**：`market_inquiry`/`contract_sign` 工单表 allow={DU}，但 B2B 询价/签约由客户发起（XU 询价→DU 报价→XU 签约），落库为 `{DU,XU,CU}` 保回归红线；`bid_quote` 仅 {DU}。
+- **toggle 动作选择**：`/supply/products/:id/toggle` owner 路径按目标状态选 action（on→off 记 `product_remove`，off→on 记 `product_publish`）；治理路径放宽为治位帽（VXM/VEM/VDM）记 `product_govern_remove`；其余身份走 `product_remove` 必 deny 兜底。
+
 ## 四类角色工作台（X-MARKET-09）
 
 - **登录落点**：Login 成功后按 `workbenchOf(hatRole)` 跳 `WORKBENCH_HOME`——客户 CU/XU→`/market`（CU entry=C→`/mall`）、供给帽 YU/EU/HU/TU→`/supplier`、DU+执行帽→`/operator`、V*M/VXM→`/govern`；带 `boothTarget` 时优先跳铺面详情。

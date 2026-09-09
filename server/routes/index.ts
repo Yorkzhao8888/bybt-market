@@ -12,10 +12,11 @@ import {
   getStore, nextSeq, containerById,
   inquiries, governanceCases, nextOrderCode, supplyContracts,
   supplierApplications, supplierProducts, nextSupplierId,
+  marketPowerMap, marketPowerAudit, nextPowerAuditId, normalizePowerHat,
 } from '../store';
 import { createToken, getUserByToken, revokeToken, DEV_PASSWORD } from '../auth';
-import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth, SupplierApplication, SupplierProduct, SupplyMallItem } from '../../shared/types';
-import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL, HAT_LINE_OF, type Inquiry } from '../../shared/types';
+import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth, SupplierApplication, SupplierProduct, SupplyMallItem, MarketPowerMapRow, PowerHat } from '../../shared/types';
+import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL, HAT_LINE_OF, HAT_POWER_BITS, type Inquiry } from '../../shared/types';
 
 const router = Router();
 const api = Router();
@@ -120,6 +121,80 @@ function buildSession(acc: DemoAccount): SessionUser {
     boothTarget: acc.boothTarget ?? undefined,
   };
 }
+
+/* ============ X-MARKET-12 三权映射落库（治-管-办防呆约束） ============ */
+// 治（govern：VXM/VEM/VDM 云审批评估）、管（manage：DU 经营决策、*U 供给经营）、办（operate：执行帽作业）
+// 写入口统一查 market_power_map：无映射行默认拒绝；帽 ∉ allow_hats 或 ∈ forbid_hats → 403（错误信息带权位口径）；全部动作写 market_power_audit 审计
+const POWER_BIT_LABEL: Record<string, string> = {
+  govern: '治位（云审批评估）',
+  manage: '管位（经营决策）',
+  operate: '办位（执行作业）',
+};
+
+const isCloudHat = (hat: PowerHat): boolean => HAT_POWER_BITS[hat]?.includes('govern') === true;
+
+function powerAudit(row: MarketPowerMapRow | null, actionCode: string, req: AuthReq, actorHat: PowerHat, boothCode: string, result: 'allowed' | 'denied' | 'escalated', detail: string): void {
+  const user = req.user;
+  marketPowerAudit.push({
+    id: nextPowerAuditId(),
+    action_code: actionCode,
+    power_bit: row?.power_bit ?? 'unknown',
+    actor_user: user?.hatId ?? 'anonymous',
+    actor_hat: actorHat,
+    actor_tenant: user?.containerId ?? 'anonymous',
+    booth_code: boothCode,
+    governor: row?.power_bit === 'govern' ? actorHat : '',
+    result,
+    detail,
+    ts: new Date().toISOString(),
+  });
+}
+
+// 返回 true=放行；false=已写 403 响应+审计。boothCode：能解析到的铺面码（booth_new/supplier_apply 无预存上下文传空）
+function checkPower(actionCode: string, req: AuthReq, res: AuthRes, boothCode = ''): boolean {
+  const row = marketPowerMap.find((r) => r.action_code === actionCode) ?? null;
+  const actorHat = normalizePowerHat(req.user?.hatRole ?? '');
+  const deny = (detail: string): boolean => {
+    powerAudit(row, actionCode, req, actorHat, boothCode, 'denied', detail);
+    res.status(403).json({ success: false, error: detail });
+    return false;
+  };
+  if (!row) return deny(`动作 ${actionCode} 无三权映射行，默认拒绝（防呆：未授权动作不可执行）`);
+  if (!row.enabled) return deny(`动作 ${row.action_name}（${actionCode}）已停用，拒绝执行`);
+  if (row.forbid_hats.includes(actorHat)) {
+    return deny(`${row.action_name}（${actionCode}）属${POWER_BIT_LABEL[row.power_bit] ?? row.power_bit}，帽 ${actorHat} 为禁帽（forbid），无此权；治理口径：${row.governance}`);
+  }
+  if (!row.allow_hats.includes(actorHat)) {
+    return deny(`${row.action_name}（${actionCode}）属${POWER_BIT_LABEL[row.power_bit] ?? row.power_bit}，帽 ${actorHat} 无此权（需 ${row.allow_hats.join('/')}）；治理口径：${row.governance}`);
+  }
+  if (row.tier === 'cloud' && !isCloudHat(actorHat)) {
+    return deny(`${row.action_name}（${actionCode}）为 ${row.tier}/cloud 层动作，帽 ${actorHat} 非云帽，tier 不匹配`);
+  }
+  powerAudit(row, actionCode, req, actorHat, boothCode, 'allowed', `allow：tier=${row.tier}/scope=${row.scope}（${row.governance}）`);
+  return true;
+}
+
+// 由铺面 id 解析铺面码（checkPower 审计留痕用；查不到回退原 id）
+function boothCodeOf(boothId: string | null | undefined): string {
+  if (!boothId) return '';
+  return getStore().booths.find((b) => b.id === boothId)?.code ?? boothId;
+}
+
+// 启动交叉校验：market_power_map.allow_hats 与 HAT_POWER_BITS 交叉检查（不一致告警，不阻断）
+function crossCheckPowerMap(): void {
+  for (const row of marketPowerMap) {
+    if (!row.enabled) continue;
+    for (const hat of row.allow_hats) {
+      // XU/CU 无帽（归一 NONE），B2B 双边 allow 属客户通行口径而非权位授予，不参与权位交叉校验
+      if (hat === 'XU' || hat === 'CU') continue;
+      const bits = HAT_POWER_BITS[hat];
+      if (!bits || !bits.includes(row.power_bit)) {
+        console.warn(`[POWER-MAP] 启动校验告警：${row.action_code}(${row.power_bit}) allow_hats 含 ${hat}，但 HAT_POWER_BITS 未授予该权位（${bits ? bits.join('+') : '无权位'}），请核对映射与帽矩阵`);
+      }
+    }
+  }
+}
+crossCheckPowerMap();
 
 api.post('/auth/login', (req, res) => {
   const { account, password } = (req.body ?? {}) as { account?: string; password?: string };
@@ -378,6 +453,7 @@ api.get('/market/supply-contracts', requireAuth, (req: AuthReq, res) => {
  *  供给方实体铺归供给帽；DU 经营实体铺归 DU + 合法执行帽；跨主体选帽拒绝。 */
 api.post('/market/booths', requireAuth, (req: AuthReq, res) => {
   const user = req.user!;
+  if (!checkPower('booth_new', req, res)) return;
   if (!can(user, 'open_booth')) {
     res.status(403).json({ success: false, error: '客户身份不可开铺/上架；请使用供给方或 DU 经营身份' });
     return;
@@ -455,15 +531,17 @@ api.post('/market/booths', requireAuth, (req: AuthReq, res) => {
 /* ============ B2B 闭环：询价 → 报价 → 合同 → 下单（P6，Market 铺面层） ============ */
 api.post('/market/inquiries', requireAuth, (req: AuthReq, res) => {
   const user = req.user!;
-  if (!can(user, 'b2b_purchase')) {
-    res.status(403).json({ success: false, error: '仅 B 端采购客户（XU）可发起企业询价' });
-    return;
-  }
   const { boothId, domain, title, detail } = (req.body ?? {}) as { boothId?: string; domain?: DomainCode; title?: string; detail?: string };
   const store = getStore();
   const booth = store.booths.find((b) => b.id === boothId);
   if (!booth) {
     res.status(404).json({ success: false, error: '目标铺面不存在' });
+    return;
+  }
+  // 三权映射先行：带权位口径的 403 优先于业务校验
+  if (!checkPower('market_inquiry', req, res, booth.code)) return;
+  if (!can(user, 'b2b_purchase')) {
+    res.status(403).json({ success: false, error: '仅 B 端采购客户（XU）可发起企业询价' });
     return;
   }
   const id = `inq-${inquiries.length + 1}`;
@@ -491,12 +569,14 @@ api.get('/market/inquiries', requireAuth, (req: AuthReq, res) => {
 /** 报价 → 合同 → 下单（占位流转，经营方操作） */
 api.post('/market/inquiries/:id/quote', requireAuth, (req: AuthReq, res) => {
   const user = req.user!;
+  const inq = inquiries.find((i) => i.id === req.params?.id);
+  if (!inq) { res.status(404).json({ success: false, error: '询价单不存在' }); return; }
+  // 三权映射先行：带权位口径的 403 优先于业务校验
+  if (!checkPower('bid_quote', req, res, boothCodeOf(inq.boothId))) return;
   if (!can(user, 'operate_booth')) {
     res.status(403).json({ success: false, error: '仅经营/供给方可报价' });
     return;
   }
-  const inq = inquiries.find((i) => i.id === req.params?.id);
-  if (!inq) { res.status(404).json({ success: false, error: '询价单不存在' }); return; }
   const { quoteCents, quoteNote } = (req.body ?? {}) as { quoteCents?: number; quoteNote?: string };
   inq.status = 'quoted';
   inq.quoteCents = quoteCents ?? 0;
@@ -506,6 +586,7 @@ api.post('/market/inquiries/:id/quote', requireAuth, (req: AuthReq, res) => {
 api.post('/market/inquiries/:id/contract', requireAuth, (req: AuthReq, res) => {
   const inq = inquiries.find((i) => i.id === req.params?.id);
   if (!inq) { res.status(404).json({ success: false, error: '询价单不存在' }); return; }
+  if (!checkPower('contract_sign', req, res, boothCodeOf(inq.boothId))) return;
   if (inq.status !== 'quoted') { res.status(400).json({ success: false, error: '请先报价再签合同' }); return; }
   inq.status = 'contracted';
   inq.contractNo = `CT-${inq.code.slice(4)}`;
@@ -615,6 +696,7 @@ api.post('/orders', requireAuth, (req: AuthReq, res) => {
     const qtyN = qty && qty > 0 ? Math.floor(qty) : 1;
     amount = prod.priceCents * qtyN;
     supplierId = prod.supplierId;
+    if (!checkPower('procurement_order', req, res, boothCodeOf(prod.boothId))) return;
     supplyNote = `DU 采购单：${prod.name}×${qtyN}${prod.unit}（合格供应商·云中心准入通过）`;
   }
   const booth = store.booths.find((b) => b.id === targetBoothId);
@@ -702,6 +784,7 @@ const isDUBuyer = (user: SessionUser): boolean =>
 // 供给方：提交/重新提交准入登记（资质/品类/产能/报价意向 → 待评估）
 api.post('/supply/applications', requireAuth, (req: AuthReq, res) => {
   const user = req.user!;
+  if (!checkPower('supplier_apply', req, res)) return;
   if (!isSupplyHat(roleOf(user))) {
     res.status(403).json({ success: false, error: '仅供给方帽（EU/HU/TU/YU）可提交供应商准入登记' });
     return;
@@ -778,10 +861,7 @@ api.get('/supply/applications', requireAuth, (req: AuthReq, res) => {
 // VXM：审核（通过→合格；驳回→附原因，供给方可重提）
 api.post('/supply/applications/:id/review', requireAuth, (req: AuthReq, res) => {
   const user = req.user!;
-  if (roleOf(user) !== 'VXM') {
-    res.status(403).json({ success: false, error: '审核操作仅云中心运营审批统筹（VXM）可执行' });
-    return;
-  }
+  if (!checkPower('supplier_evaluate', req, res)) return;
   const app = supplierApplications.find((a) => a.id === req.params?.id);
   if (!app) {
     res.status(404).json({ success: false, error: '登记申请不存在' });
@@ -832,6 +912,7 @@ api.get('/supply/products', requireAuth, (req: AuthReq, res) => {
 // 供给方：上架货品（需云中心准入合格）
 api.post('/supply/products', requireAuth, (req: AuthReq, res) => {
   const user = req.user!;
+  if (!checkPower('product_publish', req, res)) return;
   const role = roleOf(user);
   if (!isSupplyHat(role)) {
     res.status(403).json({ success: false, error: '仅供给方帽可上架货品' });
@@ -873,10 +954,14 @@ api.post('/supply/products/:id/toggle', requireAuth, (req: AuthReq, res) => {
     return;
   }
   const owner = isSupplyHat(role) && prod.supplierId === user.containerId;
-  const isVxm = role === 'VXM';
-  if (!owner && !isVxm) {
-    res.status(403).json({ success: false, error: '仅货品所属供给方或云中心运营审批统筹（VXM）可操作' });
-    return;
+  // 三权映射：owner 路径按目标状态选动作（下架→product_remove / 上架→product_publish）；治理路径放宽为治位帽；其余身份走必 deny 兜底
+  if (owner) {
+    const action = prod.status === 'on' ? 'product_remove' : 'product_publish';
+    if (!checkPower(action, req, res, boothCodeOf(prod.boothId))) return;
+  } else if (role === 'VXM' || role === 'VEM' || role === 'VDM') {
+    if (!checkPower('product_govern_remove', req, res, boothCodeOf(prod.boothId))) return;
+  } else {
+    if (!checkPower('product_remove', req, res, boothCodeOf(prod.boothId))) return;
   }
   if (!owner) {
     // VXM 治理动作：只能下架（违规治理），不可替供给方重新上架
@@ -909,6 +994,16 @@ api.get('/supply/mall', requireAuth, (req: AuthReq, res) => {
       boothCode: store.booths.find((b) => b.id === p.boothId)?.code ?? '',
     }));
   ok(res, items);
+});
+
+/* ============ 三权映射查询（X-MARKET-12：映射可查 + 审计留痕，查询界面归 13） ============ */
+api.get('/power/map', requireAuth, (_req: AuthReq, res) => {
+  ok(res, marketPowerMap);
+});
+api.get('/power/audit', requireAuth, (req: AuthReq, res) => {
+  const hat = normalizePowerHat(roleOf(req.user!));
+  // 治位帽（V*M/VXM）见全量审计；其余身份仅见本人动作留痕
+  ok(res, (HAT_POWER_BITS[hat] ?? []).includes('govern') ? marketPowerAudit : marketPowerAudit.filter((a) => a.actor_hat === hat));
 });
 
 router.use('/api', api);

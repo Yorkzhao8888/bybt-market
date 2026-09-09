@@ -442,3 +442,58 @@ export const TRUST_EXPOSURE: Record<DomainCode, TrustExposure> = {
   T: { quality: ['等保二级', '源码托管'], originMask: '华东交付中心', serviceLevel: 'SLA-A（2h 故障响应）', leadTime: '2 周启动', afterSales: '由合同对手 DU 承担售后，90 天质保维护' },
   DE: { quality: ['3C 认证', '批次抽检'], originMask: '华东门店网', serviceLevel: 'SLA-A（24h 上门）', leadTime: '48h 交付', afterSales: '由合同对手 DU 承担售后，门店 15 天退换' },
 };
+
+/* ============ X-MARKET-12 三权映射（治-管-办防呆约束） ============ */
+
+/** 权位：govern 治（云审批评估）/ manage 管（经营决策）/ operate 办（作业执行） */
+export type PowerBit = 'govern' | 'manage' | 'operate';
+
+/** 动作层级：cloud 云端治理层 / edge 铺面业务层 */
+export type PowerTier = 'cloud' | 'edge';
+
+/** 动作作用域：booth 单铺 / cross_tenant 跨租户 / platform 平台 */
+export type PowerScope = 'booth' | 'cross_tenant' | 'platform';
+
+/** NONE = 匿名/无帽（登录态必为具体帽）；XU/CU 保留原帽参与 allow/forbid 匹配，管理/治理动作对客户端帽一律 403 */
+export type PowerHat = HatRole | 'NONE';
+
+/** 三权映射行：动作 → 权位 → 帽（运行时硬约束来源） */
+export interface MarketPowerMapRow {
+  action_code: string;
+  action_name: string;
+  power_bit: PowerBit;
+  allow_hats: PowerHat[];
+  forbid_hats: PowerHat[];
+  tier: PowerTier;
+  scope: PowerScope;
+  governance: string;      // 治理口径（如 VXM 评估 / 平台治理下架 / 大额升级 V*M）
+  escalate_rule: string;   // 升级规则（空=无；大额升级逻辑归 X-MARKET-15）
+  enabled: boolean;
+}
+
+/** 三权审计（本单建结构+写入通路；查询界面归 X-MARKET-13） */
+export interface MarketPowerAuditRow {
+  id: string;
+  action_code: string;
+  power_bit: PowerBit | 'unknown';
+  actor_user: string;      // 账号 id（demo id / 匿名 anon）
+  actor_hat: PowerHat;     // 规范化帽（客户端帽记 NONE）
+  actor_tenant: string;    // 容器 id（租户）
+  booth_code: string;      // 关联铺码（可空）
+  governor: string;        // 治理位（govern 动作=actor 本身；manage 动作留待升级审批）
+  result: 'allowed' | 'denied' | 'escalated';
+  detail: string;          // 校验说明（拒绝原因带权位口径）
+  ts: string;
+}
+
+/** 帽-权位矩阵（HAT_MATRIX）：交叉校验 market_power_map.allow_hats 的一致性 */
+export const HAT_POWER_BITS: Record<PowerHat, PowerBit[]> = {
+  VXM: ['govern'], VEM: ['govern'], VHM: ['govern'], VYM: ['govern'], VTM: ['govern'], VDM: ['govern'],
+  DU: ['manage', 'operate'],
+  YU: ['manage', 'operate'], EU: ['manage', 'operate'], HU: ['manage', 'operate'], TU: ['manage', 'operate'],
+  DYX: ['operate'], DHX: ['operate'], DTX: ['operate'], DEX: ['operate'], DCX: ['operate'],
+  XU: [], CU: [],
+  // 基座其余单元帽（OU/GU/AU/FU/IU/VU/SU）未纳入三权映射，不授任何权位
+  OU: [], GU: [], AU: [], FU: [], IU: [], VU: [], SU: [],
+  NONE: [],
+};

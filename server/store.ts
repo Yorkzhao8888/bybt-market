@@ -2,7 +2,7 @@
 // X-MARKET-05：两套系统 + 三方链路 + Booth 权属定版
 //   容器(主体) → 帽(身份) → 域角色(标签) → Booth 实体(作业层) / 交易对象(铺面层)
 
-import type { Container, Unit, Booth, Order, Listing, Inquiry, SupplyContract, SupplierApplication, SupplierProduct } from '../shared/types';
+import type { Container, Unit, Booth, Order, Listing, Inquiry, SupplyContract, SupplierApplication, SupplierProduct, MarketPowerMapRow, MarketPowerAuditRow, PowerHat } from '../shared/types';
 
 /* ============ 容器（主体） ============ */
 export const containers: Container[] = [
@@ -142,6 +142,38 @@ let supplierSeq = 2;
 export function nextSupplierId(prefix: 'sa' | 'sp'): string {
   supplierSeq += 1;
   return `${prefix}-${supplierSeq}`;
+}
+
+/* ============ X-MARKET-12 三权映射（治-管-办防呆约束，内存 store 等价实现） ============ */
+
+/** 动作→权位→帽 硬约束映射（重启随种子重置；结构照 G7 market_power_map 设计） */
+export const marketPowerMap: MarketPowerMapRow[] = [
+  { action_code: 'supplier_apply', action_name: '供应商登记', power_bit: 'manage', allow_hats: ['YU', 'EU', 'HU', 'TU'], forbid_hats: [], tier: 'edge', scope: 'booth', governance: 'VXM 评估', escalate_rule: '', enabled: true },
+  { action_code: 'supplier_evaluate', action_name: '供应商评估（通过/驳回）', power_bit: 'govern', allow_hats: ['VXM', 'VEM', 'VDM'], forbid_hats: ['YU', 'EU', 'HU', 'TU', 'DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX', 'NONE'], tier: 'cloud', scope: 'cross_tenant', governance: '审批留痕', escalate_rule: '', enabled: true },
+  { action_code: 'product_publish', action_name: '货品上架', power_bit: 'manage', allow_hats: ['YU', 'EU', 'HU', 'TU'], forbid_hats: ['NONE'], tier: 'edge', scope: 'booth', governance: '平台治理下架', escalate_rule: '', enabled: true },
+  { action_code: 'product_remove', action_name: '货品下架', power_bit: 'manage', allow_hats: ['YU', 'EU', 'HU', 'TU'], forbid_hats: ['NONE'], tier: 'edge', scope: 'booth', governance: '平台治理下架', escalate_rule: '', enabled: true },
+  { action_code: 'product_govern_remove', action_name: '治理下架（平台运营）', power_bit: 'govern', allow_hats: ['VXM', 'VEM', 'VDM'], forbid_hats: ['YU', 'EU', 'HU', 'TU', 'DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX', 'NONE'], tier: 'cloud', scope: 'cross_tenant', governance: '治理动作', escalate_rule: '', enabled: true },
+  { action_code: 'procurement_order', action_name: '采购商城一键下单', power_bit: 'manage', allow_hats: ['DU'], forbid_hats: ['NONE', 'VXM', 'VEM', 'VHM', 'VYM', 'VTM', 'VDM'], tier: 'edge', scope: 'booth', governance: '大额升级 V*M（逻辑归 X-MARKET-15，本单只落映射）', escalate_rule: '单笔金额 ≥ 阈值时升级 V*M 审批（X-MARKET-15）', enabled: true },
+  { action_code: 'market_inquiry', action_name: 'B2B 发起询价', power_bit: 'manage', allow_hats: ['DU', 'XU', 'CU'], forbid_hats: ['NONE', 'VXM', 'VEM', 'VHM', 'VYM', 'VTM', 'VDM'], tier: 'edge', scope: 'booth', governance: '价格治理', escalate_rule: '', enabled: true },
+  { action_code: 'bid_quote', action_name: 'B2B 报价', power_bit: 'manage', allow_hats: ['DU'], forbid_hats: ['NONE', 'VXM', 'VEM', 'VHM', 'VYM', 'VTM', 'VDM'], tier: 'edge', scope: 'booth', governance: '价格治理', escalate_rule: '', enabled: true },
+  { action_code: 'contract_sign', action_name: 'B2B 签订合同', power_bit: 'manage', allow_hats: ['DU', 'XU', 'CU'], forbid_hats: ['NONE', 'VXM', 'VEM', 'VHM', 'VYM', 'VTM', 'VDM'], tier: 'edge', scope: 'booth', governance: '价格治理', escalate_rule: '', enabled: true },
+  { action_code: 'booth_new', action_name: '上新铺', power_bit: 'manage', allow_hats: ['DU', 'YU', 'EU', 'HU', 'TU'], forbid_hats: ['NONE', 'VXM', 'VEM', 'VHM', 'VYM', 'VTM', 'VDM'], tier: 'edge', scope: 'booth', governance: '—', escalate_rule: '', enabled: true },
+];
+
+/** 三权审计（本单建结构+写入通路；查询界面归 X-MARKET-13） */
+export const marketPowerAudit: MarketPowerAuditRow[] = [];
+
+let powerAuditSeq = 0;
+export function nextPowerAuditId(): string {
+  powerAuditSeq += 1;
+  return `pa-${powerAuditSeq}`;
+}
+
+/** 把请求方帽规范化为映射口径：客户端帽（XU/CU）与无帽一律记 NONE（客户无帽，直访管理/治理动作=403） */
+export function normalizePowerHat(hatRole: string | undefined | null): PowerHat {
+  if (!hatRole) return 'NONE';
+  // XU/CU 保留原帽参与 allow/forbid 匹配（B2B 双边 allow 依赖原帽）；NONE 仅表匿名/无帽
+  return hatRole as PowerHat;
 }
 
 /* ============ 运营治理（V*M，占位） ============ */
