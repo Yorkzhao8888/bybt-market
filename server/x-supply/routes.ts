@@ -7,8 +7,8 @@ import { requireAuth, roleOf, type AuthReq, type AuthRes } from '../auth';
 import { checkPower } from '../power';
 import { getStore, containerById, unitById, normalizePowerHat } from '../store';
 import { boothOwnerRole, isSupplyGovernHat, supplyGovernDomainOf } from '../domainConfig';
-import { xSupplyEntries, xSupplyNextEntryId } from './store';
-import type { XSupplyBooth, XSupplyEntry, XSupplyHubData } from '../../shared/x-supply';
+import { xSupplyEntries, xSupplyNextEntryId, xSupplyOrders, xSupplyNextOrderId, xSupplyNextOrderCode, xSupplyAppendEvent } from './store';
+import type { XSupplyBooth, XSupplyEntry, XSupplyHubData, XSupplyOrder } from '../../shared/x-supply';
 import type { PowerHat, HatRole } from '../../shared/types';
 
 const xSupply = Router();
@@ -127,6 +127,153 @@ xSupply.post('/booths/:id/maintain', requireAuth, (req: AuthReq, res: AuthRes) =
   booth.frontDesc = body.frontDesc ?? booth.frontDesc;
   booth.backDesc = body.backDesc ?? booth.backDesc;
   ok(res, { id: booth.id, code: booth.code, frontDesc: booth.frontDesc, backDesc: booth.backDesc });
+});
+
+/* ============ X-SUPPLY-02 供给单（DU 采购发起 → 供给方接单/报价 → DU 确认） ============ */
+
+/** 供给单可见域（读权限 isSupplyReader；XU/CU 403 隔离）：
+ *  治理视角 VXM 全域 / 家族本源域；供给方（EU/HU/YU/TU/EX/EXX）名下供给铺收件；DU/执行帽本人发起 */
+xSupply.get('/orders', requireAuth, (req: AuthReq, res: AuthRes) => {
+  const user = req.user;
+  const hat = normalizePowerHat(roleOf(user!));
+  if (!isSupplyReader(hat)) {
+    fail(res, 403, '供给单数据仅在 DU/供给方/V*M 间流转；客户界面不可见（隔离口径）');
+    return;
+  }
+  const govDomain = isSupplyGovernHat(hat as HatRole) ? supplyGovernDomainOf(hat as HatRole) : null;
+  let list: XSupplyOrder[];
+  if (hat === 'VXM') {
+    list = [...xSupplyOrders];
+  } else if (govDomain) {
+    list = xSupplyOrders.filter((o) => o.domain === govDomain);
+  } else if (['EU', 'HU', 'YU', 'TU', 'EX', 'EXX'].includes(hat)) {
+    const myBoothIds = new Set(
+      getStore()
+        .booths.filter((b) => b.kind === 'supply' && unitById(b.ownerUnitId)?.containerId === user!.containerId)
+        .map((b) => b.id),
+    );
+    list = xSupplyOrders.filter((o) => myBoothIds.has(o.supplierBoothId));
+  } else {
+    list = xSupplyOrders.filter((o) => o.buyerContainerId === user!.containerId);
+  }
+  ok(res, list);
+});
+
+/** DU 发起供给单（采购主体=DU 唯一经营号；D*U 分拨机制预留，本期供给单归属 DU） */
+xSupply.post('/orders', requireAuth, (req: AuthReq, res: AuthRes) => {
+  const user = req.user;
+  const body = (req.body ?? {}) as { boothId?: string; title?: string; qty?: number; unit?: string; note?: string };
+  const key = String(body.boothId ?? '');
+  const booth = getStore().booths.find((b) => (b.id === key || b.code === key) && b.kind === 'supply');
+  if (!booth) {
+    fail(res, 404, '供给实体铺不存在');
+    return;
+  }
+  if (!String(body.title ?? '').trim()) {
+    fail(res, 400, '采购内容（title）必填');
+    return;
+  }
+  if (!checkPower('supply_order_initiate', req, res)) return;
+  const ownerUnit = unitById(booth.ownerUnitId);
+  const now = new Date().toISOString();
+  const order: XSupplyOrder = {
+    id: xSupplyNextOrderId(),
+    code: xSupplyNextOrderCode(),
+    domain: booth.domain,
+    buyerContainerId: user!.containerId,
+    buyerContainerName: user!.containerName,
+    buyerHatRole: roleOf(user!),
+    supplierBoothId: booth.id,
+    supplierBoothCode: booth.code,
+    supplierContainerId: ownerUnit?.containerId ?? '',
+    supplierContainerName: containerById(ownerUnit?.containerId ?? '')?.name ?? '',
+    supplierHatRole: boothOwnerRole(booth.domain, 'supply'),
+    title: String(body.title).trim(),
+    qty: Math.max(1, Number(body.qty) || 1),
+    unit: String(body.unit ?? '件').trim() || '件',
+    quotedCents: null,
+    note: body.note ?? '',
+    status: 'initiated',
+    events: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+  xSupplyOrders.push(order);
+  xSupplyAppendEvent(order, 'initiate', user!.hatId ?? '', roleOf(user!), booth.code, order.title);
+  ok(res, order);
+});
+
+/** 供给方接单（管位 EU/HU/YU/TU；仅本铺收件；仅 initiated 态） */
+xSupply.post('/orders/:id/accept', requireAuth, (req: AuthReq, res: AuthRes) => {
+  const user = req.user;
+  const order = xSupplyOrders.find((o) => o.id === req.params?.id);
+  if (!order) {
+    fail(res, 404, '供给单不存在');
+    return;
+  }
+  if (order.supplierContainerId !== user!.containerId) {
+    fail(res, 403, '仅可操作本铺收到的供给单（供给方归属校验）');
+    return;
+  }
+  if (order.status !== 'initiated') {
+    fail(res, 400, `仅待接单（initiated）状态可接单，当前 ${order.status}`);
+    return;
+  }
+  if (!checkPower('supply_order_accept', req, res, order.supplierBoothCode)) return;
+  order.status = 'accepted';
+  xSupplyAppendEvent(order, 'accept', user!.hatId ?? '', roleOf(user!), order.supplierBoothCode, '已接单');
+  ok(res, order);
+});
+
+/** 供给方报价（仅 accepted 态；quotedCents 必填正数，分） */
+xSupply.post('/orders/:id/quote', requireAuth, (req: AuthReq, res: AuthRes) => {
+  const user = req.user;
+  const body = (req.body ?? {}) as { quotedCents?: number; note?: string };
+  const order = xSupplyOrders.find((o) => o.id === req.params?.id);
+  if (!order) {
+    fail(res, 404, '供给单不存在');
+    return;
+  }
+  if (order.supplierContainerId !== user!.containerId) {
+    fail(res, 403, '仅可操作本铺收到的供给单（供给方归属校验）');
+    return;
+  }
+  if (order.status !== 'accepted') {
+    fail(res, 400, `仅已接单（accepted）状态可报价，当前 ${order.status}`);
+    return;
+  }
+  const cents = Math.round(Number(body.quotedCents));
+  if (!Number.isFinite(cents) || cents <= 0) {
+    fail(res, 400, '报价（quotedCents，分）必填且须为正数');
+    return;
+  }
+  if (!checkPower('supply_order_quote', req, res, order.supplierBoothCode)) return;
+  order.status = 'quoted';
+  order.quotedCents = cents;
+  xSupplyAppendEvent(order, 'quote', user!.hatId ?? '', roleOf(user!), order.supplierBoothCode, body.note ?? `报价 ${(cents / 100).toFixed(2)} 元`);
+  ok(res, order);
+});
+
+/** DU 确认报价（采购主体本人；仅 quoted 态 → confirmed 基础闭环终态） */
+xSupply.post('/orders/:id/confirm', requireAuth, (req: AuthReq, res: AuthRes) => {
+  const user = req.user;
+  const order = xSupplyOrders.find((o) => o.id === req.params?.id);
+  if (!order) {
+    fail(res, 404, '供给单不存在');
+    return;
+  }
+  if (order.buyerContainerId !== user!.containerId) {
+    fail(res, 403, '仅采购主体（发起人）可确认报价');
+    return;
+  }
+  if (order.status !== 'quoted') {
+    fail(res, 400, `仅已报价（quoted）状态可确认，当前 ${order.status}`);
+    return;
+  }
+  if (!checkPower('supply_order_confirm', req, res, order.supplierBoothCode)) return;
+  order.status = 'confirmed';
+  xSupplyAppendEvent(order, 'confirm', user!.hatId ?? '', roleOf(user!), order.supplierBoothCode, `确认报价 ${(order.quotedCents ?? 0) / 100} 元成单`);
+  ok(res, order);
 });
 
 export default xSupply;

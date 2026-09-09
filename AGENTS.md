@@ -157,6 +157,15 @@
 - **⑥隔离不降级**：前端 RoleGuard wb=['supplier','operator','governSupply']（客户与 VDM 直访 403 兜底，ROLE-01 收敛）+ Header 无 /supply 入口（前端隐藏）；后端 hub/register/maintain 全部 isSupplyReader/isSupplyExecHat 校验（XU/CU 403 双保险），X-08 supply/mall DU-only 403 照旧。
 - **回归口径**：冒烟全绿——hub 403 矩阵（EX/EU/DU/VXM 200，XU/CU 403）、register EX allowed+EU/XU 403 权位文案、审计 actor_user=u-ex1+actor_hat=EX 双字段、maintain 本铺 200/他铺 403/编码路径兼容、B2B 链（RFQ→quoted→contracted→YX-2026-0018）、power-map 15 动作、dashboard 治位、SPA /supply+/supplier 200。
 
+## X-SUPPLY-02 供给单体系（DU 采购端 + 四源收件 + 基础闭环）
+
+- **定位**：X-Supply 供给单（XS 单）独立单号体系 `XS-2026-xxxx`（id=xo-N，事件 xe-N 全局递增），不占 X-Market 六族码段；采购主体=DU 唯一经营号；**D*U 分拨机制本期只落 DU 主体视图**（SupplyPurchaseDesk 顶部说明卡，分拨口径待架构确认）。不在本单：EMX 资质审核流、供给单→X-Market 采购单→ERP 全链串联。
+- **状态机**：`initiated`（DU 发起）→ `accepted`（供给方接单）→ `quoted`（供给方报价）→ `confirmed`（DU 确认，基础闭环终态）；事件流 `XSupplyOrderEvent`（snake_case：id/order_id/action='initiate'|'accept'|'quote'|'confirm'/actor_user/actor_hat/booth_code/note/ts——穿透字段保留系统标识原文）。类型 `shared/x-supply.ts`（XSupplyOrderStatus/XSupplyOrderEvent/XSupplyOrder，buyer*/supplier* 双侧快照）；表 `server/x-supply/store.ts`（xSupplyOrders+xSupplyNextOrderId/xSupplyNextOrderCode/xSupplyAppendEvent）。
+- **API（/api/supply 前缀，全走 isSupplyReader 门禁，XU/CU/VDM 403）**：GET `orders`（角色过滤：VXM 全域/家族本源域/供给方 EU/HU/YU/TU+EX/EXX 名下供给铺收件（ownerUnitId→containerId 反查）/DU+执行帽 buyer 本人）；POST `orders`（DU 发起，body {boothId|boothCode,title,qty,unit,note}，booth 必须供给实体铺）；POST `orders/:id/accept`（供给方，仅本铺 supplierContainerId===user.containerId，仅 initiated）；POST `orders/:id/quote`（仅 accepted，body {quotedCents>0,note?}）；POST `orders/:id/confirm`（仅 buyer 本人，仅 quoted）。校验顺序：归属→状态（400）→checkPower（403 入审计）。
+- **marketPowerMap 19 动作**（+4）：`supply_order_initiate`/`supply_order_confirm`（manage，allow=[DU]）、`supply_order_accept`/`supply_order_quote`（manage，allow=[EU,HU,YU,TU]，仅本铺）——forbid 均含对侧主体/EX/EXX/执行帽/六治位/XU/CU/NONE；dashboard coverage 自适应。**防呆**：EX/EXX 接单/报价→403「属管位（经营决策）」（管位不代办的镜像：管位也不代办办位登记）；403 带「（X-SUPPLY-02）」治理口径文案。
+- **前端**：`src/x-supply/api/du-supply.ts` 扩 `supplyOrders={list,create,accept,quote,confirm}`；新建 `src/x-supply/pages/SupplyPurchaseDesk.tsx`（命名导出，DU/执行帽渲染：四源货源卡发起弹层+我的供给单列表+状态徽标+quoted「确认成单」按钮+D*U 分拨预留说明卡；执行帽 D*X 看单不代办——发起/确认禁用并提示管位口径）；新建 `src/x-supply/pages/SupplyInboxPanel.tsx`（命名导出，供给方渲染：收件列表+接单/报价表单（元→分 quotedCents）；EX/EXX 只读+办位看单提示）；`SupplyHub.tsx` 挂接 `isProcure`（DU/DYX/DHX/DTX/DEX/DCX→采购台）/`isSupplierSide`（EU/HU/YU/TU/EX/EXX→收件箱）分面+DU 指引条更新。术语 `terminology.ts` 补 `supplyOrder{big:'供货单',sys:'X-Supply 供给单 XS'}`/`supplyInbox{big:'供货收件箱',sys:'供给方收件（仅本铺）'}`。
+- **回归口径（冒烟全绿）**：E 源全闭环 xo-1/XS-2026-0001（DU initiate b-e1→EX accept 403 权位→EU accept→EU quote 2580000 分→DU confirmed）；Y 源全闭环 xo-2/XS-2026-0002（DU initiate b-y1→YU accept/quote→DU confirm）；事件流 initiate/accept 双字段 actor_user=u-du1+actor_hat=DU、u-eu1+EU 留痕；XU list/initiate 403+VDM list 403（治理分线）；VEM 仅见 E 域单/VXM 全域 2 条；audit supply_order_confirm allowed×2；VDM cases/XU orders/SPA 六路由 200。
+
 ## 调试要点
 
 - dev server（tsx watch）修改 server 代码后**不会**可靠热重载路由/store：需 `kill -9 $(cat /app/work/logs/bypass/server.pid)` + `pkill -9 -f 'ts[x] watch'` 后 `(nohup bash ./scripts/dev.sh > logs/dev-start.log 2>&1 &)` 重启。

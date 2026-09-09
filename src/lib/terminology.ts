@@ -61,6 +61,9 @@ export const CONCEPT_TERMS: Record<string, TermPair> = {
   supplyMaintain: { big: '店铺维护', sys: '铺面维护' },
   supplyEntry: { big: '入驻记录', sys: '登记台账' },
   supplySource: { big: '货源', sys: '供给源 Booth-E' },
+  /* X-SUPPLY-02 供给单体系 */
+  supplyOrder: { big: '供货单', sys: 'X-Supply 供给单 XS' },
+  supplyInbox: { big: '供货收件箱', sys: '供给方收件（仅本铺）' },
   /* X-MARKET-ROLE-01 角色界面归位（A 批） */
   duChild: { big: '店主', sys: 'D*U · 子DU' },
   governMarket: { big: '经营治理', sys: '经营管理治理 VDM' },

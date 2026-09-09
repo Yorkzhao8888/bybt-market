@@ -14,6 +14,8 @@ import { useAuth } from '../../Auth';
 import { colorOf, hatLabel, isSupplyGovernHat, supplyGovernDomainOf } from '../../lib/domain';
 import { conceptTerm } from '../../lib/terminology';
 import { SupplyGovernDesk } from './SupplyGovernDesk';
+import { SupplyPurchaseDesk } from './SupplyPurchaseDesk';
+import { SupplyInboxPanel } from './SupplyInboxPanel';
 import type { XSupplyHubData } from '../../../shared/x-supply';
 
 const GREEN = '#15803D';
@@ -79,6 +81,9 @@ export default function XSupplyHub() {
   if (!user) return null;
   const hat = user.hatRole;
   const isExec = hub?.canRegister ?? false;
+  // X-SUPPLY-02 供给单分面：DU/执行帽=采购台（发起/确认/看单）；供给方（*U 管位 + EX/EXX 办位）=收件箱
+  const isProcure = hat !== null && ['DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX'].includes(hat);
+  const isSupplierSide = hat !== null && ['EU', 'HU', 'YU', 'TU', 'EX', 'EXX'].includes(hat);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
@@ -122,7 +127,7 @@ export default function XSupplyHub() {
         ) : hat === 'DU' ? (
           <span className="flex flex-wrap items-center gap-2">
             <PowerBadge kind="manage" />
-            采购者视角：DU 在供给集市为采购方；采购视图与供给单→X-Market 采购单串联（X-SUPPLY-02）。
+            采购者视角：DU 在供给集市为采购方——四源货源发起<DualTerm kind="supplyOrder" compact />、确认报价成单（下方采购台）；供给单→X-Market 采购单串联待后续工单。
           </span>
         ) : (
           <span className="flex flex-wrap items-center gap-2">
@@ -133,6 +138,9 @@ export default function XSupplyHub() {
       </div>
 
       {isSupplyGovernHat(hat) && <SupplyGovernDesk />}
+
+      {isProcure && <SupplyPurchaseDesk />}
+      {isSupplierSide && <SupplyInboxPanel />}
 
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         {/* 左：供给列表（只读 + 准入徽章） */}

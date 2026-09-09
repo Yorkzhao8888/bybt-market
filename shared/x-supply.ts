@@ -57,3 +57,49 @@ export interface XSupplyHubData {
   booths: XSupplyBooth[];
   entries: XSupplyEntry[];
 }
+
+/* ============ X-SUPPLY-02 供给单体系（DU 采购发起 → 供给方接单/报价 → DU 确认） ============ */
+
+/** 供给单状态流（基础闭环；confirmed 终态，后续串联 X-Market 采购单/ERP 见后续单） */
+export type XSupplyOrderStatus = 'initiated' | 'accepted' | 'quoted' | 'confirmed';
+
+/** 供给单流转留痕（字段对齐三权审计 snake_case：actor_user/actor_hat/booth_code 穿透原文） */
+export interface XSupplyOrderEvent {
+  id: string;
+  order_id: string;
+  action: 'initiate' | 'accept' | 'quote' | 'confirm';
+  actor_user: string;
+  actor_hat: HatRole;
+  booth_code: string;
+  note: string;
+  ts: string;
+}
+
+/** 供给单（采购主体=DU 唯一经营号；D*U 分拨机制预留——buyerCategory 后续单落） */
+export interface XSupplyOrder {
+  id: string;
+  /** 供给单号（XS-2026-xxxx，独立于 X-Market 订单六族） */
+  code: string;
+  /** 供给源域（E/Y/H/T） */
+  domain: DomainCode;
+  buyerContainerId: string;
+  buyerContainerName: string;
+  /** 发起帽（DU 线留痕） */
+  buyerHatRole: HatRole;
+  supplierBoothId: string;
+  supplierBoothCode: string;
+  supplierContainerId: string;
+  supplierContainerName: string;
+  /** 铺主帽（EU/HU/YU/TU，管位） */
+  supplierHatRole: HatRole;
+  title: string;
+  qty: number;
+  unit: string;
+  /** 供给方报价（分；quoted/confirmed 态有值） */
+  quotedCents: number | null;
+  note: string;
+  status: XSupplyOrderStatus;
+  events: XSupplyOrderEvent[];
+  createdAt: string;
+  updatedAt: string;
+}

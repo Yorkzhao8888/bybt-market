@@ -3,7 +3,7 @@
 // X-08 供给商城（X-Market 面）方法不在此归口——两交易面数据层隔离。
 
 import { req } from '../../api/client';
-import type { XSupplyBooth, XSupplyEntry, XSupplyHubData } from '../../../shared/x-supply';
+import type { XSupplyBooth, XSupplyEntry, XSupplyHubData, XSupplyOrder } from '../../../shared/x-supply';
 import type { GovernThresholds, OrderRow, SupplierApplication, SupplierProduct } from '../../../shared/types';
 
 /** X-Supply 供给集市 API（x-supply 前缀命名空间） */
@@ -24,6 +24,19 @@ export const xSupplyApi = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+
+  /** X-SUPPLY-02 供给单数据层（状态机 initiated→accepted→quoted→confirmed；DU 发起/确认，供给方接单/报价） */
+  supplyOrders: {
+    list: (): Promise<XSupplyOrder[]> => req<XSupplyOrder[]>('/api/supply/orders'),
+    create: (body: { boothId: string; title: string; qty?: number; unit?: string; note?: string }): Promise<XSupplyOrder> =>
+      req<XSupplyOrder>('/api/supply/orders', { method: 'POST', body: JSON.stringify(body) }),
+    accept: (id: string): Promise<XSupplyOrder> =>
+      req<XSupplyOrder>(`/api/supply/orders/${id}/accept`, { method: 'POST', body: JSON.stringify({}) }),
+    quote: (id: string, body: { quotedCents: number; note?: string }): Promise<XSupplyOrder> =>
+      req<XSupplyOrder>(`/api/supply/orders/${id}/quote`, { method: 'POST', body: JSON.stringify(body) }),
+    confirm: (id: string): Promise<XSupplyOrder> =>
+      req<XSupplyOrder>(`/api/supply/orders/${id}/confirm`, { method: 'POST', body: JSON.stringify({}) }),
+  },
 
   /** X-MARKET-ROLE-01 A3：四源治理数据层（V*M 家族分源 + VXM 统筹）——
    * 仅 req 原语直调后端契约路径，不 import client 业务方法（依赖单向白名单）。 */
@@ -71,4 +84,4 @@ export const xSupplyApi = {
   },
 };
 
-export type { XSupplyBooth, XSupplyEntry, XSupplyHubData };
+export type { XSupplyBooth, XSupplyEntry, XSupplyHubData, XSupplyOrder };
