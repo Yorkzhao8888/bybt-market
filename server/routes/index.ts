@@ -143,7 +143,7 @@ function powerAudit(row: MarketPowerMapRow | null, actionCode: string, req: Auth
     actor_hat: actorHat,
     actor_tenant: user?.containerId ?? 'anonymous',
     booth_code: boothCode,
-    governor: row?.power_bit === 'govern' ? actorHat : '',
+    governor: result === 'allowed' && row?.power_bit === 'govern' ? actorHat : '',
     result,
     detail,
     ts: new Date().toISOString(),
