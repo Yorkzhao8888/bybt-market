@@ -4,15 +4,16 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Briefcase, LayoutDashboard, Building2, MessagesSquare, ShoppingCart,
-  ClipboardList, FileText, FileClock, Store, Coins, Receipt, Boxes, ChevronRight,
+  ClipboardList, FileText, FileClock, Store, Coins, Receipt, Boxes, ChevronRight, Smartphone,
 } from 'lucide-react';
 import { api, type MarketGroup, type OrderRow } from '../api/client';
-import type { BoothRow, SupplyContract, InquiryRow, Container, HatRow, DomainCode, BoothKind } from '../../shared/types';
+import type { BoothRow, SupplyContract, InquiryRow, Container, HatRow, DomainCode, BoothKind, Listing } from '../../shared/types';
 import { useAuth } from '../Auth';
-import { colorOf, canOpenMarket, workbenchOf, WORKBENCH_THEME, POWER_BADGE } from '../lib/domain';
+import { colorOf, canOpenMarket, workbenchOf, WORKBENCH_THEME, POWER_BADGE, orderStatusMeta, EXEC_ACCENT } from '../lib/domain';
 import InquiryList from '../components/InquiryList';
 import PowerAuditList from '../components/PowerAuditList';
 import PowerBadge from '../components/PowerBadge';
+import OrderStatusBadge from '../components/OrderStatusBadge';
 
 const ACCENT = WORKBENCH_THEME.operator.accent; // #B45309
 const SOFT = WORKBENCH_THEME.operator.accentSoft; // #fbf0e0
@@ -32,6 +33,7 @@ export default function OperatorDesk() {
   const [containers, setContainers] = useState<Container[]>([]);
   const [hats, setHats] = useState<HatRow[]>([]);
   const [inq, setInq] = useState<InquiryRow[]>([]);
+  const [listings, setListings] = useState<Listing[]>([]);
   const [msg, setMsg] = useState('');
   const [execMsg, setExecMsg] = useState('');
   const [execErr, setExecErr] = useState('');
@@ -50,6 +52,7 @@ export default function OperatorDesk() {
     void api.marketBooths().then(setBooths);
     void api.supplyContracts().then(setContracts);
     void api.inquiries().then(setInq);
+    void api.mallListings().then(setListings);
   };
 
   useEffect(() => {
@@ -87,13 +90,26 @@ export default function OperatorDesk() {
 
   const navs: { key: Section; label: string; icon: ReactNode }[] = [
     { key: 'overview', label: '经营总览', icon: <LayoutDashboard className="h-4 w-4" /> },
-    { key: 'booths', label: '五域铺面', icon: <Building2 className="h-4 w-4" /> },
+    { key: 'booths', label: '我的铺面', icon: <Building2 className="h-4 w-4" /> },
     { key: 'inquiries', label: '询价报价', icon: <MessagesSquare className="h-4 w-4" /> },
     { key: 'procurement', label: '采购单', icon: <ClipboardList className="h-4 w-4" /> },
     { key: 'contracts', label: '采购合同', icon: <FileText className="h-4 w-4" /> },
     { key: 'newbooth', label: '上新铺', icon: <Store className="h-4 w-4" /> },
     { key: 'audit', label: '我的留痕', icon: <FileClock className="h-4 w-4" /> },
   ];
+
+  // X-MARKET-UE-01 待办分级（强提醒红点）
+  const myStoreIds = new Set(myStores.map((b) => b.id));
+  const pendingInq = inq.filter((i) => i.status === 'inquiry' && myStoreIds.has(i.boothId));
+  const pendingApproval = procurement.filter((o) => o.status === 'pending_approval');
+  const todos: { label: string; count: number; go: Section }[] = [
+    { label: '待报价 RFQ', count: pendingInq.length, go: 'inquiries' },
+    { label: '待审批采购单', count: pendingApproval.length, go: 'procurement' },
+    { label: '待履约', count: fulfillable.length, go: 'exec' },
+  ];
+  const todoTotal = todos.reduce((s, t) => s + t.count, 0);
+  const hour = new Date().getHours();
+  const greeting = hour < 6 ? '凌晨好' : hour < 12 ? '上午好' : hour < 18 ? '下午好' : '晚上好';
 
   const kpis: { label: string; value: string; icon: ReactNode }[] = [
     { label: '累计交易额', value: yuan(gmv), icon: <Coins className="h-5 w-5" /> },
@@ -116,24 +132,44 @@ export default function OperatorDesk() {
 
   return (
     <div className="space-y-5">
-      {/* 工作台头部（橙主题） */}
+      {/* 工作台头部（橙主题 · UE-01 欢迎区+待办分级条） */}
       <div className="rounded-xl border bg-white p-5 shadow-[4px_4px_0_rgba(23,24,29,0.12)]">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-semibold text-white" style={{ background: ACCENT }}>
-            <Briefcase className="h-3.5 w-3.5" /> 经营者工作台
-          </span>
-          <p className="font-serif-display text-2xl font-black">DU 经营驾驶舱 · 多店聚合</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-semibold text-white" style={{ background: ACCENT }}>
+                <Briefcase className="h-3.5 w-3.5" /> 经营者工作台
+              </span>
+              <p className="font-serif-display text-2xl font-black">{greeting}，{user?.containerName ?? cid}</p>
+            </div>
+            <p className="mt-1 text-sm text-[#6b665a]">
+              经营号 {user?.hatId ?? role} · 名下铺面 {myStores.map((b) => b.code).join(' / ') || '—'} · 交易单向：唯一可与供给方交易的主体
+            </p>
+          </div>
+          <Link to="/operator/mobile" className="flex items-center gap-1.5 rounded-lg border-2 px-3 py-2 text-sm font-bold transition hover:-translate-y-0.5" style={{ borderColor: EXEC_ACCENT, color: EXEC_ACCENT }}>
+            <Smartphone className="h-4 w-4" /> 手机作业端
+          </Link>
         </div>
-        <p className="mt-1 text-sm text-[#6b665a]">
-          {user?.containerName ?? cid}（{role}）· 五域经营实体铺多店经营：市场报价履约 + 向源头供给方集中采购（交易单向：唯一可与供给方交易的主体）。
-        </p>
+        {/* 待办分级条 */}
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          {todos.map((t) => (
+            <button key={t.label} onClick={() => setSec(t.go)} className={`flex items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm transition hover:-translate-y-0.5 ${t.count > 0 ? 'border-[#e8b4b8] bg-[#fdf2f2] font-semibold' : 'border-[#eee7d9] bg-[#faf7ef] text-[#8a8577]'}`}>
+              <span className="flex items-center gap-2">
+                {t.count > 0 && <span className="inline-flex h-2 w-2 rounded-full bg-[#DC2626]" />}
+                {t.label}
+              </span>
+              <span className={t.count > 0 ? 'ticker text-base font-black text-[#DC2626]' : 'ticker text-base'}>{t.count}</span>
+            </button>
+          ))}
+        </div>
+        {todoTotal === 0 && <p className="mt-2 text-xs text-[#8a8577]">当前无待办 · 交易与履约链路畅通</p>}
       </div>
 
       {/* KPI 总览卡 */}
       <div className="grid gap-3 sm:grid-cols-3">
         {kpis.map((k) => (
-          <div key={k.label} className="rounded-xl border bg-white p-4">
-            <p className="flex items-center gap-2 text-xs text-[#8a8577]" style={{ color: TEXT }}>
+          <div key={k.label} className="rounded-xl border bg-white p-4 shadow-[4px_4px_0_rgba(23,24,29,0.12)] transition hover:-translate-y-0.5 hover:shadow-[5px_6px_0_rgba(23,24,29,0.16)]">
+            <p className="flex items-center gap-2 text-xs" style={{ color: TEXT }}>
               {k.icon} {k.label}
             </p>
             <p className="mt-1 font-serif-display text-2xl font-black">{k.value}</p>
@@ -183,16 +219,12 @@ export default function OperatorDesk() {
                         <td className="py-2 font-mono text-xs">{o.code}</td>
                         <td className="max-w-[220px] truncate text-xs">{o.note}</td>
                         <td className="text-right font-mono">{yuan(o.amountCents ?? 0)}</td>
-                        <td className="text-right text-xs">
-                        {o.status === 'pending_approval'
-                          ? <span className="rounded bg-[#f0e9fc] px-1.5 py-0.5 text-[11px] font-bold text-[#6d28d9]" title={o.approvalNote ?? '超阈值待 V*M 治理审批，批准后生效'}>待治理审批</span>
-                          : o.status === 'rejected'
-                            ? <span className="rounded bg-[#fdeaea] px-1.5 py-0.5 text-[11px] font-bold text-[#b4402e]" title={o.approvalNote ?? '治理驳回，不生效'}>已驳回</span>
-                            : o.status}
-                      </td>
+                        <td className="text-right"><OrderStatusBadge status={o.status} note={o.approvalNote} /></td>
                       </tr>
                     ))}
-                    {orders.length === 0 && <tr><td colSpan={4} className="py-4 text-center text-xs text-[#8a8577]">暂无订单</td></tr>}
+                    {orders.length === 0 && (
+                      <tr><td colSpan={4} className="py-5 text-center text-xs text-[#8a8577]">暂无订单 · 可前往<Link to="/supply-mall" className="font-semibold underline" style={{ color: ACCENT }}>采购商城</Link>向供给方下单，或在询价报价中承接客户 RFQ</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -267,26 +299,92 @@ export default function OperatorDesk() {
           )}
 
           {sec === 'booths' && (
-            <div className="grid gap-3 md:grid-cols-2">
-              {myStores.map((b) => (
-                <Link key={b.id} to={`/market/booths/${b.id}`} className="block rounded-xl border bg-white p-4 transition hover:shadow-[4px_4px_0_rgba(23,24,29,0.18)]" style={{ borderLeft: `4px solid ${colorOf(b.domain)}` }}>
-                  <p className="flex items-center gap-2 font-serif-display text-base font-black"><Store className="h-4 w-4" style={{ color: colorOf(b.domain) }} /> {b.code}</p>
-                  <p className="mt-1 text-sm">{b.name}</p>
-                  <p className="mt-1 text-xs text-[#8a8577]">{b.domain} 域 · 执行帽 {b.execUnitId ?? '—'}</p>
-                </Link>
-              ))}
-              {myStores.length === 0 && <p className="rounded-xl border bg-white p-6 text-sm text-[#8a8577]">名下暂无经营铺面，可前往「上新铺」。</p>}
+            <div className="space-y-4">
+              {/* UE-01 我的铺面：铺卡 + 货品卡片式陈列（前店售卖面） */}
+              <div className="grid gap-3 md:grid-cols-2">
+                {myStores.map((b) => {
+                  const ls = listings.filter((x) => x.boothId === b.id);
+                  return (
+                    <div key={b.id} className="rounded-xl border bg-white p-4" style={{ borderLeft: `4px solid ${colorOf(b.domain)}` }}>
+                      <div className="flex items-center justify-between">
+                        <p className="flex items-center gap-2 font-serif-display text-base font-black"><Store className="h-4 w-4" style={{ color: colorOf(b.domain) }} /> {b.code}</p>
+                        <Link to={`/market/booths/${b.id}`} className="text-xs font-semibold underline" style={{ color: colorOf(b.domain) }}>客户视角</Link>
+                      </div>
+                      <p className="mt-1 text-sm">{b.name}</p>
+                      <p className="mt-0.5 text-xs text-[#8a8577]">{b.domain} 域 · 执行帽 {b.execUnitId ?? '—'}</p>
+                      <div className="mt-3 border-t border-dashed border-[#eee6d6] pt-3">
+                        <p className="mb-2 text-[11px] font-semibold text-[#8a8577]">在售货品（{ls.length}）· 前店售卖面</p>
+                        {ls.length === 0 ? (
+                          <p className="rounded-lg border border-dashed bg-[#faf7ef] px-3 py-3 text-center text-xs text-[#8a8577]">
+                            该铺面暂无货品陈列 · Booth 实体系统（FAB/WH 作业层）上架后在此展示
+                          </p>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                            {ls.slice(0, 6).map((l) => (
+                              <div key={l.id} className="overflow-hidden rounded-lg border bg-[#faf7ef] transition hover:-translate-y-0.5 hover:shadow-[3px_3px_0_rgba(23,24,29,0.14)]">
+                                <div className="flex h-12 items-center justify-center font-serif-display text-lg font-black" style={{ background: colorOf(b.domain) }}>
+                                  <span className="text-white/90">{l.title.slice(0, 2)}</span>
+                                </div>
+                                <div className="p-2">
+                                  <p className="truncate text-xs font-semibold">{l.title}</p>
+                                  <p className="mt-0.5 flex items-center justify-between text-[10px] text-[#8a8577]">
+                                    <span>{l.unit}</span>
+                                    <span className="ticker font-bold" style={{ color: TEXT }}>{yuan(l.priceCents)}</span>
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                {myStores.length === 0 && (
+                  <div className="rounded-xl border border-dashed bg-[#faf7ef] p-8 text-center md:col-span-2">
+                    <p className="text-sm font-semibold">名下暂无经营铺面</p>
+                    <p className="mt-1 text-xs text-[#8a8577]">DU 是唯一经营主体 · E/T 域仅平台直营</p>
+                    <button onClick={() => setSec('newbooth')} className="mt-3 rounded-md px-4 py-2 text-sm font-bold text-white" style={{ background: ACCENT }}>去上新铺</button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
           {sec === 'inquiries' && (
-            <InquiryList inquiries={inq} booths={booths} containerName={containerName} hatOf={hatOf} isAdmin={false} canOperate viewerUnit={user?.hatId ?? ''} refresh={refresh} />
+            <div className="space-y-4">
+              {/* UE-01 待报价 RFQ 置顶卡 */}
+              {pendingInq.length > 0 && (
+                <div className="rounded-xl border-2 border-[#e8b4b8] bg-white p-4 shadow-[4px_4px_0_rgba(220,38,38,0.10)]">
+                  <p className="flex items-center gap-2 font-serif-display text-base font-black">
+                    <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-[#DC2626]" /> 待报价 RFQ（{pendingInq.length}）· 客户在等，优先处理
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {pendingInq.slice(0, 3).map((q) => (
+                      <div key={q.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-[#faf7ef] px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">{q.title}</p>
+                          <p className="text-xs text-[#8a8577]">{containerName(q.buyerContainerId ?? '')} · {new Date(q.createdAt).toLocaleDateString('zh-CN')}</p>
+                        </div>
+                        <span className="rounded bg-[#f3ede0] px-2 py-0.5 text-[10px] font-bold text-[#8a6d3b]">待报价</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-[#8a8577]">在下方列表中直接报价（B2B 双边：XU 询价 → DU 报价 → XU 签约）</p>
+                </div>
+              )}
+              <InquiryList inquiries={inq} booths={booths} containerName={containerName} hatOf={hatOf} isAdmin={false} canOperate viewerUnit={user?.hatId ?? ''} refresh={refresh} />
+            </div>
           )}
 
           {sec === 'procurement' && (
             <div className="rounded-xl border bg-white p-5">
               <p className="flex items-center gap-2 font-serif-display text-lg font-black"><ClipboardList className="h-4 w-4" style={{ color: ACCENT }} /> DU 采购单（{procurement.length}）</p>
               <p className="mt-1 text-xs text-[#8a8577]">累计采购 {yuan(procAmount)}。供给方名称仅经营台可见，客户界面全程隔离。</p>
+              <p className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-[#6b665a]">
+                <span className="inline-flex items-center gap-1"><OrderStatusBadge status="pending_approval" /> 单笔金额超过治理阈值时自动升级，<Link to="/govern" className="font-semibold underline" style={{ color: POWER_BADGE.govern.color }}>V*M 审批</Link>通过后生效</span>
+                <span className="rounded bg-[#f3eee3] px-1.5 py-0.5 text-[10px] text-[#8a8577]">X-MARKET-15 阈值自动升级</span>
+              </p>
               <table className="mt-3 w-full text-sm">
                 <thead><tr className="border-b text-left text-xs text-[#8a8577]"><th className="py-2">单号</th><th>供给方</th><th>摘要</th><th className="text-right">金额</th><th className="text-right">状态</th></tr></thead>
                 <tbody>
@@ -296,16 +394,12 @@ export default function OperatorDesk() {
                       <td className="text-xs">{containerName(o.supplierId ?? '')}</td>
                       <td className="max-w-[220px] truncate text-xs">{o.note}</td>
                       <td className="text-right font-mono">{yuan(o.amountCents ?? 0)}</td>
-                      <td className="text-right text-xs">
-                        {o.status === 'pending_approval'
-                          ? <span className="rounded bg-[#f0e9fc] px-1.5 py-0.5 text-[11px] font-bold text-[#6d28d9]" title={o.approvalNote ?? '超阈值待 V*M 治理审批，批准后生效'}>待治理审批</span>
-                          : o.status === 'rejected'
-                            ? <span className="rounded bg-[#fdeaea] px-1.5 py-0.5 text-[11px] font-bold text-[#b4402e]" title={o.approvalNote ?? '治理驳回，不生效'}>已驳回</span>
-                            : o.status}
-                      </td>
+                      <td className="text-right"><OrderStatusBadge status={o.status} note={o.approvalNote} /></td>
                     </tr>
                   ))}
-                  {procurement.length === 0 && <tr><td colSpan={5} className="py-4 text-center text-xs text-[#8a8577]">暂无采购单，去采购商城下单</td></tr>}
+                  {procurement.length === 0 && (
+                    <tr><td colSpan={5} className="py-5 text-center text-xs text-[#8a8577]">暂无采购单 · 前往<Link to="/supply-mall" className="font-semibold underline" style={{ color: ACCENT }}>采购商城</Link>一键向合格供应商下单</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>

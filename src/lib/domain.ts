@@ -167,6 +167,33 @@ export const WORKBENCH_THEME: Record<WorkbenchKind, WorkbenchTheme> = {
 export const workbenchThemeOf = (role: string | null | undefined): WorkbenchTheme =>
   WORKBENCH_THEME[workbenchOf(role)];
 
+/* ============ X-MARKET-UE-01 状态彩色徽标 ============ */
+export interface OrderStatusMeta {
+  label: string;
+  color: string;
+  bg: string;
+}
+
+/** 状态统一口径：绿=完成 / 灰棕=待处理 / 蓝=履约中 / 紫=待治理审批 / 红=驳回 */
+export const ORDER_STATUS_META: Record<string, OrderStatusMeta> = {
+  pending: { label: '待履约', color: '#8a6d3b', bg: '#f3ede0' },
+  paid: { label: '已支付', color: '#2563EB', bg: '#e3edfb' },
+  fulfilling: { label: '履约中', color: '#2563EB', bg: '#e3edfb' },
+  done: { label: '已完成', color: '#16A34A', bg: '#e6f6ea' },
+  pending_approval: { label: '待治理审批', color: '#6D28D9', bg: '#f0e9fc' },
+  rejected: { label: '已驳回', color: '#DC2626', bg: '#fdeaea' },
+};
+
+export function orderStatusMeta(status: string): OrderStatusMeta {
+  return ORDER_STATUS_META[status] ?? { label: status, color: '#8a8577', bg: '#f3eee3' };
+}
+
+/** 办·执行组强调色（X-MARKET-UE-01 三端一致：办蓝） */
+export const EXEC_ACCENT = '#1D4ED8';
+
+/** 金额展示（分 → 元） */
+export const money = (cents: number): string => `¥${(cents / 100).toLocaleString('zh-CN', { maximumFractionDigits: 2 })}`;
+
 /** X-MARKET-11 三权标识（治在云 · 管在端 · 办在端）：DU=经营号唯一主体，D*U=主 DU 号上的分经营号 */
 export type PowerKind = 'govern' | 'manage' | 'operate';
 

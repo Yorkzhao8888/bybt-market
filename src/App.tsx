@@ -2,7 +2,8 @@
 // 客户→/market（蓝）· 供应商→/supplier（绿）· 经营者→/operator（橙）· 治理者→/govern（紫）；
 // 导航按角色收敛，越权直访由 RoleGuard 403 兜底；全局背景浅米白+炭黑不变。
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { Store, ShoppingBag, ReceiptText, Boxes, ShieldCheck, LogOut, ShieldBan, LayoutDashboard, Sprout, Crown, ClipboardCheck } from 'lucide-react';
+import { Store, ShoppingBag, ReceiptText, Boxes, ShieldCheck, LogOut, ShieldBan, LayoutDashboard, Sprout, Crown, ClipboardCheck, Bell, Monitor, Smartphone } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { AuthProvider, useAuth } from './Auth';
 import type { SessionUser } from '../shared/types';
@@ -18,6 +19,9 @@ import Govern from './pages/Govern';
 import SupplyMall from './pages/SupplyMall';
 import SupplyDesk from './pages/SupplyDesk';
 import OperatorDesk from './pages/OperatorDesk';
+import Board from './pages/Board';
+import OperatorMobile from './pages/OperatorMobile';
+import OrderStatusBadge from './components/OrderStatusBadge';
 import { workbenchOf, workbenchThemeOf, WORKBENCH_HOME, WORKBENCH_THEME } from './lib/domain';
 import type { WorkbenchKind } from './lib/domain';
 import { api } from './api/client';
@@ -40,15 +44,46 @@ function Header() {
     ],
     operator: [
       { to: '/operator', label: '经营台', icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
+      { to: '/operator/mobile', label: '手机作业端', icon: <Smartphone className="h-3.5 w-3.5" /> },
       { to: '/supply-mall', label: '采购商城', icon: <Boxes className="h-3.5 w-3.5" /> },
       { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
     ],
     govern: [
       { to: '/govern', label: '治理台', icon: <Crown className="h-3.5 w-3.5" /> },
+      { to: '/board', label: '现场看板', icon: <Monitor className="h-3.5 w-3.5" /> },
       { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
     ],
   };
   const nav = navByWb[wb];
+
+  /* X-MARKET-UE-01 顶栏通知铃（DU 待办数：待报价+待审批采购+待履约）与徽标副信息 */
+  const [todoCount, setTodoCount] = useState(0);
+  const [boothCode, setBoothCode] = useState('');
+  useEffect(() => {
+    if (wb !== 'operator' || !user) {
+      setTodoCount(0);
+      setBoothCode('');
+      return;
+    }
+    let live = true;
+    void api
+      .marketBooths({ kind: 'du' })
+      .then((bs) => {
+        if (live) setBoothCode(bs.find((b) => b.operatorContainerId === user.containerId)?.code ?? '');
+      })
+      .catch(() => undefined);
+    void Promise.all([api.orders(), api.inquiries()])
+      .then(([os, iqs]) => {
+        if (!live) return;
+        const pendingFulfill = os.filter((o) => o.status === 'pending' || o.status === 'pending_approval').length;
+        const pendingInq = iqs.filter((q) => q.boothId !== null && q.status === 'inquiry').length;
+        setTodoCount(pendingFulfill + pendingInq);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [wb, user]);
 
   return (
     <header className="sticky top-0 z-20 border-b border-[#e4ded2] bg-[#f5f2eb]/95 backdrop-blur">
@@ -69,9 +104,24 @@ function Header() {
         <div className="ml-auto flex items-center gap-2">
           {user ? (
             <>
-              <span className="hidden rounded-md border bg-white px-2.5 py-1 text-xs text-[#4b463a] sm:inline">
-                {theme.label.replace('工作台', '')} · {user.containerName ?? user.containerId}
-              </span>
+              {wb === 'operator' ? (
+                <span className="hidden flex-col items-start rounded-md border bg-white px-2.5 py-1 leading-tight sm:flex">
+                  <span className="text-xs font-bold" style={{ color: theme.accent }}>经营者 · {user.containerName ?? user.containerId}</span>
+                  <span className="text-[10px] text-[#8a8577]">{user.hatId ?? user.containerId}{boothCode ? ` · ${boothCode}` : ''}</span>
+                </span>
+              ) : (
+                <span className="hidden rounded-md border bg-white px-2.5 py-1 text-xs text-[#4b463a] sm:inline">
+                  {theme.label.replace('工作台', '')} · {user.containerName ?? user.containerId}
+                </span>
+              )}
+              {wb === 'operator' && (
+                <Link to="/operator" title="待办：待报价 / 待审批采购 / 待履约" className="relative rounded-md border bg-white px-2 py-1.5 hover:bg-[#efeae0]">
+                  <Bell className="h-3.5 w-3.5 text-[#4b463a]" />
+                  {todoCount > 0 && (
+                    <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#dc2626] px-1 text-[10px] font-bold text-white">{todoCount}</span>
+                  )}
+                </Link>
+              )}
               <button onClick={() => void api.logout().then(logout)} className="flex items-center gap-1 rounded-md border bg-white px-2.5 py-1 text-xs hover:bg-[#efeae0]">
                 <LogOut className="h-3.5 w-3.5" /> 退出
               </button>
@@ -86,11 +136,12 @@ function Header() {
 }
 
 /** X-MARKET-09 路由守卫：按工作台类型拦截，未授权 403 兜底。 */
-function RoleGuard({ wb, children }: { wb: WorkbenchKind; children: ReactNode }) {
+function RoleGuard({ wb, children }: { wb: WorkbenchKind | WorkbenchKind[]; children: ReactNode }) {
   const { user, isAuthed, loading } = useAuth();
   if (loading) return <p className="p-10 text-center text-sm text-[#8a8577]">身份校验中…</p>;
   if (!isAuthed || !user) return <Navigate to="/login" replace />;
-  if (workbenchOf(user.hatRole) !== wb) return <Forbidden need={workbenchThemeOf(user?.hatRole)} want={wb} />;
+  const allowed: WorkbenchKind[] = Array.isArray(wb) ? wb : [wb];
+  if (!allowed.includes(workbenchOf(user.hatRole))) return <Forbidden need={workbenchThemeOf(user.hatRole)} want={allowed[0]} />;
   return <>{children}</>;
 }
 
@@ -123,23 +174,32 @@ function Shell({ children }: { children: ReactNode }) {
 
 function AllRoutes() {
   return (
-    <Shell>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/mall" element={<Mall />} />
-        <Route path="/mall/booth/:id" element={<MallBooth />} />
-        <Route path="/market" element={<Market />} />
-        <Route path="/market/booth/:id" element={<MarketBooth />} />
-        <Route path="/orders" element={<Orders />} />
-        <Route path="/model" element={<Model />} />
-        <Route path="/supply-mall" element={<SupplyMall />} />
-        <Route path="/supplier" element={<RoleGuard wb="supplier"><SupplyDesk /></RoleGuard>} />
-        <Route path="/operator" element={<RoleGuard wb="operator"><OperatorDesk /></RoleGuard>} />
-        <Route path="/govern" element={<RoleGuard wb="govern"><Govern /></RoleGuard>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Shell>
+    <Routes>
+      {/* X-MARKET-UE-01 现场看板：全屏深色独立壳，不经 Shell */}
+      <Route path="/board" element={<RoleGuard wb={['operator', 'govern']}><Board /></RoleGuard>} />
+      <Route
+        path="*"
+        element={
+          <Shell>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/mall" element={<Mall />} />
+              <Route path="/mall/booth/:id" element={<MallBooth />} />
+              <Route path="/market" element={<Market />} />
+              <Route path="/market/booth/:id" element={<MarketBooth />} />
+              <Route path="/orders" element={<Orders />} />
+              <Route path="/model" element={<Model />} />
+              <Route path="/supply-mall" element={<SupplyMall />} />
+              <Route path="/supplier" element={<RoleGuard wb="supplier"><SupplyDesk /></RoleGuard>} />
+              <Route path="/operator" element={<RoleGuard wb="operator"><OperatorDesk /></RoleGuard>} />
+              <Route path="/operator/mobile" element={<RoleGuard wb="operator"><OperatorMobile /></RoleGuard>} />
+              <Route path="/govern" element={<RoleGuard wb="govern"><Govern /></RoleGuard>} />
+            </Routes>
+          </Shell>
+        }
+      />
+    </Routes>
   );
 }
 
