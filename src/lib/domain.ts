@@ -128,7 +128,7 @@ export const canOpenMarket = (
 /* ============ X-MARKET-09 四类角色工作台 ============ */
 export type WorkbenchKind = 'client' | 'supplier' | 'operator' | 'govern';
 
-const WORKBENCH_SUPPLY_HATS = ['EU', 'HU', 'YU', 'TU'];
+const WORKBENCH_SUPPLY_HATS = ['EU', 'HU', 'YU', 'TU', 'EX', 'EXX'];
 const WORKBENCH_OPERATOR_HATS = ['DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX'];
 
 /** 角色类别映射：客户/供应商/经营者/治理者 */
@@ -143,7 +143,8 @@ export const workbenchOf = (role: string | null | undefined): WorkbenchKind => {
 
 export const WORKBENCH_HOME: Record<WorkbenchKind, string> = {
   client: '/market',
-  supplier: '/supplier',
+  // X-SUPPLY-01：供给面登录落点迁至供给四源集市 /supply；/supplier 保留渲染供给工作台（旧链兼容不 404）
+  supplier: '/supply',
   operator: '/operator',
   govern: '/govern',
 };

@@ -18,6 +18,7 @@ import Model from './pages/Model';
 import Govern from './pages/Govern';
 import SupplyMall from './pages/SupplyMall';
 import SupplyDesk from './pages/SupplyDesk';
+import SupplyHub from './pages/SupplyHub';
 import OperatorDesk from './pages/OperatorDesk';
 import Board from './pages/Board';
 import OperatorMobile from './pages/OperatorMobile';
@@ -40,6 +41,7 @@ function Header() {
       { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
     ],
     supplier: [
+      { to: '/supply', label: '供给集市', icon: <Store className="h-3.5 w-3.5" /> },
       { to: '/supplier', label: '供给台', icon: <Sprout className="h-3.5 w-3.5" /> },
       { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
     ],
@@ -47,11 +49,13 @@ function Header() {
       { to: '/operator', label: '经营台', icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
       { to: '/operator/mobile', label: '手机作业端', icon: <Smartphone className="h-3.5 w-3.5" /> },
       { to: '/supply-mall', label: '采购商城', icon: <Boxes className="h-3.5 w-3.5" /> },
+      { to: '/supply', label: '供给集市', icon: <Store className="h-3.5 w-3.5" /> },
       { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
     ],
     govern: [
       { to: '/govern', label: '治理台', icon: <Crown className="h-3.5 w-3.5" /> },
       { to: '/board', label: '现场看板', icon: <Monitor className="h-3.5 w-3.5" /> },
+      { to: '/supply', label: '供给集市', icon: <Store className="h-3.5 w-3.5" /> },
       { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
     ],
   };
@@ -214,6 +218,8 @@ function AllRoutes() {
               <Route path="/model" element={<Model />} />
               <Route path="/supply-mall" element={<SupplyMall />} />
               <Route path="/supplier" element={<RoleGuard wb="supplier"><SupplyDesk /></RoleGuard>} />
+              {/* X-SUPPLY-01 供给四源集市：EU/EX/EXX/V*M/DU 可进；客户直访 403 兜底 */}
+              <Route path="/supply" element={<RoleGuard wb={['supplier', 'operator', 'govern']}><SupplyHub /></RoleGuard>} />
               <Route path="/operator" element={<RoleGuard wb="operator"><OperatorDesk /></RoleGuard>} />
               <Route path="/operator/mobile" element={<RoleGuard wb="operator"><OperatorMobile /></RoleGuard>} />
               <Route path="/govern" element={<RoleGuard wb="govern"><Govern /></RoleGuard>} />

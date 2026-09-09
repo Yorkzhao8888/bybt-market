@@ -26,6 +26,8 @@ export const ROLE_TERMS: Record<string, TermPair> = {
   EU: { big: '供货商', sys: '供给帽 EU' },
   HU: { big: '供货商', sys: '供给帽 HU' },
   TU: { big: '供货商', sys: '供给帽 TU' },
+  EX: { big: '供货店长', sys: '供给执行帽 EX' },
+  EXX: { big: '供货店长', sys: '执行端帽 EXX' },
   DYX: { big: '履约店长', sys: '执行帽 DYX' },
   DHX: { big: '履约店长', sys: '执行帽 DHX' },
   DTX: { big: '履约店长', sys: '执行帽 DTX' },
@@ -51,6 +53,12 @@ export const CONCEPT_TERMS: Record<string, TermPair> = {
   myOrders: { big: '我的采购单', sys: '交易单' },
   buyNow: { big: '立即购买', sys: 'C 端直购' },
   search: { big: '搜索', sys: '全局检索' },
+  /* X-Supply 供给四源集市（X-SUPPLY-01） */
+  supplyHub: { big: '供给集市', sys: 'X-Supply 供给面' },
+  supplyRegister: { big: '入驻登记', sys: 'Booth-E 入驻' },
+  supplyMaintain: { big: '店铺维护', sys: '铺面维护' },
+  supplyEntry: { big: '入驻记录', sys: '登记台账' },
+  supplySource: { big: '货源', sys: '供给源 Booth-E' },
 };
 
 /** 订单状态称呼映射（X-MARKET-UE-02：大号=客户视角市面称呼，小号=系统状态口径） */

@@ -3,6 +3,7 @@
 //   容器(主体) → 帽(身份) → 域角色(标签) → Booth 实体(作业层) / 交易对象(铺面层)
 
 import type { Container, Unit, Booth, Order, Listing, Inquiry, SupplyContract, SupplierApplication, SupplierProduct, MarketPowerMapRow, MarketPowerAuditRow, GovernThresholds, PowerHat } from '../shared/types';
+import type { SupplyHubEntry } from '../shared/types';
 
 /* ============ 容器（主体） ============ */
 export const containers: Container[] = [
@@ -44,6 +45,9 @@ export const units: Unit[] = [
   { id: 'u-dex', code: 'DEX-HH', name: '合和·产品经营执行', role: 'DEX', side: 'B', containerId: 'c-du', domainTags: ['DE_MARKET', 'E_MARKET'], tier: 'L2', credit: 92 },
   { id: 'u-dcx', code: 'DCX-HH', name: '合和·门店经营执行', role: 'DCX', side: 'C', containerId: 'c-du', domainTags: ['DE_MARKET'], tier: 'L2', credit: 93, dispatch: true },
   { id: 'u-dhx2', code: 'DHX-FS', name: '丰时·人力经营执行', role: 'DHX', side: 'B', containerId: 'c-fs', domainTags: ['H_MARKET'], tier: 'L2', credit: 86 },
+  // —— X-Supply 供给线执行帽（X-SUPPLY-01：EX/EXX 办位，Booth-E 驻场执行/铺面维护）——
+  { id: 'u-ex1', code: 'EX-QC', name: '启辰·物资供给执行', role: 'EX', side: 'B', containerId: 'c-qc', domainTags: ['E_MARKET'], tier: 'L2', credit: 91 },
+  { id: 'u-exx1', code: 'EXX-QC', name: '启辰·Booth-E 执行端', role: 'EXX', side: 'B', containerId: 'c-qc', domainTags: ['E_MARKET'], tier: 'L2', credit: 90 },
   // —— B 端客户帽 XU（买家，按域隔离）——
   { id: 'u-xu1', code: 'XU-GOU', name: '华东区采购办·客户', role: 'XU', side: 'B', containerId: 'c-gou', domainTags: ['E_MARKET', 'T_MARKET', 'H_MARKET'], tier: 'L2', credit: 89 },
   { id: 'u-xu2', code: 'XU-CY', name: '驰远·企业采购', role: 'XU', side: 'B', containerId: 'c-cy', domainTags: ['T_MARKET'], tier: 'L2', credit: 90 },
@@ -170,6 +174,9 @@ export const marketPowerMap: MarketPowerMapRow[] = [
   { action_code: 'threshold_update', action_name: '采购单笔阈值配置', power_bit: 'govern', allow_hats: ['VXM', 'VEM', 'VDM'], forbid_hats: ['YU', 'EU', 'HU', 'TU', 'DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX', 'NONE'], tier: 'cloud', scope: 'platform', governance: '规则治理（X-MARKET-15）', escalate_rule: '', enabled: true },
   // X-MARKET-16 执行帽穿透追责：履约作业由执行帽落地（办位纯动作）；DU 须以执行帽身份执行（服务端按订单域映射，客户端不可伪造）
   { action_code: 'exec_fulfill', action_name: '作业履约执行（交付回执）', power_bit: 'operate', allow_hats: ['DYX', 'DHX', 'DTX', 'DEX', 'DCX'], forbid_hats: ['DU', 'XU', 'CU', 'VXM', 'VEM', 'VHM', 'VYM', 'VTM', 'VDM', 'NONE'], tier: 'edge', scope: 'booth', governance: '执行帽作业（X-MARKET-16 穿透追责）', escalate_rule: '审计 actor_user=真实登录人、actor_hat=域映射执行帽', enabled: true },
+  // X-SUPPLY-01 供给四源集市：登记/入驻与 Booth-E 铺子维护 = 办位（EX/EXX）；管位（EU/EMX 资质提交）与治位（VXM 准入治理）归 X-SUPPLY-02
+  { action_code: 'supply_register', action_name: '供给集市入驻登记', power_bit: 'operate', allow_hats: ['EX', 'EXX'], forbid_hats: ['EU', 'HU', 'YU', 'TU', 'DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX', 'VXM', 'VEM', 'VHM', 'VYM', 'VTM', 'VDM', 'XU', 'CU', 'NONE'], tier: 'edge', scope: 'booth', governance: 'X-Supply 准入（治理归 X-SUPPLY-02）', escalate_rule: '办位动作管位不代办（EU 登记即 403）', enabled: true },
+  { action_code: 'supply_booth_maintain', action_name: '供给铺面维护（Booth-E）', power_bit: 'operate', allow_hats: ['EX', 'EXX'], forbid_hats: ['EU', 'HU', 'YU', 'TU', 'DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX', 'VXM', 'VEM', 'VHM', 'VYM', 'VTM', 'VDM', 'XU', 'CU', 'NONE'], tier: 'edge', scope: 'booth', governance: '仅本铺（containerId 校验前置）', escalate_rule: '跨铺维护前置 403 不入审计', enabled: true },
 ];
 
 /** 三权审计（本单建结构+写入通路；查询界面归 X-MARKET-13） */
@@ -182,6 +189,17 @@ let powerAuditSeq = 0;
 export function nextPowerAuditId(): string {
   powerAuditSeq += 1;
   return `pa-${powerAuditSeq}`;
+}
+
+/* ============ X-SUPPLY-01 供给四源集市（/supply 路由域） ============ */
+
+/** 入驻登记记录（办位 EX/EXX 执行；重启随种子清空） */
+export const supplyHubEntries: SupplyHubEntry[] = [];
+
+let supplyEntrySeq = 0;
+export function nextSupplyEntryId(): string {
+  supplyEntrySeq += 1;
+  return `se-${supplyEntrySeq}`;
 }
 
 /** 把请求方帽规范化为映射口径：客户端帽（XU/CU）与无帽一律记 NONE（客户无帽，直访管理/治理动作=403） */

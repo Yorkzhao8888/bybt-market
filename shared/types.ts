@@ -122,8 +122,11 @@ export type OperatorHat = 'VEM' | 'VHM' | 'VYM' | 'VTM' | 'VDM' | 'VXM';
 /** DU 经营实体五执行帽（DX 系，一一对应 Booth-DY/DH/DT/DE/DC） */
 export type DuExecHat = 'DYX' | 'DHX' | 'DTX' | 'DEX' | 'DCX';
 
-/** 完整帽角色（基座 13U + DU 五执行帽 + 客户帽 XU + 运营管理帽 V*M） */
-export type HatRole = UnitRole13 | DuExecHat | ClientHat | OperatorHat;
+/** 供给线执行帽（X-Supply，X-SUPPLY-01 起步：E 域先行）——EX=物资供给执行（Booth-E 驻场）、EXX=Booth-E 执行端（铺内作业） */
+export type SupplyExecHat = 'EX' | 'EXX';
+
+/** 完整帽角色（基座 13U + DU 五执行帽 + 供给线执行帽 + 客户帽 XU + 运营管理帽 V*M） */
+export type HatRole = UnitRole13 | DuExecHat | SupplyExecHat | ClientHat | OperatorHat;
 
 /** 市场四方角色：客户/供应商/平台加盟商/平台运营管理方 */
 export type PartyRole = 'client' | 'supplier' | 'franchiser' | 'operator';
@@ -159,6 +162,9 @@ export const UNIT_ROLE_LABEL: Record<HatRole, string> = {
   DTX: '技术经营执行', // ↔ Booth-DT（Market）
   DEX: '产品经营执行', // ↔ Booth-DE（Market）
   DCX: '门店经营执行', // ↔ Booth-DC（Mall）
+  // 供给线执行帽（X-Supply 供给四源集市，X-SUPPLY-01：E 域先行，归供给线）
+  EX: '物资供给执行',  // Booth-E 驻场执行（启辰物资）
+  EXX: 'Booth-E 执行端', // Booth-E 铺内作业执行
   // 市场四方角色补充
   XU: '客户', // B 端采购客户帽（买家，走 Market）
   VEM: '通货市场运营长', VHM: '人资市场运营长', VYM: '智场市场运营长',
@@ -170,6 +176,8 @@ export const UNIT_ROLE_LABEL: Record<HatRole, string> = {
 export const HAT_LINE_OF: Record<HatRole, HatLine> = {
   // 供给线（源头产能）
   EU: 'supply', HU: 'supply', YU: 'supply', TU: 'supply', DU: 'supply',
+  // 供给线执行帽（X-Supply，X-SUPPLY-01：E 域先行）
+  EX: 'supply', EXX: 'supply',
   // 经营线（DU 下辖五执行帽）
   DYX: 'exec', DHX: 'exec', DTX: 'exec', DEX: 'exec', DCX: 'exec',
   // 需求线
@@ -436,6 +444,49 @@ export interface SupplierApplication {
   boothCode?: string;        // 展示冗余（供给实体铺码）
 }
 
+/* ============ X-Supply 供给四源集市（X-SUPPLY-01：EU → Booth-E → X-Supply → DU → X-Market） ============ */
+
+/** 供给集市铺卡（读权限：EU/HU/YU/TU/EX/EXX/DU/执行帽/V*M；XU/CU 一律 403） */
+export interface SupplyHubBooth {
+  id: string;
+  code: string;              // Booth-E-01
+  domain: DomainCode;
+  name: string;              // 铺名
+  ownerContainerId: string;  // 供给方容器
+  ownerName: string;         // 供货商（大号，系统称呼=EU 等供给帽单位名）
+  ownerHatRole: HatRole;     // 铺主帽
+  execHat: HatRole | '';     // 执行端帽（E 域=EXX；他域扩展随 X-SUPPLY-02+）
+  frontDesc: string;         // 前店售卖面描述
+  backDesc: string;          // 后厂履约面描述
+  rating: number;
+  status: 'open' | 'closed';
+}
+
+/** X-SUPPLY-01 供给集市入驻登记记录（EX/EXX 办位登记，归属供给容器；仅 EU/供给线/治理/DU 可见，客户 403） */
+export interface SupplyHubEntry {
+  id: string;
+  hatRole: HatRole;          // 登记执行帽（EX/EXX 办位）
+  containerId: string;       // 归属供给容器（供货商）
+  containerName: string;     // 供货商名（大号：供货商）
+  boothId: string;           // 目标供给实体铺（Booth-E）
+  boothCode: string;         // 铺码展示
+  domain: DomainCode;        // 域
+  qualification: string;     // 资质摘要（消防验收/产权核验/SLA/售后）
+  note: string;              // 登记说明
+  status: 'registered';
+  ts: string;
+}
+
+/** GET /api/supply/hub 响应：供给列表只读 + 办位能力位 */
+export interface SupplyHubData {
+  viewer: { hatRole: HatRole; containerId: string; containerName: string };
+  canRegister: boolean;      // EX/EXX 办位
+  canMaintain: boolean;      // EX/EXX 办位（仅本铺）
+  maintainBoothCode: string; // 本铺 Booth 码（EX/EXX：Booth-E-01）
+  booths: SupplyHubBooth[];
+  entries: SupplyHubEntry[];
+}
+
 /** 供应商货品（合格供应商上架；仅 DU 采购商城/供给方本人/V*M 可见，客户不可见） */
 export interface SupplierProduct {
   id: string;
@@ -537,6 +588,8 @@ export const HAT_POWER_BITS: Record<PowerHat, PowerBit[]> = {
   DU: ['manage', 'operate'],
   YU: ['manage', 'operate'], EU: ['manage', 'operate'], HU: ['manage', 'operate'], TU: ['manage', 'operate'],
   DYX: ['operate'], DHX: ['operate'], DTX: ['operate'], DEX: ['operate'], DCX: ['operate'],
+  // 供给线执行帽（X-Supply 办位，X-SUPPLY-01）
+  EX: ['operate'], EXX: ['operate'],
   XU: [], CU: [],
   // 基座其余单元帽（OU/GU/AU/FU/IU/VU/SU）未纳入三权映射，不授任何权位
   OU: [], GU: [], AU: [], FU: [], IU: [], VU: [], SU: [],

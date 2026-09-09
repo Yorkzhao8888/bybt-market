@@ -3,7 +3,7 @@
 import type {
   BoothRow, Container, DemoAccount, DomainCode, DomainMeta, FulfillmentReceipt, GovernanceCase, GovernThresholds, HatLine, HatRow, Inquiry, JobSystem,
   Listing, MarketPowerAuditRow, Order, OrderRow, PowerDashboard, ProfessionalMarket, SessionUser, SupplyContract, SupplierApplication,
-  SupplierProduct, SupplyMallItem, Unit, HatRole,
+  SupplierProduct, SupplyMallItem, Unit, HatRole, SupplyHubData, SupplyHubEntry, SupplyHubBooth,
 } from '../../shared/types';
 
 export type DecoratedBooth = BoothRow;
@@ -194,6 +194,12 @@ export const api = {
   toggleProduct: (id: string) => req<SupplierProduct>(`/api/supply/products/${id}/toggle`, { method: 'POST' }),
   takeDownProduct: (id: string) => req<SupplierProduct>(`/api/supply/products/${id}/take-down`, { method: 'POST' }),
   supplyMall: () => req<SupplyMallItem[]>('/api/supply/mall'),
+  /* ============ X-Supply 供给四源集市（X-SUPPLY-01；XU/CU 一律 403） ============ */
+  supplyHub: () => req<SupplyHubData>('/api/supply/hub'),
+  supplyRegister: (payload: { boothId: string; qualification: string; note?: string }) =>
+    req<SupplyHubEntry>('/api/supply/register', { method: 'POST', body: JSON.stringify(payload) }),
+  supplyBoothMaintain: (boothId: string, payload: { frontDesc?: string; backDesc?: string }) =>
+    req<SupplyHubBooth>(`/api/supply/booths/${boothId}/maintain`, { method: 'POST', body: JSON.stringify(payload) }),
   // X-MARKET-13 三权审计：治位帽全量 / 其余本人留痕；action / result 可选筛选（无参默认行为不变）
   powerAudit: (query?: { action?: string; result?: 'allowed' | 'denied' }) => {
     const p = new URLSearchParams();
