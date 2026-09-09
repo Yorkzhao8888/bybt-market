@@ -101,6 +101,17 @@
 - **红线**：治理穿透字段（actor_hat/governor/actor_user/booth_code）保留系统标识原文，禁止大号化。
 - **节奏**：UE-02（客户）起立即套用；UE-01（DU 三端）存量文案不返工，统一在后续收口单处理。
 
+## 全局规范：角色层级链对照 3.0 + D*X 双上级（双称呼 v1.2 定版）
+
+- **定版背景**：双称呼体验方案 v1.2 已定版（UE-02 客户三端试行通过，后续推广至 UE-03 供应商端 / UE-04 治理者端）；本节为 UE-03/UE-04 发单依据，与术语表（`src/lib/terminology.ts`）配套生效。
+- **治理线**：V*M 高管 → *MX 经理（上下级，例：VEM 供给高管 → EMX 供给管理经理）。
+- **经营线**：DU 店主 → D*U 子 → D*X 下属 → D*XX 下下属（逐级下属链）。
+- **E 线实例**：VEM → EMX → DEX → DEXX（E = 供给/通货线，EU = 供应商）。
+- **D*X 双上级（关键口径）**：D*X 有两个老大——D*U（经营线）与 *MX（管理线），两条指挥线在 D*X 汇合；E 域实例：DEX 亦受 D*U 管辖。
+- **链路语义**：DU→D*U→D*X→D*XX——D*U 是 DU 的子（范畴帽，非独立角色）、D*X 是下属（执行帽=店员）、D*XX 是下下属（执行者）。
+- **试行校准**：「店员 DEX」定位=经营线下属层，不是独立他人。
+- **UI 红线**：展示按「大号市面称呼 + 小号系统称呼」双称呼规范执行（DualTerm/terminology.ts 唯一口径，禁页面写死）；治理穿透字段（actor_hat/actor_user/booth_code）保留系统标识原文不大号化。
+
 ## 客户三端体验设计（X-MARKET-UE-02，双称呼首个试行单）
 
 - **采购方 XU（/market PC 采购工作台）**：全局搜索框（搜在架货品标题/标签/店铺名，`containerName` 反查容器）+「只看准入」开关（`admittedOf(booth)=franchise==='direct'`，加盟铺过滤；基线 5 direct+1 franchise 有真实区分度）+合格供给卡片（准入徽章「准入合格」+资质摘要=域 TRUST_EXPOSURE 核验项+店主/店员执行帽双称呼身份+在架货品价格状态，`api.boothDetail` 批量拉取）+采购进度流 5 段 stepper（询价→报价→合同→下单→交付，由 `inquiries[].status` inquiry/quoted/contracted + `orders[].status` pending*/fulfilling/done 推导当前步）+我的采购单表格（OrderStatusBadge dual 大号状态名）。侧栏「我的留痕台账」用 DualTerm concept='powerAudit'。
