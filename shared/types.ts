@@ -266,13 +266,16 @@ export interface Order {
   buyerContainerId: string;
   sellerContainerId: string;
   tradeCode: string;
-  status: 'pending' | 'paid' | 'fulfilling' | 'done';
+  /** X-MARKET-15：pending_approval=超阈值待治理审批（V*M 批准后转 pending 生效）/rejected=治理驳回终态 */
+  status: 'pending' | 'paid' | 'fulfilling' | 'done' | 'pending_approval' | 'rejected';
   amountCents: number;
   settledAt?: string;
   paid?: boolean;
   note?: string;
   /** X-MARKET-08：DU 采购单关联的合格供应商容器 id（仅 DU 采购单携带；客户订单无此字段） */
   supplierId?: string;
+  /** X-MARKET-15：治理审批意见（批准/驳回理由；pending_approval 单审批后回填） */
+  approvalNote?: string;
 }
 
 /** 订单装饰行（/api/orders 返回：附带 booth/listing/买卖方名称） */
@@ -410,6 +413,10 @@ export interface SupplierApplication {
   status: SupplierAppStatus;
   rejectReason?: string;     // 驳回原因（rejected 时必有）
   createdAt: string;
+  /** X-MARKET-15 驳回重提计数（每次驳回后重提 +1） */
+  resubmitCount?: number;
+  /** X-MARKET-15 重提超 3 次升级标记（VYM 复核后续接入，界面提示「升级待复核」） */
+  escalated?: boolean;
   supplierName?: string;     // 展示冗余（服务端填充；仅 DU/供给方/V*M 可见，客户不可见）
   boothCode?: string;        // 展示冗余（供给实体铺码）
 }
@@ -500,6 +507,13 @@ export interface PowerDashboard {
   coverage: { audited: number; total: number; percent: number };
   todo: { pendingReviews: number; listedProducts: number; governedCount: number };
   generatedAt: string;
+}
+
+/** X-MARKET-15 治理阈值配置（规则模块配置存储；采购单笔金额 > procurementAmountCents 时升级 V*M 审批） */
+export interface GovernThresholds {
+  procurementAmountCents: number;
+  updatedAt: string;
+  updatedBy: string;
 }
 
 /** 帽-权位矩阵（HAT_MATRIX）：交叉校验 market_power_map.allow_hats 的一致性 */

@@ -2,7 +2,7 @@
 // X-MARKET-05：两套系统 + 三方链路 + Booth 权属定版
 //   容器(主体) → 帽(身份) → 域角色(标签) → Booth 实体(作业层) / 交易对象(铺面层)
 
-import type { Container, Unit, Booth, Order, Listing, Inquiry, SupplyContract, SupplierApplication, SupplierProduct, MarketPowerMapRow, MarketPowerAuditRow, PowerHat } from '../shared/types';
+import type { Container, Unit, Booth, Order, Listing, Inquiry, SupplyContract, SupplierApplication, SupplierProduct, MarketPowerMapRow, MarketPowerAuditRow, GovernThresholds, PowerHat } from '../shared/types';
 
 /* ============ 容器（主体） ============ */
 export const containers: Container[] = [
@@ -158,10 +158,16 @@ export const marketPowerMap: MarketPowerMapRow[] = [
   { action_code: 'bid_quote', action_name: 'B2B 报价', power_bit: 'manage', allow_hats: ['DU'], forbid_hats: ['NONE', 'VXM', 'VEM', 'VHM', 'VYM', 'VTM', 'VDM'], tier: 'edge', scope: 'booth', governance: '价格治理', escalate_rule: '', enabled: true },
   { action_code: 'contract_sign', action_name: 'B2B 签订合同', power_bit: 'manage', allow_hats: ['DU', 'XU', 'CU'], forbid_hats: ['NONE', 'VXM', 'VEM', 'VHM', 'VYM', 'VTM', 'VDM'], tier: 'edge', scope: 'booth', governance: '价格治理', escalate_rule: '', enabled: true },
   { action_code: 'booth_new', action_name: '上新铺', power_bit: 'manage', allow_hats: ['DU', 'YU', 'EU', 'HU', 'TU'], forbid_hats: ['NONE', 'VXM', 'VEM', 'VHM', 'VYM', 'VTM', 'VDM'], tier: 'edge', scope: 'booth', governance: '—', escalate_rule: '', enabled: true },
+  // X-MARKET-15 阈值自动升级：采购单笔金额 > 阈值 → PENDING_APPROVAL，本动作由治位审批后才生效
+  { action_code: 'order_approval', action_name: '大额采购治理审批（通过/驳回）', power_bit: 'govern', allow_hats: ['VXM', 'VEM', 'VDM'], forbid_hats: ['YU', 'EU', 'HU', 'TU', 'DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX', 'NONE'], tier: 'cloud', scope: 'cross_tenant', governance: '大额采购升级审批（X-MARKET-15）', escalate_rule: '仅可审批 pending_approval 采购单；DU 不可自批', enabled: true },
+  { action_code: 'threshold_update', action_name: '采购单笔阈值配置', power_bit: 'govern', allow_hats: ['VXM', 'VEM', 'VDM'], forbid_hats: ['YU', 'EU', 'HU', 'TU', 'DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX', 'NONE'], tier: 'cloud', scope: 'platform', governance: '规则治理（X-MARKET-15）', escalate_rule: '', enabled: true },
 ];
 
 /** 三权审计（本单建结构+写入通路；查询界面归 X-MARKET-13） */
 export const marketPowerAudit: MarketPowerAuditRow[] = [];
+
+/** X-MARKET-15 治理阈值配置（规则模块配置存储，内存态重启还原默认 5000 元） */
+export const governThresholds: GovernThresholds = { procurementAmountCents: 500000, updatedAt: '', updatedBy: '' };
 
 let powerAuditSeq = 0;
 export function nextPowerAuditId(): string {

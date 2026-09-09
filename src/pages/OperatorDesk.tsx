@@ -164,7 +164,13 @@ export default function OperatorDesk() {
                         <td className="py-2 font-mono text-xs">{o.code}</td>
                         <td className="max-w-[220px] truncate text-xs">{o.note}</td>
                         <td className="text-right font-mono">{yuan(o.amountCents ?? 0)}</td>
-                        <td className="text-right text-xs">{o.status}</td>
+                        <td className="text-right text-xs">
+                        {o.status === 'pending_approval'
+                          ? <span className="rounded bg-[#f0e9fc] px-1.5 py-0.5 text-[11px] font-bold text-[#6d28d9]" title={o.approvalNote ?? '超阈值待 V*M 治理审批，批准后生效'}>待治理审批</span>
+                          : o.status === 'rejected'
+                            ? <span className="rounded bg-[#fdeaea] px-1.5 py-0.5 text-[11px] font-bold text-[#b4402e]" title={o.approvalNote ?? '治理驳回，不生效'}>已驳回</span>
+                            : o.status}
+                      </td>
                       </tr>
                     ))}
                     {orders.length === 0 && <tr><td colSpan={4} className="py-4 text-center text-xs text-[#8a8577]">暂无订单</td></tr>}
@@ -226,7 +232,13 @@ export default function OperatorDesk() {
                       <td className="text-xs">{containerName(o.supplierId ?? '')}</td>
                       <td className="max-w-[220px] truncate text-xs">{o.note}</td>
                       <td className="text-right font-mono">{yuan(o.amountCents ?? 0)}</td>
-                      <td className="text-right text-xs">{o.status}</td>
+                      <td className="text-right text-xs">
+                        {o.status === 'pending_approval'
+                          ? <span className="rounded bg-[#f0e9fc] px-1.5 py-0.5 text-[11px] font-bold text-[#6d28d9]" title={o.approvalNote ?? '超阈值待 V*M 治理审批，批准后生效'}>待治理审批</span>
+                          : o.status === 'rejected'
+                            ? <span className="rounded bg-[#fdeaea] px-1.5 py-0.5 text-[11px] font-bold text-[#b4402e]" title={o.approvalNote ?? '治理驳回，不生效'}>已驳回</span>
+                            : o.status}
+                      </td>
                     </tr>
                   ))}
                   {procurement.length === 0 && <tr><td colSpan={5} className="py-4 text-center text-xs text-[#8a8577]">暂无采购单，去采购商城下单</td></tr>}

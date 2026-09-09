@@ -37,7 +37,10 @@ export default function SupplyMall() {
     try {
       const q = qty[p.id] && qty[p.id] > 0 ? Math.floor(qty[p.id]) : 1;
       const o = await api.createOrder({ supplierProductId: p.id, qty: q, side: 'B' });
-      setMsg(`采购单已生成：${o.code} · ¥${(o.amountCents / 100).toLocaleString()}（供给关系单据，客户不可见）`);
+      // X-MARKET-15：单笔超阈值 → 升级治理审批（批准后才生效）；未超阈值照常生效
+      setMsg(o.status === 'pending_approval'
+        ? `采购单已生成并升级治理审批：${o.code} · ¥${(o.amountCents / 100).toLocaleString()}——单笔超阈值，待 V*M 批准后生效（供给关系单据，客户不可见）`
+        : `采购单已生成：${o.code} · ¥${(o.amountCents / 100).toLocaleString()}（供给关系单据，客户不可见）`);
     } catch (e) {
       setMsgErr(e instanceof Error ? e.message : '下单失败');
     }

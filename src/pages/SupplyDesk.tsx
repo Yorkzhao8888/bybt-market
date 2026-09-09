@@ -135,6 +135,8 @@ export default function SupplyDesk() {
                 {app?.status === 'pending' && <span className="flex items-center gap-1 rounded bg-[#f3eee3] px-2 py-0.5 text-xs font-medium text-[#8a6d3b]"><Clock3 className="h-3.5 w-3.5" /> 待云中心评估</span>}
                 {approved && <span className="flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium" style={{ background: GREEN_SOFT, color: GREEN_TEXT }}><BadgeCheck className="h-3.5 w-3.5" /> 合格</span>}
                 {app?.status === 'rejected' && <span className="flex items-center gap-1 rounded bg-[#fbeaea] px-2 py-0.5 text-xs font-medium text-[#b0413e]"><XCircle className="h-3.5 w-3.5" /> 已驳回</span>}
+                {(app?.resubmitCount ?? 0) > 0 && <span className="text-[11px] text-[#8a6d3b]">重提 {app?.resubmitCount} 次</span>}
+                {app?.escalated && <span className="rounded bg-[#fdf3e0] px-1.5 py-0.5 text-[11px] font-bold text-[#b45309]" title="驳回重提超 3 次，升级待 V*M 复核">升级待复核</span>}
               </p>
               <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[#8a8577]">
                 <PowerBadge kind="manage" />

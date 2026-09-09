@@ -1,7 +1,7 @@
 // API 客户端：统一封装与类型映射（X-MARKET-05 两套系统 + 三方链路）
 // 视图类型统一从 shared/types 导入（单一来源），client 只做别名与请求封装
 import type {
-  BoothRow, Container, DemoAccount, DomainCode, DomainMeta, GovernanceCase, HatLine, HatRow, Inquiry, JobSystem,
+  BoothRow, Container, DemoAccount, DomainCode, DomainMeta, GovernanceCase, GovernThresholds, HatLine, HatRow, Inquiry, JobSystem,
   Listing, MarketPowerAuditRow, Order, OrderRow, PowerDashboard, ProfessionalMarket, SessionUser, SupplyContract, SupplierApplication,
   SupplierProduct, SupplyMallItem, Unit, HatRole,
 } from '../../shared/types';
@@ -170,6 +170,13 @@ export const api = {
   orderFamilies: () => req<OrderFamilyMeta[]>('/api/orders/families'),
   createOrder: (payload: { boothId?: string; listingId?: string; amountCents?: number; side?: 'C' | 'B'; inquiryId?: string; supplierProductId?: string; qty?: number }) =>
     req<Order>('/api/orders', { method: 'POST', body: JSON.stringify(payload) }),
+  // X-MARKET-15 大额采购治理审批（治位帽 V*M；DU 不可自批 403）
+  approveOrder: (id: string, payload: { action: 'approve' | 'reject'; note?: string }) =>
+    req<OrderRow>(`/api/orders/${id}/approval`, { method: 'POST', body: JSON.stringify(payload) }),
+  // X-MARKET-15 治理阈值（规则模块配置存储；GET 登录可见，POST 治位可改）
+  governThresholds: () => req<GovernThresholds>('/api/govern/thresholds'),
+  updateThresholds: (payload: { procurementAmountCents: number }) =>
+    req<GovernThresholds>('/api/govern/thresholds', { method: 'POST', body: JSON.stringify(payload) }),
   /* ============ X-MARKET-08 供应商准入 + DU 采购商城 ============ */
   submitApplication: (payload: { categories: string; capacity?: string; qualification: string; priceIntent?: string }) =>
     req<SupplierApplication>('/api/supply/applications', { method: 'POST', body: JSON.stringify(payload) }),

@@ -12,7 +12,7 @@ import {
   getStore, nextSeq, containerById,
   inquiries, governanceCases, nextOrderCode, supplyContracts,
   supplierApplications, supplierProducts, nextSupplierId,
-  marketPowerMap, marketPowerAudit, nextPowerAuditId, normalizePowerHat,
+  marketPowerMap, marketPowerAudit, nextPowerAuditId, normalizePowerHat, governThresholds,
 } from '../store';
 import { createToken, getUserByToken, revokeToken, DEV_PASSWORD } from '../auth';
 import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth, SupplierApplication, SupplierProduct, SupplyMallItem, MarketPowerMapRow, MarketPowerAuditRow, PowerHat } from '../../shared/types';
@@ -606,6 +606,24 @@ api.get('/govern/cases', requireAuth, (req: AuthReq, res) => {
   ok(res, { cases: list, duties: OPERATOR_DUTIES, domain: d?.marketName ?? null });
 });
 
+// ================= X-MARKET-15 治理阈值配置（规则模块配置存储） ==================
+// GET：登录即可见（DU 下单需要知道阈值以获知升级口径）；POST：治位帽可改（threshold_update 权位口径）
+api.get('/govern/thresholds', requireAuth, (_req, res) => {
+  ok(res, governThresholds);
+});
+api.post('/govern/thresholds', requireAuth, (req: AuthReq, res) => {
+  if (!checkPower('threshold_update', req, res)) return;
+  const { procurementAmountCents } = (req.body ?? {}) as { procurementAmountCents?: number };
+  if (typeof procurementAmountCents !== 'number' || !Number.isFinite(procurementAmountCents) || procurementAmountCents <= 0) {
+    res.status(400).json({ success: false, error: '采购单笔阈值须为正数（单位：分）' });
+    return;
+  }
+  governThresholds.procurementAmountCents = Math.floor(procurementAmountCents);
+  governThresholds.updatedAt = new Date().toISOString();
+  governThresholds.updatedBy = req.user?.hatId ?? '';
+  ok(res, governThresholds);
+});
+
 // ================= 订单流（六族 + C 族，按身份过滤 P3） ==================
 api.get('/orders/families', (_req, res) => {
   ok(res, [
@@ -660,6 +678,10 @@ api.get('/orders', requireAuth, (req: AuthReq, res) => {
         o.buyerContainerId === user.containerId ||
         (o.boothId !== null && myBoothIds.has(o.boothId)),
     );
+    // X-MARKET-15：待治理审批的采购单未生效，不进纯供给帽视野（HAT_LINE_OF.DU 也是 'supply'，
+    // 故按帽位特判——DU 提交人/执行帽本人可见待审批单，V*M 全量可见）
+    const isPureSupplier = user.hatRole === 'EU' || user.hatRole === 'HU' || user.hatRole === 'YU' || user.hatRole === 'TU';
+    if (isPureSupplier) list = list.filter((o) => o.status !== 'pending_approval');
   } else {
     // 客户（CU/XU/OU 等下游）：只见自己下单
     list = list.filter((o) => o.buyerContainerId === user.containerId);
@@ -725,14 +747,23 @@ api.post('/orders', requireAuth, (req: AuthReq, res) => {
   const d = DOMAINS.find((x) => x.code === booth.domain)!;
   const tradeCode = effSide === 'C' ? 'C' : d.tradeCode;
   const family = effSide === 'C' ? 'C' : familyOfDomain(booth.domain);
+  // X-MARKET-15：采购单笔金额（单价×数量）> 阈值 → 升级 V*M 治理审批（PENDING_APPROVAL），批准后才生效
+  const isProcurement = Boolean(supplierId);
+  const overThreshold = isProcurement && finalAmount > governThresholds.procurementAmountCents;
   const id = nextSeq('order');
   const code = nextOrderCode(tradeCode, family);
   const order: Order = {
     id, code, family, side: effSide, boothId: targetBoothId ?? null, listingId: listingId ?? null,
     buyerContainerId: user.containerId, sellerContainerId: booth.operatorContainerId,
-    tradeCode, status: 'pending', amountCents: finalAmount,
+    tradeCode, status: overThreshold ? 'pending_approval' : 'pending', amountCents: finalAmount,
     note: supplyNote || (effSide === 'B' ? `企业采购（${d.marketTitle}市场，${booth.kind === 'du' ? booth.code : (d.duBoothCode ?? booth.code) + ' 经营承接'}）` : undefined),
   };
+  if (overThreshold) {
+    order.note = `${order.note ?? ''}（单笔 ¥${(finalAmount / 100).toLocaleString()} 超阈值 ¥${(governThresholds.procurementAmountCents / 100).toLocaleString()}，升级治理审批，批准后生效）`;
+    const prow = marketPowerMap.find((r) => r.action_code === 'procurement_order') ?? null;
+    powerAudit(prow, 'procurement_order', req, normalizePowerHat(user.hatRole), booth.code, 'escalated',
+      `单笔金额 ¥${(finalAmount / 100).toLocaleString()} 超阈值 ¥${(governThresholds.procurementAmountCents / 100).toLocaleString()}，升级 V*M 治理审批（order_approval），采购单 ${code} 待生效`);
+  }
   if (supplierId) order.supplierId = supplierId;
   store.orders.push(order);
   // B2B 询价转下单
@@ -740,6 +771,32 @@ api.post('/orders', requireAuth, (req: AuthReq, res) => {
   if (inquiryId) {
     const inq = inquiries.find((i) => i.id === inquiryId);
     if (inq) { inq.status = 'ordered'; inq.contractNo = inq.contractNo ?? code; }
+  }
+  ok(res, order);
+});
+
+// ================= X-MARKET-15 大额采购治理审批（治位帽，V*M；DU 不可自批） ==================
+api.post('/orders/:id/approval', requireAuth, (req: AuthReq, res) => {
+  if (!checkPower('order_approval', req, res)) return;
+  const order = getStore().orders.find((o) => o.id === req.params?.id);
+  if (!order) {
+    res.status(404).json({ success: false, error: '采购单不存在' });
+    return;
+  }
+  if (order.status !== 'pending_approval') {
+    res.status(400).json({ success: false, error: '仅待治理审批（pending_approval）的采购单可审批' });
+    return;
+  }
+  const { action, note } = (req.body ?? {}) as { action?: 'approve' | 'reject'; note?: string };
+  if (action === 'approve') {
+    order.status = 'pending'; // 批准 → 回到正常待履约流转，订单生效（供给方自此可见）
+    order.approvalNote = note?.trim() || '治理审批通过，采购单生效';
+  } else if (action === 'reject') {
+    order.status = 'rejected';
+    order.approvalNote = note?.trim() || '治理审批驳回，采购单不生效';
+  } else {
+    res.status(400).json({ success: false, error: 'action 须为 approve 或 reject' });
+    return;
   }
   ok(res, order);
 });
@@ -811,13 +868,15 @@ api.post('/supply/applications', requireAuth, (req: AuthReq, res) => {
     return;
   }
   if (existing) {
-    // rejected → 重新提交：重置为待评估并更新材料
+    // rejected → 重新提交：重置为待评估并更新材料（X-MARKET-15：重提计数 +1，超 3 次升级标记）
     existing.status = 'pending';
     existing.categories = categories.trim();
     existing.capacity = capacity?.trim() ?? '';
     existing.qualification = qualification.trim();
     existing.priceIntent = priceIntent?.trim() ?? '';
     existing.rejectReason = undefined;
+    existing.resubmitCount = (existing.resubmitCount ?? 0) + 1;
+    existing.escalated = existing.resubmitCount > 3; // 驳回重提超过 3 次 → 升级待复核（VYM 复核后续接入）
     existing.createdAt = new Date().toISOString().slice(0, 10);
     ok(res, existing);
     return;
