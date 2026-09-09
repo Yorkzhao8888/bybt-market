@@ -126,17 +126,29 @@ export const canOpenMarket = (
 };
 
 /* ============ X-MARKET-09 四类角色工作台 ============ */
-export type WorkbenchKind = 'client' | 'supplier' | 'operator' | 'govern';
+/** X-MARKET-ROLE-01 工作台五类：governSupply=四源治理（V*M 家族，supply 面）；govern=经营治理（VDM 专属，market 面） */
+export type WorkbenchKind = 'client' | 'supplier' | 'operator' | 'govern' | 'governSupply';
 
 const WORKBENCH_SUPPLY_HATS = ['EU', 'HU', 'YU', 'TU', 'EX', 'EXX'];
 const WORKBENCH_OPERATOR_HATS = ['DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX'];
+/** V*M 四源治理家族：落 supply 治理视图（VEM/VYM/VHM/VTM 各治本源，VXM 统筹全域） */
+const WORKBENCH_GOVERN_SUPPLY_HATS = ['VXM', 'VEM', 'VHM', 'VYM', 'VTM'];
 
-/** 角色类别映射：客户/供应商/经营者/治理者 */
+/* ============ X-MARKET-ROLE-01 治理分线（前端口径，与 server/domainConfig 对齐） ============ */
+/** 四源治理家族 → 本源域映射（VEM 治 E/VYM 治 Y/VHM 治 H/VTM 治 T）；VXM 统筹全域返回 null；VDM 归 market 经营治理 */
+const GOVERN_SUPPLY_DOMAIN_OF: Partial<Record<string, string>> = { VEM: 'E', VYM: 'Y', VHM: 'H', VTM: 'T' };
+export const supplyGovernDomainOf = (role: string | null | undefined): string | null =>
+  role ? GOVERN_SUPPLY_DOMAIN_OF[role] ?? null : null;
+export const isSupplyGovernHat = (role: string | null | undefined): boolean =>
+  !!role && WORKBENCH_GOVERN_SUPPLY_HATS.includes(role);
+
+/** 角色类别映射：客户/供应商/经营者/治理者（治理分线：V*M 家族→supply 面，VDM→market 面） */
 export const workbenchOf = (role: string | null | undefined): WorkbenchKind => {
   const r = role ?? '';
   if (r === 'XU' || r === 'CU') return 'client';
   if (WORKBENCH_SUPPLY_HATS.includes(r)) return 'supplier';
   if (WORKBENCH_OPERATOR_HATS.includes(r)) return 'operator';
+  if (WORKBENCH_GOVERN_SUPPLY_HATS.includes(r)) return 'governSupply';
   if (isAdminRole(r)) return 'govern';
   return 'client';
 };
@@ -147,6 +159,8 @@ export const WORKBENCH_HOME: Record<WorkbenchKind, string> = {
   supplier: '/supply',
   operator: '/operator',
   govern: '/govern',
+  // X-MARKET-ROLE-01：V*M 四源家族落 supply 治理视图；VDM 独占 /govern（market 经营治理）
+  governSupply: '/supply',
 };
 
 export interface WorkbenchTheme {
@@ -162,7 +176,9 @@ export const WORKBENCH_THEME: Record<WorkbenchKind, WorkbenchTheme> = {
   client: { kind: 'client', label: '客户工作台', accent: '#1D4ED8', accentSoft: '#e8eefb', accentText: '#1e40af', desc: '采购信任 · 浏览引导' },
   supplier: { kind: 'supplier', label: '供应商工作台', accent: '#15803D', accentSoft: '#e8f5ec', accentText: '#166534', desc: '源头供给 · 业务操作' },
   operator: { kind: 'operator', label: '经营者工作台', accent: '#B45309', accentSoft: '#fbf0e0', accentText: '#92400e', desc: '经营活力 · 驾驶舱' },
-  govern: { kind: 'govern', label: '治理者工作台', accent: '#6D28D9', accentSoft: '#f0e9fc', accentText: '#5b21b6', desc: '治理权威 · 管控' },
+  // X-MARKET-ROLE-01 治理分线：govern=VDM 经营治理（market 面）；governSupply=V*M 家族四源治理（supply 面）
+  govern: { kind: 'govern', label: '经营治理工作台', accent: '#6D28D9', accentSoft: '#f0e9fc', accentText: '#5b21b6', desc: '经营管理治理 · 市场秩序/全局总账' },
+  governSupply: { kind: 'governSupply', label: '四源治理工作台', accent: '#6D28D9', accentSoft: '#f0e9fc', accentText: '#5b21b6', desc: 'V*M 家族 · 四源准入/货品治理' },
 };
 
 export const workbenchThemeOf = (role: string | null | undefined): WorkbenchTheme =>

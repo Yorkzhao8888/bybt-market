@@ -20,6 +20,8 @@ export const ROLE_TERMS: Record<string, TermPair> = {
   VHM: { big: '平台监管', sys: '治理者 VHM' },
   VYM: { big: '平台监管', sys: '治理者 VYM' },
   VTM: { big: '平台监管', sys: '治理者 VTM' },
+  VDM: { big: '经营监管', sys: '治理者 VDM' },
+  OU: { big: '组织运营', sys: '组织帽 OU' },
   XU: { big: '采购方', sys: '企业客户 XU' },
   CU: { big: '买家', sys: '个人客户 CU' },
   YU: { big: '供货商', sys: '供给帽 YU' },
@@ -59,6 +61,11 @@ export const CONCEPT_TERMS: Record<string, TermPair> = {
   supplyMaintain: { big: '店铺维护', sys: '铺面维护' },
   supplyEntry: { big: '入驻记录', sys: '登记台账' },
   supplySource: { big: '货源', sys: '供给源 Booth-E' },
+  /* X-MARKET-ROLE-01 角色界面归位（A 批） */
+  duChild: { big: '店主', sys: 'D*U · 子DU' },
+  governMarket: { big: '经营治理', sys: '经营管理治理 VDM' },
+  governSupplyView: { big: '四源治理台', sys: 'V*M 家族分源治理' },
+  ofdCenter: { big: '履约中心', sys: 'X-OFD 只读接入 · 模拟契约期' },
 };
 
 /** 订单状态称呼映射（X-MARKET-UE-02：大号=客户视角市面称呼，小号=系统状态口径） */

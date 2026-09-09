@@ -6,10 +6,10 @@ import { Router } from 'express';
 import { requireAuth, roleOf, type AuthReq, type AuthRes } from '../auth';
 import { checkPower } from '../power';
 import { getStore, containerById, unitById, normalizePowerHat } from '../store';
-import { boothOwnerRole } from '../domainConfig';
+import { boothOwnerRole, isSupplyGovernHat, supplyGovernDomainOf } from '../domainConfig';
 import { xSupplyEntries, xSupplyNextEntryId } from './store';
 import type { XSupplyBooth, XSupplyEntry, XSupplyHubData } from '../../shared/x-supply';
-import type { PowerHat } from '../../shared/types';
+import type { PowerHat, HatRole } from '../../shared/types';
 
 const xSupply = Router();
 
@@ -23,9 +23,10 @@ const fail = (res: AuthRes, code: number, message: string): void => {
 /** 办位执行帽（E 域供给线：EX 驻场执行 / EXX 铺内执行端；后续域扩展 HYX/HYXX 等） */
 const isSupplyExecHat = (hat: PowerHat): boolean => hat === 'EX' || hat === 'EXX';
 
-/** 供给集市读权限（EU/HU/YU/TU + EX/EXX + DU + 执行帽 + V*M；XU/CU 一律 403 双保险） */
+/** 供给集市读权限（EU/HU/YU/TU + EX/EXX + DU + 执行帽 + V*M 四源家族（VXM/VEM/VHM/VYM/VTM）；
+ *  X-MARKET-ROLE-01：VDM 归 market 经营治理，不入 supply 面（移除）；XU/CU 一律 403 双保险） */
 const isSupplyReader = (hat: PowerHat): boolean =>
-  ['EU', 'HU', 'YU', 'TU', 'EX', 'EXX', 'DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX', 'VXM', 'VEM', 'VHM', 'VYM', 'VTM', 'VDM'].includes(
+  ['EU', 'HU', 'YU', 'TU', 'EX', 'EXX', 'DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX', 'VXM', 'VEM', 'VHM', 'VYM', 'VTM'].includes(
     hat,
   );
 
@@ -58,6 +59,10 @@ xSupply.get('/hub', requireAuth, (req: AuthReq, res: AuthRes) => {
       };
     });
   const myBooth = booths.find((b) => b.ownerContainerId === user!.containerId);
+  // X-MARKET-ROLE-01 四源分线：家族帽（VEM/VHM/VYM/VTM）仅见本源域数据（信息隔离）；VXM 统筹全域
+  const govDomain = isSupplyGovernHat(hat as HatRole) ? supplyGovernDomainOf(hat as HatRole) : null;
+  const scopedBooths = govDomain ? booths.filter((b) => b.domain === govDomain) : booths;
+  const scopedEntries = govDomain ? xSupplyEntries.filter((e) => e.domain === govDomain) : xSupplyEntries;
   const data: XSupplyHubData = {
     viewer: {
       hatRole: roleOf(user!),
@@ -68,8 +73,8 @@ xSupply.get('/hub', requireAuth, (req: AuthReq, res: AuthRes) => {
     canRegister: isSupplyExecHat(hat),
     canMaintain: isSupplyExecHat(hat) && Boolean(myBooth),
     maintainBoothCode: myBooth?.code ?? '',
-    booths,
-    entries: xSupplyEntries,
+    booths: scopedBooths,
+    entries: scopedEntries,
   };
   ok(res, data);
 });

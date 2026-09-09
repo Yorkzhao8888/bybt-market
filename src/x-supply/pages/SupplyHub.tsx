@@ -11,8 +11,9 @@ import PowerBadge from '../../components/PowerBadge';
 import DualTerm from '../../components/DualTerm';
 import { EmptyState, SectionTitle } from '../../components/ui';
 import { useAuth } from '../../Auth';
-import { colorOf, hatLabel } from '../../lib/domain';
+import { colorOf, hatLabel, isSupplyGovernHat, supplyGovernDomainOf } from '../../lib/domain';
 import { conceptTerm } from '../../lib/terminology';
+import { SupplyGovernDesk } from './SupplyGovernDesk';
 import type { XSupplyHubData } from '../../../shared/x-supply';
 
 const GREEN = '#15803D';
@@ -113,10 +114,10 @@ export default function XSupplyHub() {
             <PowerBadge kind="operate" />
             办位执行：入驻登记与 Booth-E 铺面维护由 <b>EX/EXX</b> 办理（仅本铺）；资质审核（X-SUPPLY-02）与准入治理属管/治位。
           </span>
-        ) : hat === 'VXM' ? (
+        ) : isSupplyGovernHat(hat) ? (
           <span className="flex flex-wrap items-center gap-2">
             <PowerBadge kind="govern" />
-            治位视角：供给列表只读；准入治理与资质审核流（X-SUPPLY-02）接入治理台。
+            治位视角（四源分线 · X-MARKET-ROLE-01）：{supplyGovernDomainOf(hat) ? `${hat} 治 ${supplyGovernDomainOf(hat)} 源准入与货品` : 'VXM 统筹全域四源（含大额采购审批/阈值）'}；下方治理台办理。
           </span>
         ) : hat === 'DU' ? (
           <span className="flex flex-wrap items-center gap-2">
@@ -130,6 +131,8 @@ export default function XSupplyHub() {
           </span>
         )}
       </div>
+
+      {isSupplyGovernHat(hat) && <SupplyGovernDesk />}
 
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         {/* 左：供给列表（只读 + 准入徽章） */}

@@ -138,12 +138,12 @@ export default function OperatorDesk() {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-semibold text-white" style={{ background: ACCENT }}>
-                <Briefcase className="h-3.5 w-3.5" /> 经营者工作台
+                <Briefcase className="h-3.5 w-3.5" /> 经营工作台 · D*U
               </span>
               <p className="font-serif-display text-2xl font-black">{greeting}，{user?.containerName ?? cid}</p>
             </div>
             <p className="mt-1 text-sm text-[#6b665a]">
-              经营号 {user?.hatId ?? role} · 名下铺面 {myStores.map((b) => b.code).join(' / ') || '—'} · 交易单向：唯一可与供给方交易的主体
+              D*U（子 DU · 经营范畴）· {user?.hatId ?? role} · 名下铺面 {myStores.map((b) => b.code).join(' / ') || '—'} · 交易单向：唯一可与供给方交易的主体
             </p>
           </div>
           <Link to="/operator/mobile" className="flex items-center gap-1.5 rounded-lg border-2 px-3 py-2 text-sm font-bold transition hover:-translate-y-0.5" style={{ borderColor: EXEC_ACCENT, color: EXEC_ACCENT }}>
