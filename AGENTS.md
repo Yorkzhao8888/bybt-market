@@ -89,6 +89,13 @@
 - **导航收敛**：Header 按角色渲染（客户 Market/Mall/交易单；供给商 供给台/交易单；经营者 经营台/采购商城/交易单；治理者 治理台/交易单）+ 主题色身份徽标（工作台类别·单位名）。
 - **红线**：B2B 报价入口保留在 InquiryList（Market 与 OperatorDesk 共用）；orders 按身份过滤、隔离 12-14 条款不破。
 
+## 全局规范：双称呼体验方案 v1.1
+
+- **口径**：用户可见文案启用双称呼——大号=市面常态称呼（店主/平台监管/采购方/买家/供货商/店铺/商品/留痕台账/大额审批），小号=系统称呼（经营者 DU/治理者 VXM/执行帽 DEX/铺面 Booth/货品/审计/超阈值升级审批）。底层代码/接口/权限/审计/存储字段不改，只改 UI 文案层。
+- **落地**：`src/lib/terminology.ts`（ROLE_TERMS/CONCEPT_TERMS 唯一口径 + roleTerm/conceptTerm helper）+ `src/components/DualTerm.tsx`（大号主显+小号弱化副标，compact 单显）。禁止页面写死双称呼文案；新概念先入术语表再上 UI。
+- **红线**：治理穿透字段（actor_hat/governor/actor_user/booth_code）保留系统标识原文，禁止大号化。
+- **节奏**：UE-02（客户）起立即套用；UE-01（DU 三端）存量文案不返工，统一在后续收口单处理。
+
 ## 调试要点
 
 - dev server（tsx watch）修改 server 代码后**不会**可靠热重载路由/store：需 `kill -9 $(cat /app/work/logs/bypass/server.pid)` + `pkill -9 -f 'ts[x] watch'` 后 `(nohup bash ./scripts/dev.sh > logs/dev-start.log 2>&1 &)` 重启。
