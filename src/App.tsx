@@ -24,6 +24,7 @@ import OperatorMobile from './pages/OperatorMobile';
 import OrderStatusBadge from './components/OrderStatusBadge';
 import { workbenchOf, workbenchThemeOf, WORKBENCH_HOME, WORKBENCH_THEME } from './lib/domain';
 import type { WorkbenchKind } from './lib/domain';
+import { roleTerm } from './lib/terminology';
 import { api } from './api/client';
 
 function Header() {
@@ -57,9 +58,24 @@ function Header() {
   const nav = navByWb[wb];
 
   /* X-MARKET-UE-01 顶栏通知铃（DU 待办数：待报价+待审批采购+待履约）与徽标副信息 */
+  /* X-MARKET-UE-02 客户端铃（报价到达 / 订单状态）：待报价询价+进行中订单 */
   const [todoCount, setTodoCount] = useState(0);
   const [boothCode, setBoothCode] = useState('');
   useEffect(() => {
+    if (wb === 'client' && user) {
+      let live = true;
+      void Promise.all([api.orders(), api.inquiries()])
+        .then(([os, iqs]) => {
+          if (!live) return;
+          const activeOrders = os.filter((o) => ['pending', 'pending_approval', 'fulfilling'].includes(o.status)).length;
+          const myInq = iqs.filter((q) => q.buyerContainerId === user.containerId && q.status === 'inquiry').length;
+          setTodoCount(activeOrders + myInq);
+        })
+        .catch(() => undefined);
+      return () => {
+        live = false;
+      };
+    }
     if (wb !== 'operator' || !user) {
       setTodoCount(0);
       setBoothCode('');
@@ -109,13 +125,18 @@ function Header() {
                   <span className="text-xs font-bold" style={{ color: theme.accent }}>经营者 · {user.containerName ?? user.containerId}</span>
                   <span className="text-[10px] text-[#8a8577]">{user.hatId ?? user.containerId}{boothCode ? ` · ${boothCode}` : ''}</span>
                 </span>
+              ) : wb === 'client' ? (
+                <span className="hidden flex-col items-start rounded-md border bg-white px-2.5 py-1 leading-tight sm:flex">
+                  <span className="text-xs font-bold" style={{ color: theme.accent }}>{roleTerm(user.hatRole).big} · {user.containerName ?? user.containerId}</span>
+                  <span className="text-[10px] text-[#8a8577]">{roleTerm(user.hatRole).sys}</span>
+                </span>
               ) : (
                 <span className="hidden rounded-md border bg-white px-2.5 py-1 text-xs text-[#4b463a] sm:inline">
                   {theme.label.replace('工作台', '')} · {user.containerName ?? user.containerId}
                 </span>
               )}
-              {wb === 'operator' && (
-                <Link to="/operator" title="待办：待报价 / 待审批采购 / 待履约" className="relative rounded-md border bg-white px-2 py-1.5 hover:bg-[#efeae0]">
+              {(wb === 'operator' || wb === 'client') && (
+                <Link to={wb === 'client' ? '/orders' : '/operator'} title={wb === 'client' ? '报价到达 / 订单状态' : '待办：待报价 / 待审批采购 / 待履约'} className="relative rounded-md border bg-white px-2 py-1.5 hover:bg-[#efeae0]">
                   <Bell className="h-3.5 w-3.5 text-[#4b463a]" />
                   {todoCount > 0 && (
                     <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#dc2626] px-1 text-[10px] font-bold text-white">{todoCount}</span>
@@ -141,17 +162,18 @@ function RoleGuard({ wb, children }: { wb: WorkbenchKind | WorkbenchKind[]; chil
   if (loading) return <p className="p-10 text-center text-sm text-[#8a8577]">身份校验中…</p>;
   if (!isAuthed || !user) return <Navigate to="/login" replace />;
   const allowed: WorkbenchKind[] = Array.isArray(wb) ? wb : [wb];
-  if (!allowed.includes(workbenchOf(user.hatRole))) return <Forbidden need={workbenchThemeOf(user.hatRole)} want={allowed[0]} />;
+  if (!allowed.includes(workbenchOf(user.hatRole))) return <Forbidden hatRole={user.hatRole} need={workbenchThemeOf(user.hatRole)} want={allowed[0]} />;
   return <>{children}</>;
 }
 
-function Forbidden({ need, want }: { need: ReturnType<typeof workbenchThemeOf>; want: WorkbenchKind }) {
+function Forbidden({ hatRole, need, want }: { hatRole: string | null; need: ReturnType<typeof workbenchThemeOf>; want: WorkbenchKind }) {
+  const term = roleTerm(hatRole);
   return (
     <div className="mx-auto max-w-lg rounded-xl border bg-white p-8 text-center shadow-[4px_4px_0_rgba(23,24,29,0.12)]">
       <ShieldBan className="mx-auto h-10 w-10 text-[#b3261e]" />
       <p className="mt-3 font-serif-display text-2xl font-black">403 · 越权访问</p>
       <p className="mt-2 text-sm text-[#6b665a]">
-        该区域属于{WORKBENCH_THEME[want].label}，你的当前身份是「{need.label}」。角色数据边界由服务端强制（隔离红线 P0）。
+        该区域属于{WORKBENCH_THEME[want].label}，你的当前身份是「{term.big}（{term.sys}）」。角色数据边界由服务端强制（隔离红线 P0）。
       </p>
       <Link to={WORKBENCH_HOME[workbenchOf(need.kind)]} className="mt-4 inline-block rounded-md px-4 py-2 text-sm font-medium text-white hover:opacity-90" style={{ background: need.accent }}>
         返回我的工作台

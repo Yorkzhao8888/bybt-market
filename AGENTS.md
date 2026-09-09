@@ -96,6 +96,13 @@
 - **红线**：治理穿透字段（actor_hat/governor/actor_user/booth_code）保留系统标识原文，禁止大号化。
 - **节奏**：UE-02（客户）起立即套用；UE-01（DU 三端）存量文案不返工，统一在后续收口单处理。
 
+## 客户三端体验设计（X-MARKET-UE-02，双称呼首个试行单）
+
+- **采购方 XU（/market PC 采购工作台）**：全局搜索框（搜在架货品标题/标签/店铺名，`containerName` 反查容器）+「只看准入」开关（`admittedOf(booth)=franchise==='direct'`，加盟铺过滤；基线 5 direct+1 franchise 有真实区分度）+合格供给卡片（准入徽章「准入合格」+资质摘要=域 TRUST_EXPOSURE 核验项+店主/店员执行帽双称呼身份+在架货品价格状态，`api.boothDetail` 批量拉取）+采购进度流 5 段 stepper（询价→报价→合同→下单→交付，由 `inquiries[].status` inquiry/quoted/contracted + `orders[].status` pending*/fulfilling/done 推导当前步）+我的采购单表格（OrderStatusBadge dual 大号状态名）。侧栏「我的留痕台账」用 DualTerm concept='powerAudit'。
+- **买家 CU（/mall 手机商城）**：商品卡营销化（域色封面块+价格大字+准入徽章+店铺归属 `booth.name`+库存归属小字「库存 · Booth 实体系统」）+**立即购买确认弹层（P0 防误触）**：`buyTarget` state，点「立即购买」先弹确认（商品名/单价/数量 stepper/合计/店铺归属），确认后才 `api.createOrder({boothId,listingId,amountCents:priceCents*qty,side:'C'})`——服务端接受任意 amountCents（默认回落 listing 价），已冒烟 C-2026-0018 ×2 金额 39800 分验证。
+- **双称呼试行落地（6 处抽查点）**：Header 客户徽标「采购方 · 企业客户 XU」/「买家 · 自然人客户 CU」+通知铃（未读询价+未完成订单红点→/orders）；OrderStatusBadge `dual` prop（默认 false 不破 UE-01 存量，客户面 true）——STATUS_TERMS 大号：fulfilling→交付中/pending→待交付/pending_approval→大额审批中/done→已完成；CONCEPT_TERMS 补 powerAudit{big:'留痕台账',sys:'三权审计'}/booth{big:'店铺',sys:'铺面 Booth'}/listing{big:'商品',sys:'货品'}/admission{big:'准入合格'}/platformGovern{big:'平台监管',sys:'治理者 VXM'}/progressFulfill{big:'发货交付',sys:'履约执行'}。页面文案全部取 terminology.ts 常量，禁写死。
+- **红线**：底层接口/权限/审计/存储零改动（服务端本单未触碰）；穿透字段保留系统标识；搜索与准入均为客户端过滤不改 orders/inquiries 服务端口径。
+
 ## 调试要点
 
 - dev server（tsx watch）修改 server 代码后**不会**可靠热重载路由/store：需 `kill -9 $(cat /app/work/logs/bypass/server.pid)` + `pkill -9 -f 'ts[x] watch'` 后 `(nohup bash ./scripts/dev.sh > logs/dev-start.log 2>&1 &)` 重启。
