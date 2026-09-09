@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { BadgeCheck, Boxes, Clock3, ClipboardList, FileClock, Gauge, PackagePlus, ShieldAlert, Warehouse, XCircle } from 'lucide-react';
 import { api } from '../api/client';
 import PowerAuditList from '../components/PowerAuditList';
+import PowerBadge from '../components/PowerBadge';
 import { useAuth } from '../Auth';
 import { colorOf } from '../lib/domain';
 import type { BoothRow, OrderRow, SupplierApplication, SupplierProduct } from '../../shared/types';
@@ -46,6 +47,7 @@ export default function SupplyDesk() {
   const [pUnit, setPUnit] = useState('');
   const [pStock, setPStock] = useState('');
   const [pMsg, setPMsg] = useState('');
+  const [pErr, setPErr] = useState('');
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -75,18 +77,20 @@ export default function SupplyDesk() {
 
   const addProduct = (): void => {
     setPMsg('');
+    setPErr('');
     const cents = Math.round(Number(pPrice) * 100);
     if (!pName.trim() || !pCategory.trim() || !cents || cents <= 0) { setPMsg('名称/品类/报价为必填'); return; }
     api.addProduct({ name: pName, category: pCategory, spec: pSpec, priceCents: cents, unit: pUnit || '件', stock: Number(pStock) || 0 })
       .then((p) => { setProducts((s) => [...s, p]); setPMsg(`已上架：${p.name}`); setPName(''); setPCategory(''); setPSpec(''); setPPrice(''); setPStock(''); })
-      .catch((e: unknown) => setPMsg(e instanceof Error ? e.message : '上架失败'));
+      .catch((e: unknown) => setPErr(e instanceof Error ? e.message : '上架失败'));
   };
 
   const toggleProduct = (id: string): void => {
     setPMsg('');
+    setPErr('');
     api.toggleProduct(id)
       .then((p) => setProducts((s) => s.map((x) => (x.id === p.id ? p : x))))
-      .catch((e: unknown) => setPMsg(e instanceof Error ? e.message : '操作失败'));
+      .catch((e: unknown) => setPErr(e instanceof Error ? e.message : '操作失败'));
   };
 
   if (!loaded) return null;
@@ -132,7 +136,10 @@ export default function SupplyDesk() {
                 {approved && <span className="flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium" style={{ background: GREEN_SOFT, color: GREEN_TEXT }}><BadgeCheck className="h-3.5 w-3.5" /> 合格</span>}
                 {app?.status === 'rejected' && <span className="flex items-center gap-1 rounded bg-[#fbeaea] px-2 py-0.5 text-xs font-medium text-[#b0413e]"><XCircle className="h-3.5 w-3.5" /> 已驳回</span>}
               </p>
-              <p className="mt-1 text-xs text-[#8a8577]">流程：供给方登记 → VXM 云中心评估（通过/驳回）→ 合格供应商 → 纳入 DU 采购商城 → 上架货品 → DU 一键下单。</p>
+              <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[#8a8577]">
+                <PowerBadge kind="manage" />
+                流程：供给方登记 → VXM 云中心评估（通过/驳回）→ 合格供应商 → 纳入 DU 采购商城 → 上架货品 → DU 一键下单。
+              </p>
 
               {app?.status === 'rejected' && (
                 <p className="mt-3 rounded-md bg-[#fbeaea] px-3 py-2 text-sm text-[#b0413e]">
@@ -167,6 +174,7 @@ export default function SupplyDesk() {
               <div className="rounded-xl border bg-white p-5">
                 <p className="flex flex-wrap items-center gap-2 font-serif-display text-lg font-black">
                   <Warehouse className="h-5 w-5" style={{ color: colorOf(app.domain) }} /> 货品上架管理
+                  <PowerBadge kind="manage" />
                   <span className="rounded bg-[#f3eee3] px-2 py-0.5 text-xs font-medium text-[#8a6d3b]">在架货品进入 DU 采购商城（客户不可见）</span>
                 </p>
                 {products.length > 0 ? (
@@ -191,9 +199,12 @@ export default function SupplyDesk() {
                             </span>
                           </td>
                           <td className="text-right">
-                            <button onClick={() => toggleProduct(p.id)} className="rounded-md border px-2.5 py-1 text-xs hover:bg-[#efeae0]">
-                              {p.status === 'on' ? '下架' : '重新上架'}
-                            </button>
+                            <span className="inline-flex items-center gap-1.5">
+                              <PowerBadge kind="manage" text={false} />
+                              <button onClick={() => toggleProduct(p.id)} className="rounded-md border px-2.5 py-1 text-xs hover:bg-[#efeae0]">
+                                {p.status === 'on' ? '下架' : '重新上架'}
+                              </button>
+                            </span>
                           </td>
                         </tr>
                       ))}
@@ -210,10 +221,14 @@ export default function SupplyDesk() {
                   <input value={pUnit} onChange={(e) => setPUnit(e.target.value)} placeholder="单位" className="rounded-md border px-3 py-2 text-sm" />
                   <input value={pStock} onChange={(e) => setPStock(e.target.value)} placeholder="库存" type="number" min={0} className="ticker-font rounded-md border px-3 py-2 text-sm" />
                   <div className="md:col-span-6">
-                    <button onClick={addProduct} className="flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium text-white hover:opacity-90" style={{ background: GREEN }}>
-                      <PackagePlus className="h-4 w-4" /> 上架货品
-                    </button>
+                    <span className="inline-flex items-center gap-2">
+                      <PowerBadge kind="manage" text={false} />
+                      <button onClick={addProduct} className="flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium text-white hover:opacity-90" style={{ background: GREEN }}>
+                        <PackagePlus className="h-4 w-4" /> 上架货品
+                      </button>
+                    </span>
                     {pMsg && <span className="ml-3 text-xs" style={{ color: GREEN_TEXT }}>{pMsg}</span>}
+                    {pErr && <span className="ml-3 rounded border-l-4 border-l-[#b4402e] bg-[#fdeaea] px-2 py-1 text-xs font-medium text-[#b4402e]">{pErr}</span>}
                   </div>
                 </div>
               </div>

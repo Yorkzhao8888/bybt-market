@@ -9,15 +9,16 @@ import {
 import { api, type MarketGroup, type OrderRow } from '../api/client';
 import type { BoothRow, SupplyContract, InquiryRow, Container, HatRow, DomainCode, BoothKind } from '../../shared/types';
 import { useAuth } from '../Auth';
-import { colorOf, canOpenMarket, workbenchOf, WORKBENCH_THEME } from '../lib/domain';
+import { colorOf, canOpenMarket, workbenchOf, WORKBENCH_THEME, POWER_BADGE } from '../lib/domain';
 import InquiryList from '../components/InquiryList';
 import PowerAuditList from '../components/PowerAuditList';
+import PowerBadge from '../components/PowerBadge';
 
 const ACCENT = WORKBENCH_THEME.operator.accent; // #B45309
 const SOFT = WORKBENCH_THEME.operator.accentSoft; // #fbf0e0
 const TEXT = WORKBENCH_THEME.operator.accentText; // #92400e
 
-type Section = 'overview' | 'booths' | 'inquiries' | 'procurement' | 'contracts' | 'newbooth' | 'audit';
+type Section = 'overview' | 'booths' | 'inquiries' | 'procurement' | 'contracts' | 'newbooth' | 'audit' | 'exec';
 
 const yuan = (cents: number): string => (cents / 100).toLocaleString('zh-CN', { style: 'currency', currency: 'CNY' });
 
@@ -121,7 +122,9 @@ export default function OperatorDesk() {
       <div className="grid gap-4 lg:grid-cols-[190px_1fr]">
         {/* 左侧导航（橙激活） */}
         <aside className="h-fit rounded-xl border bg-white p-3">
-          <p className="px-2 pb-2 text-xs font-semibold text-[#8a8577]">经营者功能</p>
+          <p className="flex items-center gap-1.5 px-2 pb-2 text-xs font-semibold text-[#8a8577]">
+            经营决策（管） <PowerBadge kind="manage" text={false} />
+          </p>
           <div className="space-y-1">
             {navs.map((n) => (
               <button key={n.key} onClick={() => setSec(n.key)} className={navCls(n.key)}
@@ -132,6 +135,18 @@ export default function OperatorDesk() {
             <Link to="/supply-mall" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#4a463c] transition hover:bg-[#f3eee3]">
               <ShoppingCart className="h-4 w-4" /> 采购商城 <ChevronRight className="ml-auto h-3.5 w-3.5" />
             </Link>
+          </div>
+          <p className="mt-3 flex items-center gap-1.5 border-t border-[#eee6d6] px-2 pb-2 pt-3 text-xs font-semibold text-[#8a8577]">
+            作业执行（办） <PowerBadge kind="operate" text={false} />
+          </p>
+          <div className="space-y-1">
+            <button onClick={() => setSec('exec')} className={navCls('exec')} style={sec === 'exec' ? { background: ACCENT } : undefined}>
+              <Boxes className="h-4 w-4" /> 履约衔接（DYX）
+            </button>
+            <button onClick={() => setSec('exec')} className={navCls('exec')} style={sec === 'exec' ? { background: ACCENT } : undefined}>
+              <Store className="h-4 w-4" /> 门店销执行（DCX）
+            </button>
+            <p className="px-3 text-[10px] leading-relaxed text-[#a39b88]">仅展示入口与说明，操作归执行帽</p>
           </div>
         </aside>
 
@@ -163,6 +178,22 @@ export default function OperatorDesk() {
                 </p>
               </div>
             </>
+          )}
+
+          {sec === 'exec' && (
+            <div className="rounded-xl border bg-white p-5" style={{ borderLeft: `4px solid ${POWER_BADGE.operate.color}` }}>
+              <p className="flex items-center gap-2 font-serif-display text-lg font-black">
+                <PowerBadge kind="operate" /> 作业执行（办）——执行帽作业层
+              </p>
+              <p className="mt-2 text-sm text-[#4a463c]">
+                办在端：履约与门店作业由执行帽落地——<b>DYX 履执行</b>（DE 交付/履约衔接，对应 X-OFD 履约中心）、
+                <b>DCX 销执行</b>（DC 门店销售作业，对应 X-Shop/X-Mall）。执行帽一一对应执行帽铺面（Booth-DYX/DHX/DTX/DEX/DCX），
+                作业在 Booth 实体系统完成；本台仅展示入口与说明，不做代操作。
+              </p>
+              <p className="mt-2 text-xs text-[#8a8577]">
+                三权口径：治在云（VXM/O*M 审批审计）· 管在端（DU 经营决策）· 办在端（执行帽作业）——DU 为经营号唯一主体，D*U 为主 DU 号上的分经营号。
+              </p>
+            </div>
           )}
 
           {sec === 'booths' && (
@@ -226,7 +257,7 @@ export default function OperatorDesk() {
 
           {sec === 'newbooth' && (
             <div className="rounded-xl border bg-white p-5">
-              <p className="flex items-center gap-2 font-serif-display text-lg font-black"><Store className="h-4 w-4" style={{ color: ACCENT }} /> 上新经营铺</p>
+              <p className="flex items-center gap-2 font-serif-display text-lg font-black"><Store className="h-4 w-4" style={{ color: ACCENT }} /> 上新经营铺 <PowerBadge kind="manage" /></p>
               <p className="mt-1 text-xs text-[#8a8577]">DU 是唯一经营主体；E/T 域仅平台直营 DU，Y/H/DE 域可加盟。</p>
               <div className="mt-3 grid gap-2 md:grid-cols-3">
                 <select value={nDomain} onChange={(e) => setNDomain(e.target.value as DomainCode)} className="rounded-md border px-3 py-2 text-sm">
@@ -242,8 +273,8 @@ export default function OperatorDesk() {
                 </select>
                 <input value={nName} onChange={(e) => setNName(e.target.value)} placeholder="铺面名称" className="rounded-md border px-3 py-2 text-sm" />
               </div>
-              <button onClick={submitBooth} className="mt-3 rounded-md px-4 py-2 text-sm font-medium text-white hover:opacity-90" style={{ background: ACCENT }}>创建铺面</button>
-              {nMsg && <p className="mt-2 text-xs" style={{ color: TEXT }}>{nMsg}</p>}
+              <button onClick={submitBooth} className="mt-3 rounded-md px-4 py-2 text-sm font-medium text-white hover:opacity-90" style={{ background: ACCENT }}>创建铺面</button> <PowerBadge kind="manage" />
+              {nMsg && <p className="mt-2 rounded border-l-4 border-l-[#b4402e] bg-[#fdeaea] px-2 py-1 text-xs text-[#b4402e]">{nMsg}</p>}
             </div>
           )}
           {sec === 'audit' && (

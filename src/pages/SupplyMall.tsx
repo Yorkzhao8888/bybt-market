@@ -6,6 +6,7 @@ import { ArrowLeft, Boxes, Lock, ShieldCheck, ShoppingCart } from 'lucide-react'
 import { api } from '../api/client';
 import { useAuth } from '../Auth';
 import { colorOf, roleLabel } from '../lib/domain';
+import PowerBadge from '../components/PowerBadge';
 import type { SupplyMallItem } from '../../shared/types';
 
 export default function SupplyMall() {
@@ -15,6 +16,7 @@ export default function SupplyMall() {
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [msg, setMsg] = useState('');
+  const [msgErr, setMsgErr] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -31,13 +33,13 @@ export default function SupplyMall() {
   useEffect(() => { void load(); }, [load]);
 
   const order = async (p: SupplyMallItem) => {
-    setMsg('');
+    setMsg(''); setMsgErr('');
     try {
       const q = qty[p.id] && qty[p.id] > 0 ? Math.floor(qty[p.id]) : 1;
       const o = await api.createOrder({ supplierProductId: p.id, qty: q, side: 'B' });
       setMsg(`采购单已生成：${o.code} · ¥${(o.amountCents / 100).toLocaleString()}（供给关系单据，客户不可见）`);
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : '下单失败');
+      setMsgErr(e instanceof Error ? e.message : '下单失败');
     }
   };
 
@@ -80,6 +82,7 @@ export default function SupplyMall() {
         <h1 className="mt-2 flex items-center gap-2 font-serif-display text-2xl font-black">
           <Boxes className="h-6 w-6 text-[#b8862b]" /> DU 采购商城
           <span className="rounded bg-[#f3eee3] px-2 py-0.5 text-xs font-medium text-[#8a6d3b]">仅 DU 经营主体可见</span>
+          <PowerBadge kind="manage" />
         </h1>
         <p className="mt-1 text-sm text-[#6b665a]">
           云中心（VXM）准入合格的供给方 → 在架货品直采。一键下单生成 DU 采购单（复用 EX-2026-100x 体系，关联 supplierId），客户不可见。
@@ -89,6 +92,11 @@ export default function SupplyMall() {
       {msg && (
         <p className="hard-shadow rounded-md border-l-4 border-l-[#2f7d5b] bg-[#eef7ee] px-4 py-2 text-sm text-[#2f7d5b]">
           <ShieldCheck className="mr-1 inline h-4 w-4" />{msg}
+        </p>
+      )}
+      {msgErr && (
+        <p className="hard-shadow rounded-md border-l-4 border-l-[#b4402e] bg-[#fdeaea] px-4 py-2 text-sm text-[#b4402e]">
+          <Lock className="mr-1 inline h-4 w-4" />{msgErr}
         </p>
       )}
 
@@ -135,9 +143,12 @@ export default function SupplyMall() {
                     />
                   </td>
                   <td className="pl-2 text-right">
-                    <button onClick={() => void order(p)} className="whitespace-nowrap rounded-md bg-[#17181d] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
-                      一键下单
-                    </button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <PowerBadge kind="manage" text={false} />
+                      <button onClick={() => void order(p)} className="whitespace-nowrap rounded-md bg-[#17181d] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+                        一键下单
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -11,6 +11,7 @@ import { useAuth } from '../Auth';
 import { colorOf, canOperate, isAdminRole, roleLabel, hatLabel, PRO_MARKET_ORDER, workbenchOf, WORKBENCH_THEME } from '../lib/domain';
 import InquiryList from '../components/InquiryList';
 import PowerAuditList from '../components/PowerAuditList';
+import PowerBadge from '../components/PowerBadge';
 
 function kindLabel(kind: string): string {
   return kind === 'supply' ? '供给方实体铺' : 'DU 经营实体铺';
@@ -29,6 +30,7 @@ export default function Market() {
   const [inqBooth, setInqBooth] = useState('');
   const [inqItem, setInqItem] = useState('');
   const [inqMsg, setInqMsg] = useState('');
+  const [inqErr, setInqErr] = useState('');
 
   const mayOperate = canOperate(user?.hatRole);
   const isAdmin = isAdminRole(user?.hatRole);
@@ -58,10 +60,11 @@ export default function Market() {
   const submitInquiry = (): void => {
     if (!inqBooth || !inqItem) return;
     setInqMsg('');
+    setInqErr('');
     api.createInquiry({ boothId: inqBooth, title: inqItem, detail: inqMsg })
       .then(() => { setInqMsg('询价已发送，等待铺主报价'); setInqItem(''); setInqBooth(''); return api.inquiries(); })
       .then(setInq)
-      .catch((e: unknown) => setInqMsg(e instanceof Error ? e.message : '询价失败'));
+      .catch((e: unknown) => setInqErr(e instanceof Error ? e.message : '询价失败'));
   };
 
   return (
@@ -127,8 +130,8 @@ export default function Market() {
       {/* B2B 询价面板（客户工作台主功能区） */}
       {current && !mayOperate && (
         <div className="rounded-xl border bg-white p-5">
-          <p className="flex items-center gap-2 font-serif-display text-lg font-black"><Send className="h-4 w-4" /> B2B 采购询价</p>
-          <p className="mt-1 text-xs text-[#8a8577]">询价 → 铺主报价 → 合同 → 下单（企业采购走 Market，不走 Mall 个人购买）。</p>
+          <p className="flex items-center gap-2 font-serif-display text-lg font-black"><Send className="h-4 w-4" /> B2B 采购询价 <PowerBadge kind="manage" /></p>
+          <p className="mt-1 text-xs text-[#8a8577]">询价 → 铺主报价 → 合同 → 下单（企业采购走 Market，不走 Mall 个人购买）。发起询价属 <b>管·端决策</b> 权位动作。</p>
           <div className="mt-3 grid gap-2 md:grid-cols-3">
             <select value={inqBooth} onChange={(e) => setInqBooth(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
               <option value="">选择询价铺面</option>
@@ -137,8 +140,13 @@ export default function Market() {
             <input value={inqItem} onChange={(e) => setInqItem(e.target.value)} placeholder="采购品类/规格" className="rounded-md border px-3 py-2 text-sm" />
             <input value={inqMsg} onChange={(e) => setInqMsg(e.target.value)} placeholder="数量/交期/备注" className="rounded-md border px-3 py-2 text-sm" />
           </div>
-          <button onClick={submitInquiry} className="mt-3 rounded-md px-4 py-2 text-sm font-medium text-white hover:opacity-90" style={{ background: WORKBENCH_THEME.client.accent }}>发送询价</button>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button onClick={submitInquiry} className="rounded-md px-4 py-2 text-sm font-medium text-white hover:opacity-90" style={{ background: WORKBENCH_THEME.client.accent }}>发送询价</button>
+            <PowerBadge kind="manage" />
+          </div>
           {inqMsg && <p className="mt-2 text-xs text-[#1e40af]">{inqMsg}</p>}
+          {inqErr && <p className="mt-2 rounded border-l-4 border-l-[#b4402e] bg-[#fdeaea] px-2 py-1 text-xs text-[#b4402e]">{inqErr}</p>}
+          {inqErr && <p className="mt-2 rounded border-l-4 border-l-[#b4402e] bg-[#fdeaea] px-2 py-1 text-xs text-[#b4402e]">{inqErr}</p>}
         </div>
       )}
 

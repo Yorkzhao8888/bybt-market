@@ -9,6 +9,7 @@ import { useAuth } from '../Auth';
 import { colorOf, marketLabel, hatLabel, workbenchThemeOf } from '../lib/domain';
 import type { SupplierApplication, SupplierProduct } from '../../shared/types';
 import PowerAuditList from '../components/PowerAuditList';
+import PowerBadge from '../components/PowerBadge';
 
 const PURPLE = '#6d28d9';
 const PURPLE_SOFT = '#f0e9fc';
@@ -18,6 +19,7 @@ function CloudReview() {
   const [apps, setApps] = useState<SupplierApplication[]>([]);
   const [products, setProducts] = useState<SupplierProduct[]>([]);
   const [msg, setMsg] = useState('');
+  const [msgErr, setMsgErr] = useState('');
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [reason, setReason] = useState('');
 
@@ -29,21 +31,21 @@ function CloudReview() {
   useEffect(() => { load(); }, [load]);
 
   const review = (id: string, action: 'approve' | 'reject'): void => {
-    setMsg('');
+    setMsg(''); setMsgErr('');
     api.reviewApplication(id, { action, rejectReason: action === 'reject' ? reason : undefined })
       .then((a) => {
         setApps((s) => s.map((x) => (x.id === a.id ? a : x)));
         setMsg(action === 'approve' ? `${a.supplierName} 已准入为合格供应商，纳入 DU 采购商城` : `已驳回 ${a.supplierName}（附原因，可重新提交）`);
         setRejectingId(null); setReason('');
       })
-      .catch((e: unknown) => setMsg(e instanceof Error ? e.message : '审核失败'));
+      .catch((e: unknown) => setMsgErr(e instanceof Error ? e.message : '审核失败'));
   };
 
   const takeDown = (id: string): void => {
-    setMsg('');
+    setMsg(''); setMsgErr('');
     api.takeDownProduct(id)
       .then((p) => { setProducts((s) => s.map((x) => (x.id === p.id ? p : x))); setMsg(`已治理下架：${p.name}`); })
-      .catch((e: unknown) => setMsg(e instanceof Error ? e.message : '下架失败'));
+      .catch((e: unknown) => setMsgErr(e instanceof Error ? e.message : '下架失败'));
   };
 
   const statusBadge = (s: SupplierApplication['status']): ReactNode =>
@@ -55,6 +57,10 @@ function CloudReview() {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2 rounded-md border border-[#6d28d940] bg-[#f0e9fc] px-3 py-2 text-xs text-[#5b21b6]">
+        <PowerBadge kind="govern" />
+        <span><b>只审不落</b>：评估 ≠ 下单、治理下架 ≠ 经营——治位只做审批与审计，不直接经营（下单/上架归管位 DU / *U）。</span>
+      </div>
       <div className="space-y-2">
         {apps.map((a) => (
           <div key={a.id} className="rounded-md border border-[#e4ded2] px-3 py-2 text-sm">
@@ -76,7 +82,8 @@ function CloudReview() {
                   <button onClick={() => { setRejectingId(null); setReason(''); }} className="rounded-md border px-3 py-1 text-xs">取消</button>
                 </div>
               ) : (
-                <div className="mt-2 flex gap-2">
+                <div className="mt-2 flex items-center gap-2">
+                  <PowerBadge kind="govern" text={false} />
                   <button onClick={() => review(a.id, 'approve')} className="flex items-center gap-1 rounded-md bg-[#2e7d54] px-3 py-1 text-xs font-medium text-white hover:opacity-90"><BadgeCheck className="h-3.5 w-3.5" /> 通过准入</button>
                   <button onClick={() => { setRejectingId(a.id); setReason(''); }} className="flex items-center gap-1 rounded-md border border-[#b4402e] px-3 py-1 text-xs font-medium text-[#b4402e] hover:bg-[#fdeaea]"><XCircle className="h-3.5 w-3.5" /> 驳回</button>
                 </div>
@@ -87,7 +94,7 @@ function CloudReview() {
         {apps.length === 0 && <div className="rounded-md border border-dashed border-[#e4ded2] px-3 py-4 text-center text-sm text-[#8a8577]">暂无供应商登记申请</div>}
       </div>
 
-      <p className="flex items-center gap-1.5 text-sm font-bold text-[#17181d]"><PackageMinus className="h-4 w-4" /> 违规货品治理（平台运营侧可强制下架；上架权在供给方）</p>
+      <p className="flex items-center gap-1.5 text-sm font-bold text-[#17181d]"><PackageMinus className="h-4 w-4" /> 违规货品治理（平台运营侧可强制下架；上架权在供给方）<PowerBadge kind="govern" /></p>
       <div className="space-y-1.5">
         {products.map((p) => (
           <div key={p.id} className="flex flex-wrap items-center gap-2 rounded-md border border-[#e4ded2] px-3 py-1.5 text-sm">
@@ -101,6 +108,7 @@ function CloudReview() {
         {products.length === 0 && <div className="rounded-md border border-dashed border-[#e4ded2] px-3 py-3 text-center text-xs text-[#8a8577]">暂无货品</div>}
       </div>
       {msg && <p className="rounded-md bg-[#e8f4ee] px-3 py-2 text-xs text-[#2e7d54]">{msg}</p>}
+      {msgErr && <p className="rounded-md border-l-4 border-l-[#b4402e] bg-[#fdeaea] px-3 py-2 text-xs text-[#b4402e]">{msgErr}</p>}
     </div>
   );
 }

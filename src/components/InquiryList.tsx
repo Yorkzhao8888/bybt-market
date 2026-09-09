@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { api } from '../api/client';
 import { hatLabel } from '../lib/domain';
+import PowerBadge from './PowerBadge';
 import type { BoothRow, HatRow, InquiryRow } from '../../shared/types';
 
 /** 询价 → 报价 → 合同 → 下单（P6 B2B 闭环）— 客户工作台与经营者工作台共用 */
@@ -43,7 +44,7 @@ export default function InquiryList({ inquiries, booths, containerName, hatOf, i
   return (
     <div className="rounded-xl border bg-white p-5">
       <p className="flex items-center gap-2 font-serif-display text-lg font-black"><ShieldCheck className="h-4 w-4" /> 询价 → 报价 → 合同 → 下单（P6 B2B 闭环 · {visible.length}）</p>
-      {err && <p className="mt-2 rounded bg-[#f3eee3] px-2 py-1 text-xs text-[#8a6d3b]">{err}</p>}
+      {err && <p className="mt-2 rounded border-l-4 border-l-[#b4402e] bg-[#fdeaea] px-2 py-1 text-xs font-medium text-[#b4402e]">{err}</p>}
       <div className="mt-3 space-y-2">
         {visible.map((q) => {
           const h = hatOf(q.buyerContainerId);
@@ -67,11 +68,17 @@ export default function InquiryList({ inquiries, booths, containerName, hatOf, i
                       <button onClick={() => { setQuoteId(''); setQuotePrice(''); }} className="rounded border px-2 py-1 text-xs">取消</button>
                     </>
                   ) : (
-                    <button onClick={() => { setQuoteId(q.id); setQuotePrice(''); }} className="rounded bg-[#b8862b] px-2 py-1 text-xs text-white hover:opacity-90">报价</button>
+                    <span className="inline-flex items-center gap-1.5">
+                      <PowerBadge kind="manage" text={false} />
+                      <button onClick={() => { setQuoteId(q.id); setQuotePrice(''); }} className="rounded bg-[#b8862b] px-2 py-1 text-xs text-white hover:opacity-90">报价</button>
+                    </span>
                   )
                 )}
                 {q.status === 'quoted' && isBuyer(q) && (
-                  <button onClick={() => contract(q)} className="rounded bg-[#17181d] px-2 py-1 text-xs text-white hover:opacity-90">确认合同</button>
+                  <span className="inline-flex items-center gap-1.5">
+                    <PowerBadge kind="manage" text={false} />
+                    <button onClick={() => contract(q)} className="rounded bg-[#17181d] px-2 py-1 text-xs text-white hover:opacity-90">确认合同</button>
+                  </span>
                 )}
                 {q.status === 'contracted' && isBuyer(q) && (
                   <button onClick={() => placeOrder(q)} className="rounded bg-[#2f7d5b] px-2 py-1 text-xs text-white hover:opacity-90">下单（Order-{q.domain} 族）</button>

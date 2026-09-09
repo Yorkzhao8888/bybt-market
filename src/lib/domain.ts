@@ -167,6 +167,41 @@ export const WORKBENCH_THEME: Record<WorkbenchKind, WorkbenchTheme> = {
 export const workbenchThemeOf = (role: string | null | undefined): WorkbenchTheme =>
   WORKBENCH_THEME[workbenchOf(role)];
 
+/** X-MARKET-11 三权标识（治在云 · 管在端 · 办在端）：DU=经营号唯一主体，D*U=主 DU 号上的分经营号 */
+export type PowerKind = 'govern' | 'manage' | 'operate';
+
+export interface PowerBadgeMeta {
+  short: string;
+  text: string;
+  color: string;
+  bg: string;
+  desc: string;
+}
+
+export const POWER_BADGE: Record<PowerKind, PowerBadgeMeta> = {
+  govern: {
+    short: '治',
+    text: '云审批',
+    color: '#6D28D9',
+    bg: '#F0E9FC',
+    desc: '治在云：VXM/O*M 审批审计（只审不落：评估≠下单、治理下架≠经营）',
+  },
+  manage: {
+    short: '管',
+    text: '端决策',
+    color: '#B45309',
+    bg: '#FBF0E0',
+    desc: '管在端：DU 经营决策 / *U 供给经营（下单、开铺、上架、下架、询价、报价、签约）',
+  },
+  operate: {
+    short: '办',
+    text: '端执行',
+    color: '#1D4ED8',
+    bg: '#E8EEFB',
+    desc: '办在端：执行帽（DYX/DHX/DTX/DEX/DCX）作业落地，操作归执行帽',
+  },
+};
+
 /** 按当前路径判定所属工作台（用于顶栏着色与激活态） */
 export const workbenchByPath = (path: string): WorkbenchKind | null => {
   if (path.startsWith('/supplier')) return 'supplier';

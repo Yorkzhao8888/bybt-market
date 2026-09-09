@@ -75,6 +75,7 @@
 - **toggle 动作选择**：`/supply/products/:id/toggle` owner 路径按目标状态选 action（on→off 记 `product_remove`，off→on 记 `product_publish`）；治理路径放宽为治位帽（VXM/VEM/VDM）记 `product_govern_remove`；其余身份走 `product_remove` 必 deny 兜底。
 - **take-down 治理下架**：`POST /supply/products/:id/take-down` 独立路由接入 `product_govern_remove`（仅下架不代上架）；X-MARKET-12 补修补注册，前端 api.takeDownProduct 依赖它。
 - **审计查看界面（X-MARKET-13）**：`GET /api/power/audit` 支持可选 `action`/`result`（allowed|denied）筛选，默认无参行为不变；治位帽全量、其余按 `actor_user === 本人 hatId` 裁剪（XU/CU 保留原帽）。前端共享组件 `src/components/PowerAuditList.tsx`（scope='all'|'mine'，compact 紧凑模式）：Govern 台「三权审计」页（全量+筛选）；OperatorDesk/SupplyDesk 侧导航「我的留痕」、Market/Mall 底部紧凑块；越权 denied 尝试在工作台可见，形成「越权→403→审计→可查」闭环。API：`api.powerAudit(query?)` / `api.powerMap()`。
+- **三权标识显性化（X-MARKET-11）**：`src/lib/domain.ts` `POWER_BADGE`（治·云审批紫 #6D28D9 / 管·端决策橙 #B45309 / 办·端执行蓝 #1D4ED8）+ `src/components/PowerBadge.tsx`（kind='govern'|'manage'|'operate'，text=false 仅徽章）。挂点：Govern 审核/治理下架（治）、SupplyMall 下单、SupplyDesk 登记/货品上下架、InquiryList 报价/签约（Market/OperatorDesk 共用）、Market 询价、OperatorDesk 开铺（管）。OperatorDesk 侧栏分「经营决策（管）」/「作业执行（办）」两组，办组（履约衔接 DYX/门店销执行 DCX）展示-only → sec='exec' 说明卡（操作归执行帽，Booth 实体系统）；Govern 顶部边界文案「只审不落：评估≠下单、治理下架≠经营」。403 权位口径感知：Govern(msgErr)/SupplyMall(msgErr)/SupplyDesk(pErr)/InquiryList(err 红条)/Market(inqErr) 服务端权位文案以红色错误态呈现。
 
 ## 四类角色工作台（X-MARKET-09）
 
