@@ -28,7 +28,7 @@ import EntranceLogin from './entrance/EntranceLogin';
 import EntranceRole from './entrance/EntranceRole';
 import { workbenchOf, workbenchThemeOf, WORKBENCH_HOME, WORKBENCH_THEME } from './lib/domain';
 import type { WorkbenchKind } from './lib/domain';
-import { roleTerm, conceptTerm } from './lib/terminology';
+import { roleTerm, conceptTerm, duChildTermOf } from './lib/terminology';
 import { api } from './api/client';
 
 function Header() {
@@ -134,9 +134,9 @@ function Header() {
             <>
               {wb === 'operator' ? (
                 <span className="hidden flex-col items-start rounded-md border bg-white px-2.5 py-1 leading-tight sm:flex">
-                  {/* X-MARKET-ROLE-01：经营端标识 D*U（子 DU）范畴——大号店主·单位名（经营范畴），小号 D*U·帽号·铺面 */}
+                  {/* X-MARKET-ROLE-01 经营端标识 + *DU 分经营号命名规范（2026-09-10）：小号按域范畴展示（如 E*DU · 产品经营），语义与帽 ID 不变 */}
                   <span className="text-xs font-bold" style={{ color: theme.accent }}>{conceptTerm('duChild').big} · {user.containerName ?? user.containerId}</span>
-                  <span className="text-[10px] text-[#8a8577]">{conceptTerm('duChild').sys} · {user.hatId ?? user.containerId}{boothCode ? ` · ${boothCode}` : ''}</span>
+                  <span className="text-[10px] text-[#8a8577]">{duChildTermOf(user.domainView)} · {user.hatId ?? user.containerId}{boothCode ? ` · ${boothCode}` : ''}</span>
                 </span>
               ) : wb === 'client' ? (
                 <span className="hidden flex-col items-start rounded-md border bg-white px-2.5 py-1 leading-tight sm:flex">

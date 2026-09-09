@@ -65,11 +65,25 @@ export const CONCEPT_TERMS: Record<string, TermPair> = {
   supplyOrder: { big: '供货单', sys: 'X-Supply 供给单 XS' },
   supplyInbox: { big: '供货收件箱', sys: '供给方收件（仅本铺）' },
   /* X-MARKET-ROLE-01 角色界面归位（A 批） */
-  duChild: { big: '店主', sys: 'D*U · 子DU' },
+  duChild: { big: '店主', sys: '*DU · 分经营号' },
   governMarket: { big: '经营治理', sys: '经营管理治理 VDM' },
   governSupplyView: { big: '四源治理台', sys: 'V*M 家族分源治理' },
   ofdCenter: { big: '履约中心', sys: 'X-OFD 只读接入 · 模拟契约期' },
 };
+
+/** *DU 分经营号域对照（2026-09-10 定版）：域字母取线系，经营范畴按域展示；替代原 D*U 实例写法（DYU/DEU 等） */
+export const DU_CHILD_BY_DOMAIN: Record<string, string> = {
+  Y: 'Y*DU · 智场经营',
+  E: 'E*DU · 产品经营',
+  DE: 'E*DU · 产品经营',
+  H: 'H*DU · 人资经营',
+  T: 'T*DU · 技术经营',
+  C: 'C*DU · 客户经营',
+};
+
+/** 分经营号展示：有域视角给范畴形式（如 E*DU · 产品经营），无域兜底通用 *DU · 分经营号 */
+export const duChildTermOf = (domainView: string | null | undefined): string =>
+  (domainView && DU_CHILD_BY_DOMAIN[domainView]) || '*DU · 分经营号';
 
 /** 订单状态称呼映射（X-MARKET-UE-02：大号=客户视角市面称呼，小号=系统状态口径） */
 export const STATUS_TERMS: Record<string, TermPair> = {

@@ -29,7 +29,7 @@ export interface RoleBrief {
 export const ROLE_BRIEF: Record<string, RoleBrief> = {
   XU: { face: 'Market · 客户面', duty: '企业采购：五市场浏览 / B2B 询价报价 / 订单跟进' },
   CU: { face: 'Mall · 客户面', duty: '买家购物：商城浏览 / 立即购买 / 订单跟进' },
-  DU: { face: 'Market · 经营面', duty: '店铺经营：铺面管理 / 询价报价 / 采购商城 / 履约衔接' },
+  DU: { face: 'Market · 经营面', duty: '分经营号经营（*DU）：铺面管理 / 询价报价 / 采购商城 / 履约衔接' },
   DYX: { face: 'Market · 经营面', duty: '执行作业：履约执行回执 / 铺内作业（办位）' },
   DHX: { face: 'Market · 经营面', duty: '执行作业：履约执行回执 / 铺内作业（办位）' },
   DTX: { face: 'Market · 经营面', duty: '执行作业：履约执行回执 / 铺内作业（办位）' },

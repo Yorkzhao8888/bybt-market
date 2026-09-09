@@ -211,7 +211,7 @@ export const EXEC_ACCENT = '#1D4ED8';
 /** 金额展示（分 → 元） */
 export const money = (cents: number): string => `¥${(cents / 100).toLocaleString('zh-CN', { maximumFractionDigits: 2 })}`;
 
-/** X-MARKET-11 三权标识（治在云 · 管在端 · 办在端）：DU=经营号唯一主体，D*U=主 DU 号上的分经营号 */
+/** X-MARKET-11 三权标识（治在云 · 管在端 · 办在端）：DU=经营号唯一主体，*DU=主 DU 号上的分经营号（2026-09-10 定版写法，替代 D*U 实例写法） */
 export type PowerKind = 'govern' | 'manage' | 'operate';
 
 export interface PowerBadgeMeta {

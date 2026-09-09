@@ -1,7 +1,7 @@
 // X-SUPPLY-02 供给单采购端（DU 采购主体视图）
 // 状态机：initiated（DU 发起）→ accepted（供给方接单）→ quoted（供给方报价）→ confirmed（DU 确认，基础闭环终态）
 // 权限：发起/确认=DU（管·决策，supply_order_initiate/confirm）；执行帽（D*X）只读看单（办位不代经营决策）
-// D*U 分拨机制预留：本期供给单归属 DU（分拨口径待架构确认，UI 仅落主体视图）
+// *DU 分拨机制预留：本期供给单归属 DU（分拨口径待架构确认，UI 仅落主体视图）
 import { useCallback, useEffect, useState } from 'react';
 import { PackagePlus, ScrollText, X } from 'lucide-react';
 import { xSupplyApi } from '../api/du-supply';
@@ -110,9 +110,9 @@ export function SupplyPurchaseDesk() {
         <span className="text-[11px] text-[#6b675f]">状态机：待接单 → 已接单 → 已报价 → 已成单</span>
       </div>
 
-      {/* D*U 分拨机制预留说明（本期供给单归属 DU） */}
+      {/* *DU 分拨机制预留说明（本期供给单归属 DU） */}
       <div className="rounded border border-[#e4ded2] bg-[#f5f2eb] px-4 py-2.5 text-xs leading-relaxed text-[#57534e]">
-        <b className="text-[#17181d]">D*U 分拨预留：</b>本期供给单归属 DU（采购主体=DU 唯一经营号）；D*U 子店/分拨逐级下发机制待架构确认后接入，界面先落 DU 主体视图。执行帽（D*X）看单不代办——发起/确认属经营决策（管位）。
+        <b className="text-[#17181d]">*DU 分拨预留：</b>本期供给单归属 DU（采购主体=DU 唯一经营号）；*DU 分店/分拨逐级下发机制待架构确认后接入，界面先落 DU 主体视图。执行帽（D*X）看单不代办——发起/确认属经营决策（管位）。
       </div>
 
       {err && <div className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{err}</div>}

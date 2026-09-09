@@ -111,6 +111,17 @@
 - **链路语义**：DU→D*U→D*X→D*XX——D*U 是 DU 的子（范畴帽，非独立角色）、D*X 是下属（执行帽=店员）、D*XX 是下下属（执行者）。
 - **试行校准**：「店员 DEX」定位=经营线下属层，不是独立他人。
 - **UI 红线**：展示按「大号市面称呼 + 小号系统称呼」双称呼规范执行（DualTerm/terminology.ts 唯一口径，禁页面写死）；治理穿透字段（actor_hat/actor_user/booth_code）保留系统标识原文不大号化。
+- **写法更新（2026-09-10）**：本节中经营线「D*U 子」的实例写法已由「*DU 分经营号命名规范」定版替代——D*U 保留星号派生概念语义，实例化展示统一写 *DU，见下节。
+
+## 全局规范：*DU 分经营号命名规范（2026-09-10 定版）
+
+- **决策**：分经营号统一采用「域 + *DU」写法，替代原 D*U 实例写法（DYU/DEU/DCU/DHU/DTU），消除与供给源 *U 系字母级碰撞。命名展示规范化，**权限帽 ID 语义不变**（后端字段/审计 actor_hat/权限逻辑/路由零改动）。
+- **三系区分（防碰撞口径）**：①经营号系：主=DU、分=**{Y,E,C,H,T}\*DU**；②供给源系：YU/EU/HU/TU（不变）；③执行帽系：D*X 系（DYX/DEX/DCX/DHX/DTX，不变）。星号派生语义与 D*X 一致（「星号分/派生」概念保留在规范说明中，仅实例化写法统一为 *DU）。
+- **域对照（terminology.ts `DU_CHILD_BY_DOMAIN`/`duChildTermOf` 唯一口径）**：Y*DU 智场经营 / E*DU 产品经营（E/DE 域同归 E 线）/ C*DU 客户经营 / H*DU 人资经营 / T*DU 技术经营；无域匹配兜底「*DU · 分经营号」。
+- **术语表**：CONCEPT_TERMS.duChild 更新为 {big:'店主', sys:'*DU · 分经营号'}。
+- **徽标文案**：Header operator 徽标第二行「D*U · 子DU · hatId · Booth 码」→ `{duChildTermOf(user.domainView)} · hatId · Booth 码`（按域展示经营范畴，如「E*DU · 产品经营 · u-du1 · b-de1」）；OperatorDesk 徽标「经营工作台 · *DU」、欢迎区身份按 duChildTermOf 范畴化；SupplyPurchaseDesk 分拨说明「D*U 子店」→「*DU 分店」。
+- **登入端（ENTRANCE-01）**：EntranceRole 角色卡 DU 职责按 *DU 规范书写（「分经营号经营（*DU）：铺面管理 / 询价报价 / 采购商城 / 履约衔接」），避免后续返工。
+- **红线**：历史章节中 D*U 实例写法为当时实现记录，展示层一律以本规范为准；「店主」大号市面称呼保留；审计 actor_hat 保留系统标识原文（DU/DEX 等）不大号化。
 
 ## 角色·界面归位（X-MARKET-ROLE-01，A 批：界面收敛 + 治理分线）
 
