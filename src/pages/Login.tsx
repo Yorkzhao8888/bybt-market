@@ -57,12 +57,9 @@ export default function Login() {
   const bClientHats = useMemo(() => demos.filter(d => d.hatRole === 'XU'), [demos]);
   const bOperator = useMemo(() => demos.filter(d => /^V/.test(d.hatRole) && d.hatRole.endsWith('M')), [demos]);
 
-  const land = (u: { boothTarget?: string | null; hatRole?: string | null; entry?: string | null } | null): void => {
-    // X-MARKET-09：登录落点 = 四类角色专属工作台（boothTarget 指定铺面优先）
-    if (u?.boothTarget) {
-      nav(`/market/booths/${u.boothTarget}`, { replace: true });
-      return;
-    }
+  const land = (u: { hatRole?: string | null; entry?: string | null } | null): void => {
+    // X-MARKET-09 + UE-01-FIX：登录落点 = 四类角色专属工作台优先；
+    // demo 账号 boothTarget（示例铺面）不再抢跳铺面页——DU→/operator、供给帽→/supplier 必达
     const wb = workbenchOf(u?.hatRole);
     nav(u?.entry === 'C' && wb === 'client' ? '/mall' : WORKBENCH_HOME[wb], { replace: true });
   };
