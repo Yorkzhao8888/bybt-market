@@ -144,6 +144,13 @@ export function nextSupplierId(prefix: 'sa' | 'sp'): string {
   return `${prefix}-${supplierSeq}`;
 }
 
+/** X-MARKET-16 履约回执自增（fr 前缀） */
+let fulfillSeq = 0;
+export function nextFulfillId(): string {
+  fulfillSeq += 1;
+  return `fr-${fulfillSeq}`;
+}
+
 /* ============ X-MARKET-12 三权映射（治-管-办防呆约束，内存 store 等价实现） ============ */
 
 /** 动作→权位→帽 硬约束映射（重启随种子重置；结构照 G7 market_power_map 设计） */
@@ -161,6 +168,8 @@ export const marketPowerMap: MarketPowerMapRow[] = [
   // X-MARKET-15 阈值自动升级：采购单笔金额 > 阈值 → PENDING_APPROVAL，本动作由治位审批后才生效
   { action_code: 'order_approval', action_name: '大额采购治理审批（通过/驳回）', power_bit: 'govern', allow_hats: ['VXM', 'VEM', 'VDM'], forbid_hats: ['YU', 'EU', 'HU', 'TU', 'DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX', 'NONE'], tier: 'cloud', scope: 'cross_tenant', governance: '大额采购升级审批（X-MARKET-15）', escalate_rule: '仅可审批 pending_approval 采购单；DU 不可自批', enabled: true },
   { action_code: 'threshold_update', action_name: '采购单笔阈值配置', power_bit: 'govern', allow_hats: ['VXM', 'VEM', 'VDM'], forbid_hats: ['YU', 'EU', 'HU', 'TU', 'DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX', 'NONE'], tier: 'cloud', scope: 'platform', governance: '规则治理（X-MARKET-15）', escalate_rule: '', enabled: true },
+  // X-MARKET-16 执行帽穿透追责：履约作业由执行帽落地（办位纯动作）；DU 须以执行帽身份执行（服务端按订单域映射，客户端不可伪造）
+  { action_code: 'exec_fulfill', action_name: '作业履约执行（交付回执）', power_bit: 'operate', allow_hats: ['DYX', 'DHX', 'DTX', 'DEX', 'DCX'], forbid_hats: ['DU', 'XU', 'CU', 'VXM', 'VEM', 'VHM', 'VYM', 'VTM', 'VDM', 'NONE'], tier: 'edge', scope: 'booth', governance: '执行帽作业（X-MARKET-16 穿透追责）', escalate_rule: '审计 actor_user=真实登录人、actor_hat=域映射执行帽', enabled: true },
 ];
 
 /** 三权审计（本单建结构+写入通路；查询界面归 X-MARKET-13） */

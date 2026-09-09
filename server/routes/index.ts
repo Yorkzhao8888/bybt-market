@@ -11,11 +11,11 @@ import {
 import {
   getStore, nextSeq, containerById,
   inquiries, governanceCases, nextOrderCode, supplyContracts,
-  supplierApplications, supplierProducts, nextSupplierId,
+  supplierApplications, supplierProducts, nextSupplierId, nextFulfillId,
   marketPowerMap, marketPowerAudit, nextPowerAuditId, normalizePowerHat, governThresholds,
 } from '../store';
 import { createToken, getUserByToken, revokeToken, DEV_PASSWORD } from '../auth';
-import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth, SupplierApplication, SupplierProduct, SupplyMallItem, MarketPowerMapRow, MarketPowerAuditRow, PowerHat } from '../../shared/types';
+import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth, SupplierApplication, SupplierProduct, SupplyMallItem, MarketPowerMapRow, MarketPowerAuditRow, PowerHat, FulfillmentReceipt } from '../../shared/types';
 import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL, HAT_LINE_OF, HAT_POWER_BITS, type Inquiry } from '../../shared/types';
 
 const router = Router();
@@ -151,9 +151,10 @@ function powerAudit(row: MarketPowerMapRow | null, actionCode: string, req: Auth
 }
 
 // 返回 true=放行；false=已写 403 响应+审计。boothCode：能解析到的铺面码（booth_new/supplier_apply 无预存上下文传空）
-function checkPower(actionCode: string, req: AuthReq, res: AuthRes, boothCode = ''): boolean {
+function checkPower(actionCode: string, req: AuthReq, res: AuthRes, boothCode = '', actorHatOverride?: HatRole): boolean {
   const row = marketPowerMap.find((r) => r.action_code === actionCode) ?? null;
-  const actorHat = normalizePowerHat(req.user?.hatRole ?? '');
+  // X-MARKET-16 穿透追责：执行帽动作可传入域映射执行帽（服务端裁定，客户端不可伪造）；缺省仍按登录帽
+  const actorHat = actorHatOverride ?? normalizePowerHat(req.user?.hatRole ?? '');
   const deny = (detail: string): boolean => {
     powerAudit(row, actionCode, req, actorHat, boothCode, 'denied', detail);
     res.status(403).json({ success: false, error: detail });
@@ -799,6 +800,46 @@ api.post('/orders/:id/approval', requireAuth, (req: AuthReq, res) => {
     return;
   }
   ok(res, order);
+});
+
+// ================= X-MARKET-16 执行帽穿透追责：履约执行（办位，执行帽落地） ==================
+// 族 → 执行帽：E→DEX / H→DHX / Y→DYX / T→DTX / D-OFD→DCX / C(Mall)→DCX（服务端定帽，客户端不可伪造）
+const FAMILY_EXEC_HAT: Record<Order['family'], HatRole> = {
+  E: 'DEX', H: 'DHX', Y: 'DYX', T: 'DTX', D: 'DCX', C: 'DCX',
+};
+
+// 作业履约回执（Booth 实体系统接口契约）：请求可选 note；响应回执含 actor_user/actor_hat（与审计表同口径，下游可追溯到真实人）
+api.post('/orders/:id/fulfill', requireAuth, (req: AuthReq, res) => {
+  const order = getStore().orders.find((o) => o.id === req.params?.id);
+  if (!order) {
+    res.status(404).json({ success: false, error: '订单不存在' });
+    return;
+  }
+  // 执行帽是 DU 名下作业帽：履约执行须 DU 经营号发起（权属主体），服务端按订单族自动映射执行帽
+  if ((req.user?.hatRole ?? '') !== 'DU') {
+    res.status(403).json({ success: false, error: `履约执行须 DU 经营号发起（执行帽权属主体），当前帽 ${req.user?.hatRole ?? '匿名'} 无此办权（X-MARKET-16 执行帽穿透追责）` });
+    return;
+  }
+  // 业务状态先于权位闸门：状态不合规的请求不产生审计留痕（审计只记真实执行的写动作）
+  if (order.status !== 'pending') {
+    res.status(400).json({ success: false, error: `仅生效中（pending）订单可履约执行，当前状态 ${order.status}` });
+    return;
+  }
+  const execHat = FAMILY_EXEC_HAT[order.family] ?? 'DCX';
+  if (!checkPower('exec_fulfill', req, res, boothCodeOf(order.boothId), execHat)) return;
+  const { note } = (req.body ?? {}) as { note?: string };
+  const receipt: FulfillmentReceipt = {
+    id: nextFulfillId(),
+    order_id: order.id,
+    actor_user: req.user?.hatId ?? '',
+    actor_hat: execHat,
+    booth_code: boothCodeOf(order.boothId),
+    note: note?.trim() || `${execHat} 履约回执（交付确认，售后责任转移点）`,
+    ts: new Date().toISOString(),
+  };
+  order.status = 'fulfilling';
+  order.fulfillments = [...(order.fulfillments ?? []), receipt];
+  ok(res, { order, receipt });
 });
 
 // ================= 三流占位（订单流/资源流/资金流） ==================

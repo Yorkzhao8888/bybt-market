@@ -33,6 +33,9 @@ export default function OperatorDesk() {
   const [hats, setHats] = useState<HatRow[]>([]);
   const [inq, setInq] = useState<InquiryRow[]>([]);
   const [msg, setMsg] = useState('');
+  const [execMsg, setExecMsg] = useState('');
+  const [execErr, setExecErr] = useState('');
+  const [execBusy, setExecBusy] = useState(false);
 
   // 上新铺表单
   const [nDomain, setNDomain] = useState<DomainCode>('Y');
@@ -60,8 +63,27 @@ export default function OperatorDesk() {
   const procurement = orders.filter((o) => o.supplierId);
   const gmv = orders.reduce((sum, o) => sum + (o.amountCents ?? 0), 0);
   const procAmount = procurement.reduce((sum, o) => sum + (o.amountCents ?? 0), 0);
+  const fulfillable = orders.filter((o) => o.status === 'pending');
+  const receipts = orders
+    .flatMap((o) => (o.fulfillments ?? []).map((r) => ({ ...r, code: o.code, family: o.family })))
+    .sort((a, b) => (a.ts < b.ts ? 1 : -1));
   const containerName = (id: string): string => containers.find((u) => u.id === id)?.name ?? id;
   const hatOf = (id: string): HatRow | undefined => hats.find((h) => h.id === id);
+
+  const doFulfill = async (id: string): Promise<void> => {
+    setExecMsg('');
+    setExecErr('');
+    setExecBusy(true);
+    try {
+      const r = await api.fulfillOrder(id, '执行帽履约回执（交付确认，X-MARKET-16）');
+      setExecMsg(`回执 ${r.receipt.id}：操作者 ${r.receipt.actor_user} · 帽 ${r.receipt.actor_hat} · ${r.receipt.booth_code}`);
+      refresh();
+    } catch (e) {
+      setExecErr(e instanceof Error ? e.message : '履约执行失败');
+    } finally {
+      setExecBusy(false);
+    }
+  };
 
   const navs: { key: Section; label: string; icon: ReactNode }[] = [
     { key: 'overview', label: '经营总览', icon: <LayoutDashboard className="h-4 w-4" /> },
@@ -141,12 +163,9 @@ export default function OperatorDesk() {
           </p>
           <div className="space-y-1">
             <button onClick={() => setSec('exec')} className={navCls('exec')} style={sec === 'exec' ? { background: ACCENT } : undefined}>
-              <Boxes className="h-4 w-4" /> 履约衔接（DYX）
+              <Boxes className="h-4 w-4" /> 履约执行（DYX/DCX）
             </button>
-            <button onClick={() => setSec('exec')} className={navCls('exec')} style={sec === 'exec' ? { background: ACCENT } : undefined}>
-              <Store className="h-4 w-4" /> 门店销执行（DCX）
-            </button>
-            <p className="px-3 text-[10px] leading-relaxed text-[#a39b88]">仅展示入口与说明，操作归执行帽</p>
+            <p className="px-3 text-[10px] leading-relaxed text-[#a39b88]">作业以域映射执行帽落地，审计穿透真实登录人（X-MARKET-16）</p>
           </div>
         </aside>
 
@@ -187,18 +206,63 @@ export default function OperatorDesk() {
           )}
 
           {sec === 'exec' && (
-            <div className="rounded-xl border bg-white p-5" style={{ borderLeft: `4px solid ${POWER_BADGE.operate.color}` }}>
-              <p className="flex items-center gap-2 font-serif-display text-lg font-black">
-                <PowerBadge kind="operate" /> 作业执行（办）——执行帽作业层
-              </p>
-              <p className="mt-2 text-sm text-[#4a463c]">
-                办在端：履约与门店作业由执行帽落地——<b>DYX 履执行</b>（DE 交付/履约衔接，对应 X-OFD 履约中心）、
-                <b>DCX 销执行</b>（DC 门店销售作业，对应 X-Shop/X-Mall）。执行帽一一对应执行帽铺面（Booth-DYX/DHX/DTX/DEX/DCX），
-                作业在 Booth 实体系统完成；本台仅展示入口与说明，不做代操作。
-              </p>
-              <p className="mt-2 text-xs text-[#8a8577]">
-                三权口径：治在云（VXM/O*M 审批审计）· 管在端（DU 经营决策）· 办在端（执行帽作业）——DU 为经营号唯一主体，D*U 为主 DU 号上的分经营号。
-              </p>
+            <div className="space-y-4">
+              <div className="rounded-xl border bg-white p-5" style={{ borderLeft: `4px solid ${POWER_BADGE.operate.color}` }}>
+                <p className="flex items-center gap-2 font-serif-display text-lg font-black">
+                  <PowerBadge kind="operate" /> 作业执行（办）——执行帽作业层
+                </p>
+                <p className="mt-2 text-sm text-[#4a463c]">
+                  办在端：履约与门店作业由执行帽落地——<b>Y→DYX 履执行</b>、<b>H→DHX 人执行</b>、<b>T→DTX 技执行</b>、
+                  <b>E→DEX 物执行</b>（履约衔接，对应 X-OFD 履约中心）、<b>D/C→DCX 销执行</b>（门店销售作业，对应 X-Shop/X-Mall）。
+                  执行帽一一对应执行帽铺面（Booth-DYX/DHX/DTX/DEX/DCX）。
+                </p>
+                <p className="mt-2 text-xs text-[#8a8577]">
+                  穿透追责（X-MARKET-16）：本台履约回执由服务端按订单域自动映射执行帽（客户端不可伪造），审计记
+                  <b> actor_user（真实登录人）+ actor_hat（执行帽）</b>双字段，Booth 实体系统契约同字段可追溯。
+                </p>
+              </div>
+              <div className="rounded-xl border bg-white p-5">
+                <p className="font-serif-display text-lg font-black">履约执行 · 生效中订单（{fulfillable.length}）</p>
+                {execErr && <p className="mt-2 rounded bg-[#fdeaea] px-3 py-2 text-xs text-[#b4402e]">{execErr}</p>}
+                {execMsg && <p className="mt-2 rounded bg-[#e8f5ec] px-3 py-2 text-xs text-[#166534]">{execMsg}</p>}
+                <table className="mt-3 w-full text-sm">
+                  <thead><tr className="border-b text-left text-xs text-[#8a8577]"><th className="py-2">单号</th><th>摘要</th><th className="text-right">金额</th><th className="text-right">操作（办）</th></tr></thead>
+                  <tbody>
+                    {fulfillable.map((o) => (
+                      <tr key={o.id} className="border-b last:border-0">
+                        <td className="py-2 font-mono text-xs">{o.code}</td>
+                        <td className="max-w-[220px] truncate text-xs">{o.note}</td>
+                        <td className="text-right font-mono">{yuan(o.amountCents ?? 0)}</td>
+                        <td className="text-right">
+                          <button onClick={() => doFulfill(o.id)} disabled={execBusy} className="rounded px-2.5 py-1 text-xs font-semibold text-white disabled:opacity-50" style={{ background: POWER_BADGE.operate.color }}>
+                            履约回执
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {fulfillable.length === 0 && <tr><td colSpan={4} className="py-4 text-center text-xs text-[#8a8577]">暂无生效中（pending）订单</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+              <div className="rounded-xl border bg-white p-5">
+                <p className="font-serif-display text-lg font-black">履约回执清单（Booth 契约留痕）</p>
+                <table className="mt-3 w-full text-sm">
+                  <thead><tr className="border-b text-left text-xs text-[#8a8577]"><th className="py-2">回执号</th><th>单号</th><th>真实登录人</th><th>执行帽</th><th>铺面</th><th className="text-right">时间</th></tr></thead>
+                  <tbody>
+                    {receipts.map((f) => (
+                      <tr key={f.id} className="border-b last:border-0">
+                        <td className="py-2 font-mono text-xs">{f.id}</td>
+                        <td className="font-mono text-xs">{f.code}</td>
+                        <td className="text-xs font-semibold">{f.actor_user}</td>
+                        <td><span className="rounded bg-[#e3edfb] px-1.5 py-0.5 text-[11px] font-bold text-[#1d4ed8]">{f.actor_hat}</span></td>
+                        <td className="font-mono text-xs">{f.booth_code}</td>
+                        <td className="text-right text-xs text-[#8a8577]">{new Date(f.ts).toLocaleString('zh-CN')}</td>
+                      </tr>
+                    ))}
+                    {receipts.length === 0 && <tr><td colSpan={6} className="py-4 text-center text-xs text-[#8a8577]">暂无回执</td></tr>}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 

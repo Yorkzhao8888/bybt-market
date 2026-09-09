@@ -276,6 +276,21 @@ export interface Order {
   supplierId?: string;
   /** X-MARKET-15：治理审批意见（批准/驳回理由；pending_approval 单审批后回填） */
   approvalNote?: string;
+  /** X-MARKET-16：执行帽履约回执（Booth 实体系统契约：actor_user/actor_hat 穿透追责，snake_case 与审计对齐） */
+  fulfillments?: FulfillmentReceipt[];
+}
+
+/** X-MARKET-16 执行帽履约回执（Booth 实体系统接口契约层：任何作业动作可追溯真实登录人+执行帽） */
+export interface FulfillmentReceipt {
+  id: string; // fr-1 自增
+  order_id: string;
+  /** 真实登录人（DU 账号 hatId，穿透字段） */
+  actor_user: string;
+  /** 实际执行帽（按订单域映射 DYX/DHX/DTX/DEX/DCX，非登录帽 DU） */
+  actor_hat: HatRole;
+  booth_code: string;
+  note: string;
+  ts: string;
 }
 
 /** 订单装饰行（/api/orders 返回：附带 booth/listing/买卖方名称） */
