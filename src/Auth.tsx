@@ -7,7 +7,7 @@ interface AuthCtx {
   user: SessionUser | null;
   loading: boolean;
   isAuthed: boolean;
-  login: (account: string, password: string, entry?: 'C' | 'B') => Promise<void>;
+  login: (account: string, password: string, entry?: 'C' | 'B') => Promise<SessionUser>;
   oneClick: (entry: 'C' | 'B') => Promise<void>;
   loginDemo: (demoId: string) => Promise<SessionUser>;
   logout: () => Promise<void>;
@@ -45,10 +45,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, [clear]);
 
-  const login = useCallback(async (account: string, password: string) => {
+  const login = useCallback(async (account: string, password: string): Promise<SessionUser> => {
     const res = await api.login({ account, password });
     setToken(res.token);
     setUser(res.user);
+    return res.user;
   }, []);
 
   const oneClick = useCallback(async (_entry: 'C' | 'B') => {
