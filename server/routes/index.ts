@@ -15,7 +15,7 @@ import {
   marketPowerMap, marketPowerAudit, nextPowerAuditId, normalizePowerHat,
 } from '../store';
 import { createToken, getUserByToken, revokeToken, DEV_PASSWORD } from '../auth';
-import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth, SupplierApplication, SupplierProduct, SupplyMallItem, MarketPowerMapRow, PowerHat } from '../../shared/types';
+import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth, SupplierApplication, SupplierProduct, SupplyMallItem, MarketPowerMapRow, MarketPowerAuditRow, PowerHat } from '../../shared/types';
 import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL, HAT_LINE_OF, HAT_POWER_BITS, type Inquiry } from '../../shared/types';
 
 const router = Router();
@@ -1023,14 +1023,94 @@ api.get('/power/audit', requireAuth, (req: AuthReq, res) => {
   // 治位帽（V*M/VXM）见全量审计；其余身份仅见本人（actor_user）动作留痕（X-MARKET-13：本人口径，含 denied 越权尝试）
   const isGovern = (HAT_POWER_BITS[hat] ?? []).includes('govern');
   const base = isGovern ? marketPowerAudit : marketPowerAudit.filter((a) => a.actor_user === user.hatId);
-  // 可选筛选（X-MARKET-13）：action=动作码 / result=allowed|denied；无参行为不变
+  // 可选筛选（X-MARKET-13）：action=动作码 / result=allowed|denied；可选时间窗 timeFrom/timeTo（毫秒，X-MARKET-14）；无参行为不变
   const query = req.query ?? {};
   const action = typeof query.action === 'string' ? query.action : '';
   const result = typeof query.result === 'string' ? query.result : '';
+  const timeFrom = typeof query.timeFrom === 'string' && query.timeFrom !== '' ? Number(query.timeFrom) : 0;
+  const timeTo = typeof query.timeTo === 'string' && query.timeTo !== '' ? Number(query.timeTo) : Number.MAX_SAFE_INTEGER;
+  const from = Number.isFinite(timeFrom) ? timeFrom : 0;
+  const to = Number.isFinite(timeTo) ? timeTo : Number.MAX_SAFE_INTEGER;
   const rows = base
     .filter((a) => (action ? a.action_code === action : true))
-    .filter((a) => (result === 'allowed' || result === 'denied' ? a.result === result : true));
+    .filter((a) => (result === 'allowed' || result === 'denied' ? a.result === result : true))
+    .filter((a) => {
+      const t = Date.parse(a.ts);
+      return Number.isFinite(t) && t >= from && t <= to;
+    });
   ok(res, rows);
+});
+
+// X-MARKET-14 治-管-办运行看板聚合（治位帽 only；数据同源 marketPowerAudit 审计表 + 供应商/货品业务 store）
+api.get('/power/dashboard', requireAuth, (req: AuthReq, res) => {
+  const hat = normalizePowerHat(roleOf(req.user!));
+  const isGovern = (HAT_POWER_BITS[hat] ?? []).includes('govern');
+  if (!isGovern) {
+    res.status(403).json({ success: false, error: `三权运行看板属治位（云审批评估）查询，帽 ${hat} 无此权（需 VXM/VEM/VDM）` });
+    return;
+  }
+  const now = Date.now();
+  const d7 = now - 7 * 24 * 3600 * 1000;
+  const d30 = now - 30 * 24 * 3600 * 1000;
+  const allowedRows = marketPowerAudit.filter((a) => a.result === 'allowed');
+  const volOf = (rows: MarketPowerAuditRow[]) => ({
+    govern: rows.filter((a) => a.power_bit === 'govern').length,
+    manage: rows.filter((a) => a.power_bit === 'manage').length,
+    operate: rows.filter((a) => a.power_bit === 'operate').length,
+  });
+  const volume = volOf(allowedRows);
+  const volume7d = volOf(allowedRows.filter((a) => { const t = Date.parse(a.ts); return Number.isFinite(t) && t >= d7; }));
+  const volume30d = volOf(allowedRows.filter((a) => { const t = Date.parse(a.ts); return Number.isFinite(t) && t >= d30; }));
+
+  // 审批时效：已裁决供应商申请（approved/rejected）的 createdAt → 最近一次 allowed 评估审计 ts
+  const evaluateTs = allowedRows
+    .filter((a) => a.action_code === 'supplier_evaluate')
+    .map((a) => Date.parse(a.ts))
+    .filter((t) => Number.isFinite(t))
+    .sort((x, y) => x - y);
+  const approveHours: number[] = [];
+  const rejectHours: number[] = [];
+  for (const app of supplierApplications) {
+    if (app.status !== 'approved' && app.status !== 'rejected') continue;
+    const created = Date.parse(app.createdAt);
+    if (!Number.isFinite(created)) continue;
+    const done = [...evaluateTs].reverse().find((t) => t >= created);
+    if (done === undefined) continue;
+    const hours = Math.max(0, Math.round(((done - created) / 3600000) * 10) / 10);
+    if (app.status === 'approved') approveHours.push(hours);
+    else rejectHours.push(hours);
+  }
+  const avgOf = (arr: number[]): number | null => (arr.length === 0 ? null : Math.round((arr.reduce((s, v) => s + v, 0) / arr.length) * 10) / 10);
+
+  // 审计覆盖度：审计表出现过的动作数 / 三权映射写入口总数
+  const auditedCodes = new Set(marketPowerAudit.map((a) => a.action_code));
+  const coverage = {
+    audited: auditedCodes.size,
+    total: marketPowerMap.length,
+    percent: marketPowerMap.length === 0 ? 0 : Math.round((auditedCodes.size / marketPowerMap.length) * 100),
+  };
+
+  // 待办队列：待评估申请 / 在架货品（可治理对象）/ 治理下架累计
+  const todo = {
+    pendingReviews: supplierApplications.filter((a) => a.status === 'pending').length,
+    listedProducts: supplierProducts.filter((p) => p.status === 'on').length,
+    governedCount: marketPowerAudit.filter((a) => a.action_code === 'product_govern_remove' && a.result === 'allowed').length,
+  };
+
+  ok(res, {
+    volume,
+    volume7d,
+    volume30d,
+    timeliness: {
+      approveAvgHours: avgOf(approveHours),
+      rejectAvgHours: avgOf(rejectHours),
+      approveCount: approveHours.length,
+      rejectCount: rejectHours.length,
+    },
+    coverage,
+    todo,
+    generatedAt: new Date().toISOString(),
+  });
 });
 
 router.use('/api', api);

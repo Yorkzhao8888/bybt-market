@@ -486,6 +486,22 @@ export interface MarketPowerAuditRow {
   ts: string;
 }
 
+/** X-MARKET-14 治-管-办运行看板聚合（治位帽 only；数据同源审计表 + 业务 store） */
+export interface PowerDashboard {
+  volume: { govern: number; manage: number; operate: number };
+  volume7d: { govern: number; manage: number; operate: number };
+  volume30d: { govern: number; manage: number; operate: number };
+  timeliness: {
+    approveAvgHours: number | null;
+    rejectAvgHours: number | null;
+    approveCount: number;
+    rejectCount: number;
+  };
+  coverage: { audited: number; total: number; percent: number };
+  todo: { pendingReviews: number; listedProducts: number; governedCount: number };
+  generatedAt: string;
+}
+
 /** 帽-权位矩阵（HAT_MATRIX）：交叉校验 market_power_map.allow_hats 的一致性 */
 export const HAT_POWER_BITS: Record<PowerHat, PowerBit[]> = {
   VXM: ['govern'], VEM: ['govern'], VHM: ['govern'], VYM: ['govern'], VTM: ['govern'], VDM: ['govern'],

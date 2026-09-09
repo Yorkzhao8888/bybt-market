@@ -9,6 +9,7 @@ import { useAuth } from '../Auth';
 import { colorOf, marketLabel, hatLabel, workbenchThemeOf } from '../lib/domain';
 import type { SupplierApplication, SupplierProduct } from '../../shared/types';
 import PowerAuditList from '../components/PowerAuditList';
+import PowerDashboardBoard from '../components/PowerDashboard';
 import PowerBadge from '../components/PowerBadge';
 
 const PURPLE = '#6d28d9';
@@ -285,7 +286,9 @@ export default function Govern() {
             </Section>
           )}
           {sec === 'data' && (
-            <Section icon={<Database className="h-5 w-5" />} title="全局数据 · 交易总账" sub="V*M 全域订单总账（服务端按身份下发）；资金流三段 XCASE→ERP→X-FIN">
+            <div className="space-y-4">
+              <PowerDashboardBoard />
+              <Section icon={<Database className="h-5 w-5" />} title="全局数据 · 交易总账" sub="V*M 全域订单总账（服务端按身份下发）；资金流三段 XCASE→ERP→X-FIN">
               <div className="overflow-x-auto">
                 <table className="ticker-font w-full min-w-[560px] text-left text-xs">
                   <thead><tr className="border-b text-[#8a8577]"><th className="py-2">单号</th><th>族</th><th>买方</th><th>卖方</th><th className="text-right">金额</th><th className="text-right">状态</th></tr></thead>
@@ -304,7 +307,8 @@ export default function Govern() {
                   </tbody>
                 </table>
               </div>
-            </Section>
+              </Section>
+            </div>
           )}
         </main>
       </div>

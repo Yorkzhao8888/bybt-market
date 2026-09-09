@@ -2,7 +2,7 @@
 // 视图类型统一从 shared/types 导入（单一来源），client 只做别名与请求封装
 import type {
   BoothRow, Container, DemoAccount, DomainCode, DomainMeta, GovernanceCase, HatLine, HatRow, Inquiry, JobSystem,
-  Listing, MarketPowerAuditRow, Order, OrderRow, ProfessionalMarket, SessionUser, SupplyContract, SupplierApplication,
+  Listing, MarketPowerAuditRow, Order, OrderRow, PowerDashboard, ProfessionalMarket, SessionUser, SupplyContract, SupplierApplication,
   SupplierProduct, SupplyMallItem, Unit, HatRole,
 } from '../../shared/types';
 
@@ -192,4 +192,6 @@ export const api = {
     const qs = p.toString();
     return req<MarketPowerAuditRow[]>(`/api/power/audit${qs ? `?${qs}` : ''}`);
   },
+  // X-MARKET-14 治-管-办运行看板聚合（治位帽 only；403 带权位口径）
+  powerDashboard: () => req<PowerDashboard>('/api/power/dashboard'),
 };
