@@ -977,6 +977,23 @@ api.post('/supply/products/:id/toggle', requireAuth, (req: AuthReq, res) => {
   ok(res, prod);
 });
 
+// 治理下架（V*M 治理台调用）：三权映射 product_govern_remove（治位专属）；仅下架，不代供给方重新上架
+api.post('/supply/products/:id/take-down', requireAuth, (req: AuthReq, res) => {
+  const user = req.user!;
+  const prod = supplierProducts.find((p) => p.id === req.params?.id);
+  if (!prod) {
+    res.status(404).json({ success: false, error: '货品不存在' });
+    return;
+  }
+  if (!checkPower('product_govern_remove', req, res, boothCodeOf(prod.boothId))) return;
+  if (prod.status !== 'on') {
+    res.status(403).json({ success: false, error: '货品已下架，重新上架须由供给方本人操作' });
+    return;
+  }
+  prod.status = 'off';
+  ok(res, prod);
+});
+
 // DU 采购商城：合格供应商 + 在架货品（仅 DU 经营线下发；客户/匿名 → 隔离提示）
 api.get('/supply/mall', requireAuth, (req: AuthReq, res) => {
   const user = req.user!;
