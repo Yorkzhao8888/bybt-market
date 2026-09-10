@@ -1,4 +1,4 @@
-// X-MARKET-ROLE-01 A3/A5：X-Supply 四源治理台（V*M 家族分源治理 + VXM 统筹）
+// X-MARKET-ROLE-01 A3/A5：X-Supply 管家审批台（X-MARKET-18 域内口径：V*M 家族分源审批 + VMX 统筹）
 // 口径：VEM 治 E 源（EU）/ VYM 治 Y 源（YU）/ VHM 治 H 源（HU）/ VTM 治 T 源（TU），各自治理本源准入；
 // VXM（云中心）全域统筹 + 大额采购升级审批（X-MARKET-15）+ 阈值配置；VDM 归 market 经营治理（/govern），不越界。
 // 数据层：xSupplyApi.govern（req 原语直调，依赖单向白名单）；后端已按域过滤/校验（家族仅见本源数据）。
@@ -20,7 +20,7 @@ const PURPLE_SOFT = '#f1eafd';
 function governScopeLabel(hatRole: string): string {
   const dom = supplyGovernDomainOf(hatRole as never);
   if (hatRole === 'VXM') return '云中心统筹 · 四源全域';
-  return dom ? `四源治理 · ${dom} 源（本源准入与货品治理）` : '四源治理';
+  return dom ? `管家审批 · ${dom} 源（域内准入与货品审批）` : '管家审批（域内）';
 }
 
 export function SupplyGovernDesk() {
@@ -132,7 +132,7 @@ export function SupplyGovernDesk() {
           </h2>
           <p className="mt-1 text-xs text-[#6b675f]">
             {governScopeLabel(hatRole)}
-            {govDomain ? ` · 域 ${govDomain}` : ''} · VDM 归 market 经营治理（/govern），四源治理互不越界
+            {govDomain ? ` · 域 ${govDomain}` : ''} · VDM 归 market 经营治理（/govern），域内管家审批互不越界（X-MARKET-18）
           </p>
         </div>
         <PowerBadge kind="govern" />

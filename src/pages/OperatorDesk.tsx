@@ -10,7 +10,7 @@ import { api, type MarketGroup, type OrderRow } from '../api/client';
 import type { BoothRow, SupplyContract, InquiryRow, Container, HatRow, DomainCode, BoothKind, Listing } from '../../shared/types';
 import { useAuth } from '../Auth';
 import { colorOf, canOpenMarket, workbenchOf, WORKBENCH_THEME, POWER_BADGE, orderStatusMeta, EXEC_ACCENT } from '../lib/domain';
-import { duChildTermOf } from '../lib/terminology';
+import { duChildTermOf, duChildBadgeTextOf, duChildDomainsOf } from '../lib/terminology';
 import InquiryList from '../components/InquiryList';
 import PowerAuditList from '../components/PowerAuditList';
 import PowerBadge from '../components/PowerBadge';
@@ -143,9 +143,18 @@ export default function OperatorDesk() {
               </span>
               <p className="font-serif-display text-2xl font-black">{greeting}，{user?.containerName ?? cid}</p>
             </div>
-            <p className="mt-1 text-sm text-[#6b665a]">
-              {duChildTermOf(user?.domainView)}（分经营号）· {user?.hatId ?? role} · 名下铺面 {myStores.map((b) => b.code).join(' / ') || '—'} · 交易单向：唯一可与供给方交易的主体
+            <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-[#6b665a]">
+              {/* X-MARKET-19 复合经营：多挂 *DU 分经营号徽章组（按域呈现经营端归属），无多挂回退单域口径 */}
+              {duChildBadgeTextOf(user?.duChildDomains) ? (
+                duChildDomainsOf(user?.duChildDomains).map((b) => (
+                  <span key={b.domain} className="rounded border px-1.5 py-0.5 text-[11px] font-semibold" style={{ borderColor: ACCENT, color: ACCENT }}>{b.term}</span>
+                ))
+              ) : (
+                <span>{duChildTermOf(user?.domainView)}（分经营号）</span>
+              )}
+              <span>· {user?.hatId ?? role} · 名下铺面 {myStores.map((b) => b.code).join(' / ') || '—'}</span>
             </p>
+            <p className="mt-0.5 text-xs text-[#a39b88]">交易单向：唯一可与供给方交易的主体 · 复合经营核算按 *DU 分经营号维度呈现（X-MARKET-19）；权限复用 DU 单帽三权链，不重复加帽；ERP 只认 DU 主经营号（ERP-HAT-01 边界）</p>
           </div>
           <Link to="/operator/mobile" className="flex items-center gap-1.5 rounded-lg border-2 px-3 py-2 text-sm font-bold transition hover:-translate-y-0.5" style={{ borderColor: EXEC_ACCENT, color: EXEC_ACCENT }}>
             <Smartphone className="h-4 w-4" /> 手机作业端
@@ -202,7 +211,7 @@ export default function OperatorDesk() {
             <button onClick={() => setSec('exec')} className={navCls('exec')} style={sec === 'exec' ? { background: ACCENT } : undefined}>
               <Boxes className="h-4 w-4" /> 履约执行（YDX/CDX）
             </button>
-            <p className="px-3 text-[10px] leading-relaxed text-[#a39b88]">作业以域映射执行帽落地，审计穿透真实登录人（X-MARKET-16）</p>
+            <p className="px-3 text-[10px] leading-relaxed text-[#a39b88]">作业以域映射执行帽（*DX 展示名 YDX/CDX 等）落地，审计穿透真实登录人（X-MARKET-16）；执行双线 *MX/*DX 验证中（X-MARKET-17，本期不迁移）</p>
           </div>
         </aside>
 
@@ -247,7 +256,7 @@ export default function OperatorDesk() {
                 <p className="mt-2 text-sm text-[#4a463c]">
                   办在端：履约与门店作业由执行细化层（*DX）落地——<b>Y→YDX 履执行</b>、<b>H→HDX 人执行</b>、<b>T→TDX 技执行</b>、
                   <b>E→EDX 物执行</b>（履约衔接，对应 X-OFD 履约中心）、<b>D/C→CDX 销执行</b>（门店销售作业，对应 X-Shop/X-Mall）。
-                  执行双线：*MXX 运营（L2）· *DX 业务细化（L1）一一对应执行铺面（展示名口径，Booth 码与帽 ID 不变）。
+                  执行双线（X-MARKET-17 验证结论：*MX 域内运营执行 L2 与 *DX 业务执行 L1 分工成立，本期先验证不迁移）：*MXX 运营（L2）· *DX 业务细化（L1）一一对应执行铺面；D*X 单帽（DYX/DHX/DTX/DEX/DCX）保持办位标注（展示名口径，Booth 码与帽 ID 不变）。
                 </p>
                 <p className="mt-2 text-xs text-[#8a8577]">
                   穿透追责（X-MARKET-16）：本台履约回执由服务端按订单域自动映射执行帽（客户端不可伪造），审计记

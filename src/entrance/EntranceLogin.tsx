@@ -119,7 +119,7 @@ export default function EntranceLogin() {
               value={account}
               onChange={(e) => setAccount(e.target.value)}
               list="xm-entrance-accounts"
-              placeholder={isPersonal ? '如 xiaolin / xu-huadong' : '如 du-hehe / eu-qiuchen / vxm-cloud'}
+              placeholder={isPersonal ? '如 xiaolin / xu-huadong' : '如 du-hehe / eu-qiuchen / vmx-cloud'}
               className="w-full rounded-md border border-[#e4ded2] px-3 py-2 text-sm outline-none focus:border-[#b8862b]"
             />
             <datalist id="xm-entrance-accounts">

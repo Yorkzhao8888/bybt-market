@@ -126,16 +126,16 @@ export const canOpenMarket = (
 };
 
 /* ============ X-MARKET-09 四类角色工作台 ============ */
-/** X-MARKET-ROLE-01 工作台五类：governSupply=四源治理（V*M 家族，supply 面）；govern=经营治理（VDM 专属，market 面） */
+/** X-MARKET-ROLE-01 工作台五类：governSupply=域内管家审批（V*M 家族，supply 面，X-MARKET-18）；govern=经营治理（VDM 专属，market 面） */
 export type WorkbenchKind = 'client' | 'supplier' | 'operator' | 'govern' | 'governSupply';
 
 const WORKBENCH_SUPPLY_HATS = ['EU', 'HU', 'YU', 'TU', 'EX', 'EXX'];
 const WORKBENCH_OPERATOR_HATS = ['DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX'];
-/** V*M 四源治理家族：落 supply 治理视图（VEM/VYM/VHM/VTM 各治本源，VXM 统筹全域） */
+/** V*M 管家审批家族（X-MARKET-18 域内口径）：落 supply 审批视图（VEM/VYM/VHM/VTM 各审本源，VMX 统筹全域） */
 const WORKBENCH_GOVERN_SUPPLY_HATS = ['VXM', 'VEM', 'VHM', 'VYM', 'VTM'];
 
 /* ============ X-MARKET-ROLE-01 治理分线（前端口径，与 server/domainConfig 对齐） ============ */
-/** 四源治理家族 → 本源域映射（VEM 治 E/VYM 治 Y/VHM 治 H/VTM 治 T）；VXM 统筹全域返回 null；VDM 归 market 经营治理 */
+/** 管家审批家族 → 本源域映射（X-MARKET-18：VEM 审 E/VYM 审 Y/VHM 审 H/VTM 审 T）；VMX 统筹全域返回 null；VDM 归 market 经营治理 */
 const GOVERN_SUPPLY_DOMAIN_OF: Partial<Record<string, string>> = { VEM: 'E', VYM: 'Y', VHM: 'H', VTM: 'T' };
 export const supplyGovernDomainOf = (role: string | null | undefined): string | null =>
   role ? GOVERN_SUPPLY_DOMAIN_OF[role] ?? null : null;
@@ -176,9 +176,9 @@ export const WORKBENCH_THEME: Record<WorkbenchKind, WorkbenchTheme> = {
   client: { kind: 'client', label: '客户工作台', accent: '#1D4ED8', accentSoft: '#e8eefb', accentText: '#1e40af', desc: '采购信任 · 浏览引导' },
   supplier: { kind: 'supplier', label: '供应商工作台', accent: '#15803D', accentSoft: '#e8f5ec', accentText: '#166534', desc: '源头供给 · 业务操作' },
   operator: { kind: 'operator', label: '经营者工作台', accent: '#B45309', accentSoft: '#fbf0e0', accentText: '#92400e', desc: '经营活力 · 驾驶舱' },
-  // X-MARKET-ROLE-01 治理分线：govern=VDM 经营治理（market 面）；governSupply=V*M 家族四源治理（supply 面）
+  // X-MARKET-ROLE-01 治理分线：govern=VDM 经营治理（market 面）；governSupply=V*M 家族域内管家审批（supply 面，X-MARKET-18）
   govern: { kind: 'govern', label: '经营治理工作台', accent: '#6D28D9', accentSoft: '#f0e9fc', accentText: '#5b21b6', desc: '经营管理治理 · 市场秩序/全局总账' },
-  governSupply: { kind: 'governSupply', label: '四源治理工作台', accent: '#6D28D9', accentSoft: '#f0e9fc', accentText: '#5b21b6', desc: 'V*M 家族 · 四源准入/货品治理' },
+  governSupply: { kind: 'governSupply', label: '管家审批工作台', accent: '#6D28D9', accentSoft: '#f0e9fc', accentText: '#5b21b6', desc: 'V*M 家族 · 域内管家审批（准入/货品/大额，X-MARKET-18）' },
 };
 
 export const workbenchThemeOf = (role: string | null | undefined): WorkbenchTheme =>
@@ -224,11 +224,11 @@ export interface PowerBadgeMeta {
 
 export const POWER_BADGE: Record<PowerKind, PowerBadgeMeta> = {
   govern: {
-    short: '治',
-    text: '云审批',
+    short: '审',
+    text: '管家审批（域内）',
     color: '#6D28D9',
     bg: '#F0E9FC',
-    desc: '治在云：VXM/O*M 审批审计（只审不落：评估≠下单、治理下架≠经营）',
+    desc: '审在云：V*M 管家审批（域内审批，X-MARKET-18；总级治理归 OAS O*M——VMX 总运执行归 OVM、FMX 总财执行归 OFM）。只审不落：评估≠下单、治理下架≠经营',
   },
   manage: {
     short: '管',

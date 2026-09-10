@@ -377,6 +377,7 @@ export interface SessionUser {
   hat: string; // 显示名
   domainView?: DomainCode; // 登录落到对应域视角
   boothTarget?: string; // 登录后落到的 Booth
+  duChildDomains?: string[]; // X-MARKET-19 复合经营：DU 多挂 *DU 分经营号域列表（纯展示/核算维度，权限链复用 DU 单帽，ERP 只认 DU 主经营号 ERP-HAT-01）
   nologin?: boolean;
 }
 
@@ -390,6 +391,7 @@ export interface DemoAccount {
   label: string;       // 展示名
   domainView?: DomainCode;
   boothTarget?: string;
+  duChildDomains?: string[]; // X-MARKET-19 复合经营：DU 多挂 *DU 分经营号域列表（展示/核算复合维度）
   note: string;
 }
 

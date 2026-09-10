@@ -15,11 +15,12 @@ export interface TermPair {
 /** 角色/身份称呼映射 */
 export const ROLE_TERMS: Record<string, TermPair> = {
   DU: { big: '店主', sys: '经营者 DU' },
-  VXM: { big: '平台监管', sys: '治理者 VXM' },
-  VEM: { big: '平台监管', sys: '治理者 VEM' },
-  VHM: { big: '平台监管', sys: '治理者 VHM' },
-  VYM: { big: '平台监管', sys: '治理者 VYM' },
-  VTM: { big: '技术运营管理', sys: 'VTM · 兼任白名单' },
+  // X-MARKET-18 治理帽语义对齐：管家审批（域内审批仍 V*M 系）；VXM→VMX（总运执行归 OVM）、FMX 总财执行归 OFM（预留）
+  VXM: { big: '管家审批统筹', sys: 'VMX · 总运执行（归 OVM）' },
+  VEM: { big: '管家审批', sys: 'EMX · 管家审批（域内）' },
+  VHM: { big: '管家审批', sys: 'HMX · 管家审批（域内）' },
+  VYM: { big: '管家审批', sys: 'YMX · 管家审批（域内）' },
+  VTM: { big: '管家审批', sys: 'TMX · 技术运营管理（白名单兼任，域内）' },
   VDM: { big: '经营监管', sys: '治理者 VDM' },
   OU: { big: '组织运营', sys: '组织帽 OU' },
   XU: { big: '采购方', sys: '企业客户 XU' },
@@ -64,6 +65,7 @@ export const CONCEPT_TERMS: Record<string, TermPair> = {
   /* X-SUPPLY-02 供给单体系 */
   supplyOrder: { big: '供货单', sys: 'X-Supply 供给单 XS' },
   supplyInbox: { big: '供货收件箱', sys: '供给方收件（仅本铺）' },
+  fmx: { big: '总财执行', sys: 'FMX · 归 OFM（X-MARKET-18 预留概念，不建真帽）' },
   /* X-MARKET-ROLE-01 角色界面归位（A 批） */
   duChild: { big: '店主', sys: '*DU · 分经营号' },
   /* V/D 双系定位（2026-09-10 补充澄清）：V 系=生态方（平台方）运营，D 系=经营体系 */
@@ -91,6 +93,16 @@ export const DU_CHILD_BY_DOMAIN: Record<string, string> = {
 /** 分经营号展示：有域视角给范畴形式（如 EDU · 产品经营），无域兜底通用 *DU · 分经营号（模板总称） */
 export const duChildTermOf = (domainView: string | null | undefined): string =>
   (domainView && DU_CHILD_BY_DOMAIN[domainView]) || '*DU · 分经营号';
+
+/** X-MARKET-19 复合经营：DU 多挂 *DU 分经营号域列表 → 徽章组（纯展示/核算维度；权限链复用 DU 单帽三权 checkPower/审计，不重复加帽） */
+export interface DuChildBadge { domain: string; term: string }
+
+export const duChildDomainsOf = (domains?: string[] | null): DuChildBadge[] =>
+  (domains ?? []).filter((d): d is string => !!d && !!DU_CHILD_BY_DOMAIN[d]).map((d) => ({ domain: d, term: DU_CHILD_BY_DOMAIN[d] }));
+
+/** 复合经营号串（多挂给「EDU · 产品经营 / HDU · 人资经营」式串），无多挂回空串（调用方回退 duChildTermOf 单域口径） */
+export const duChildBadgeTextOf = (domains?: string[] | null): string =>
+  duChildDomainsOf(domains).map((b) => b.term).join(' / ');
 
 /** V/D 双系定位（命名体系 v1.2）：V 系列=生态方（平台方）运营体系（VU 总运营 → V*U 域运营分身）；D 系列=经营体系。V 系无 VTU/VOU——技术域运营由 VTM（技术运营管理）兼任白名单承担 */
 export const VU_CHILD_BY_DOMAIN: Record<string, string> = {

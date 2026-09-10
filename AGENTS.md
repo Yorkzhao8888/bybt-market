@@ -193,6 +193,13 @@
 - **落点函数**：`entrance.ts roleHomeOf(u)`=（entry==='C' 且 workbenchOf='client' → '/mall'，否则 WORKBENCH_HOME[workbenchOf]）——V3 映射：du-hehe→/operator、vxm-cloud→/supply、vdm→/govern、xu-huadong→/market、xiaolin→/mall。
 - **回归口径（冒烟全绿）**：SPA 十路由（/entrance /entrance/login /entrance/role /market /mall /operator /govern /supply /login /）全 200；五角色 oneclick /api/orders 全 200（du-hehe/eu-qiuchen/xu-huadong/xiaolin/vxm-cloud）；overview/demos/me 200；lint+ts-check 一次过。
 
+## X-MARKET-19/17/18：复合经营 + 执行双线验证 + 治理帽语义对齐（2026-09-10）
+
+- **X-MARKET-19（P0 复合经营 D*U 多挂）**：`SessionUser`/`DemoAccount` 加可选 `duChildDomains?: string[]`（shared/types.ts，向后兼容扩展）；`buildSession` 透出；demo `du-hehe` 配五域多挂 `['Y','H','T','DE','C']`（对应五类经营实体铺 DY/DH/DT/DE/DC）。`terminology.ts` 加 `DuChildBadge`/`duChildDomainsOf`/`duChildBadgeTextOf`（过滤未识别域；无多挂回空串由调用方回退单域 `duChildTermOf`）。展示点：Header operator 徽标第二行复合串（EDU · 产品经营 / HDU · 人资经营 / …）、OperatorDesk 欢迎区分经营号徽章组+「复合经营核算按 *DU 分经营号维度呈现」说明行。**权限链不重复加帽**：多挂纯展示/核算维度，三权 checkPower/审计仍按 DU 单帽；**ERP-HAT-01 边界声明**：ERP 只认 DU 主经营号（OperatorDesk 欢迎区+types 注释落字）。
+- **X-MARKET-17（P1 执行双线验证，不迁移）**：验证结论=***MX 域内运营执行 L2 与 *DX 业务执行 L1 分工成立，本期先验证不迁移***。D*X 单帽（DYX/DHX/DTX/DEX/DCX）保持办位标注。落点：entrance.ts ROLE_BRIEF 五执行帽 duty 改「业务执行（*DX·L1）：…（办位）」；OperatorDesk exec 卡与侧栏小字补双线验证结论（*MXX 运营 L2 / *DX 业务 L1 一一对应执行铺面；展示名口径，Booth 码与帽 ID 不变）。
+- **X-MARKET-18（P1 治理帽语义对齐，含 VXM→VMX）**：治理者工作台定位「治理者（VXM）」→「管家审批（V*M，域内审批）」。terminology ROLE_TERMS：VXM{big:'管家审批统筹',sys:'VMX · 总运执行（归 OVM）'}；VEM/VHM/VYM sys=「EMX/HMX/YMX · 管家审批（域内）」；VTM sys=「TMX · 技术运营管理（白名单兼任，域内）」；CONCEPT_TERMS.fmx{big:'总财执行',sys:'FMX · 归 OFM（预留概念，不建真帽）'}。POWER_BADGE.govern：short'治'→'审'、text'云审批'→'管家审批（域内）'、desc 补总级归 OAS O*M（VMX 归 OVM/FMX 归 OFM）。WORKBENCH_THEME.governSupply.label '四源治理工作台'→'管家审批工作台'。demo 账号 **vxm-cloud→vmx-cloud**（id 替换、数组索引不变、DEMO_ROUTE.VXM 仍 demoAccounts[12]）、label'管家审批统筹 VMX'、unit u-vxm1 name'管家审批统筹（总运执行 VMX）'；四家族 demo label/note 改管家审批域内口径。store.ts 四个治理行（supplier_evaluate/product_govern_remove/order_approval/threshold_update）governance 字段追加「V*U 平台方监管系 VEU/VYU/VHU/VTU/VCU+VDU 全域壳 · 域内审批记 V*M 管家帽，总级归 O*M」——**allow_hats 不动**（V*U 非真帽不入 allow）。governor/actor_hat 语义现状已正确：域内审批审计记 V*M 登录帽原文，不新建 O*M 帽。UI 文案对齐：SupplyGovernDesk 标题/边界、Govern 归口文案、routes 三处 403 文案（cases/supply applications/supplier_evaluate）、App.tsx 注释、entrance ROLE_BRIEF V*M face'管家审批面'。
+- **回归口径（红线不破）**：Booth 权属 LOCKED、交易单向、客户不占权位、越权 403 兜底、XU/CU 交易链路全部沿用；权限逻辑/帽 ID/路由/接口/审计字段零改动（duChildDomains 为纯新增可选字段）。历史注释中「四源治理」为当时实现记录，活文案以管家审批域内口径为准。
+
 ## 调试要点
 
 - dev server（tsx watch）修改 server 代码后**不会**可靠热重载路由/store：需 `kill -9 $(cat /app/work/logs/bypass/server.pid)` + `pkill -9 -f 'ts[x] watch'` 后 `(nohup bash ./scripts/dev.sh > logs/dev-start.log 2>&1 &)` 重启。

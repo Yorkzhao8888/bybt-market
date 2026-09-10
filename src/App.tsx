@@ -28,7 +28,7 @@ import EntranceLogin from './entrance/EntranceLogin';
 import EntranceRole from './entrance/EntranceRole';
 import { workbenchOf, workbenchThemeOf, WORKBENCH_HOME, WORKBENCH_THEME } from './lib/domain';
 import type { WorkbenchKind } from './lib/domain';
-import { roleTerm, conceptTerm, duChildTermOf } from './lib/terminology';
+import { roleTerm, conceptTerm, duChildTermOf, duChildBadgeTextOf } from './lib/terminology';
 import { api } from './api/client';
 
 function Header() {
@@ -62,7 +62,7 @@ function Header() {
       { to: '/board', label: '现场看板', icon: <Monitor className="h-3.5 w-3.5" /> },
       { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
     ],
-    // X-MARKET-ROLE-01：V*M 四源治理家族（VXM/VEM/VHM/VYM/VTM）落 supply 治理视图
+    // X-MARKET-ROLE-01：V*M 管家审批（域内）家族（VXM/VEM/VHM/VYM/VTM，X-MARKET-18）落 supply 审批视图
     governSupply: [
       { to: '/supply', label: '供给集市', icon: <Store className="h-3.5 w-3.5" /> },
     ],
@@ -136,7 +136,8 @@ function Header() {
                 <span className="hidden flex-col items-start rounded-md border bg-white px-2.5 py-1 leading-tight sm:flex">
                   {/* X-MARKET-ROLE-01 经营端标识 + 分经营号命名规范（2026-09-10 实例化去星号）：小号按域范畴展示（如 EDU · 产品经营），模板总称 *DU 保留星号，语义与帽 ID 不变 */}
                   <span className="text-xs font-bold" style={{ color: theme.accent }}>{conceptTerm('duChild').big} · {user.containerName ?? user.containerId}</span>
-                  <span className="text-[10px] text-[#8a8577]">{duChildTermOf(user.domainView)} · {user.hatId ?? user.containerId}{boothCode ? ` · ${boothCode}` : ''}</span>
+                  {/* X-MARKET-19 复合经营：多挂 *DU 给复合串（EDU · 产品经营 / HDU · 人资经营 / …），单挂/无多挂回退单域范畴（X-MARKET-ROLE-01 分经营号命名规范） */}
+                  <span className="text-[10px] text-[#8a8577]">{duChildBadgeTextOf(user.duChildDomains) || duChildTermOf(user.domainView)} · {user.hatId ?? user.containerId}{boothCode ? ` · ${boothCode}` : ''}</span>
                 </span>
               ) : wb === 'client' ? (
                 <span className="hidden flex-col items-start rounded-md border bg-white px-2.5 py-1 leading-tight sm:flex">
@@ -145,7 +146,7 @@ function Header() {
                 </span>
               ) : (
                 <span className="hidden flex-col items-start rounded-md border bg-white px-2.5 py-1 leading-tight sm:flex">
-                  {/* X-MARKET-ROLE-01：govern=经营治理（VDM）/ governSupply=四源治理（V*M 家族）/ supplier=供给方 */}
+                  {/* X-MARKET-ROLE-01：govern=经营治理（VDM）/ governSupply=管家审批（V*M 家族域内，X-MARKET-18）/ supplier=供给方 */}
                   <span className="text-xs font-bold" style={{ color: theme.accent }}>{theme.label.replace('工作台', '')} · {user.containerName ?? user.containerId}</span>
                   <span className="text-[10px] text-[#8a8577]">{roleTerm(user.hatRole).sys}{user.hatId ? ` · ${user.hatId}` : ''}</span>
                 </span>

@@ -1,5 +1,5 @@
 // X-MARKET-ROLE-01 治理分线：/govern 归 VDM（market 经营治理）——治理案件 / 规则（只读）/ 全局数据 / 三权审计 / X-OFD 履约中心
-// 供应商准入审核、货品治理下架、大额采购审批、阈值配置 → 迁四源治理台（src/x-supply/pages/SupplyGovernDesk.tsx，V*M 家族）
+// 供应商准入审核、货品审批下架、大额采购审批、阈值配置 → 迁供给面管家审批台（src/x-supply/pages/SupplyGovernDesk.tsx，V*M 家族，X-MARKET-18）
 // X-MARKET-09：治理者工作台 —— 紫色管控型：顶部全局统计 + 左侧导航（履约中心/治理案件/治理规则/全局数据/三权审计）
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
@@ -48,7 +48,7 @@ export function orderStatusLabel(s: OrderRow['status']): string {
     : s === 'pending_approval' ? '待治理审批' : s === 'rejected' ? '已驳回' : s;
 }
 
-/** X-MARKET-ROLE-01：大额采购阈值配置归四源治理（supply 面），/govern 仅只读展示归口 */
+/** X-MARKET-ROLE-01：大额采购阈值配置归供给面管家审批（supply 面，X-MARKET-18），/govern 仅只读展示归口 */
 function ThresholdReadonly({ th }: { th: GovernThresholds | null }) {
   return (
     <div className="rounded-md border border-[#e4ded2] bg-white p-4">
@@ -57,7 +57,7 @@ function ThresholdReadonly({ th }: { th: GovernThresholds | null }) {
         ¥{(((th?.procurementAmountCents ?? 500000)) / 100).toLocaleString()}
       </p>
       <p className="mt-1.5 text-xs leading-relaxed text-[#6b665a]">
-        DU 采购单笔金额超阈值 → 自动升级治理审批（pending_approval）。配置归口：四源治理台（supply 面，V*M 家族 threshold_update）；本页只读展示。
+        DU 采购单笔金额超阈值 → 自动升级管家审批（pending_approval）。配置归口：供给面管家审批台（supply 面，V*M 家族 threshold_update，X-MARKET-18）；本页只读展示。
       </p>
     </div>
   );
@@ -119,7 +119,7 @@ export default function Govern() {
             <div>
               <h1 className="text-xl font-black text-[#17181d]">经营治理台 · {data.domain ?? '平台全域'}</h1>
               <p className="mt-0.5 text-xs text-[#6b665a]">
-                {user ? `${hatLabel(user.hatRole)} · ${user.containerName} —— ` : ''}VDM 经营管理治理（market 面）：治理案件 / 全局总账 / 规则只读；供应商与货品治理归四源治理台
+                {user ? `${hatLabel(user.hatRole)} · ${user.containerName} —— ` : ''}VDM 经营管理治理（market 面）：治理案件 / 全局总账 / 规则只读；供应商与货品审批归供给面管家审批台
               </p>
             </div>
           </div>
@@ -164,7 +164,7 @@ export default function Govern() {
             </Section>
           )}
           {sec === 'cases' && (
-            <Section icon={<Scale className="h-5 w-5" />} title={`治理案件（在办 ${open.length} / 办结 ${closed.length}）`} sub="market 面市场秩序案件归经营管理治理（VDM）；供给面治理走四源治理台">
+            <Section icon={<Scale className="h-5 w-5" />} title={`治理案件（在办 ${open.length} / 办结 ${closed.length}）`} sub="market 面市场秩序案件归经营管理治理（VDM）；供给面审批走管家审批台（X-MARKET-18）">
               <div className="space-y-2">
                 <div className="grid grid-cols-[1fr_auto_auto] gap-2 rounded-md bg-[#17181d] px-3 py-2 text-xs font-semibold text-[#f5f2eb]">
                   <span>案卷</span><span>管辖</span><span>状态</span>
