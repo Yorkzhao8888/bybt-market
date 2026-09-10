@@ -86,8 +86,9 @@ export default function BoothTimelineCard({ orderId }: { orderId: string }) {
       ) : !data ? (
         <div className="rounded-lg bg-black/[0.03] px-3 py-3 text-[12px] text-black/40">正在拉取 Booth 履约数据...</div>
       ) : data.unreachable ? (
-        <div className="rounded-lg bg-amber-50 px-3 py-3 text-[12px] text-amber-700">
-          履约通道暂不可达（Booth 服务未就绪）。<a className="ml-1 underline" href={data.deepLink} target="_blank" rel="noreferrer">在 Booth 中查看 ↗</a>
+        <div className="rounded-lg bg-black/[0.03] px-3 py-3">
+          <span className="text-[12px] text-black/50">暂未进入履约：Booth 履约通道暂未就绪，通道恢复后自动显示四节点。</span>
+          <a className="ml-1 text-[12px] underline" href={data.deepLink} target="_blank" rel="noreferrer">在 Booth 中查看 ↗</a>
         </div>
       ) : !data.matched || !data.timeline ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-black/[0.03] px-3 py-3">

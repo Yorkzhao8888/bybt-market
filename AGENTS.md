@@ -275,3 +275,11 @@
 - **类型**：shared/types.ts `BoothFulfillmentNode/BoothFulfillmentOrder/BoothTimelineResp`；术语词条 CONCEPT_TERMS.boothTimeline（履约时间线/Booth·履约四节点）。
 - **凭证复跑**：`scripts/booth-timeline-check.mjs`（V2 数据一致性比对）+`scripts/booth-timeline-ui-check.mjs`（V1 UI 四节点渲染断言 12 项+截图 assets/conn-01/market-timeline-matched.png；route 注入 Booth 真实结构——Booth 端无公开建单 API，未越权造数）。
 - **已知边界**：①Booth 侧 timeline 当前为手工样板单（orderNo=M+时间戳），与 Market 单号（EX-2026-xxxx）零交集——Booth 侧建 orderNo=Market code 的履约单（或透传落地）后 UI 自动渲染 matched 时间线；②Booth timeline API 全量返回无分页（数据量大时需 Booth 侧补过滤参数）；③dev-token 30min 时效由 boothConn 缓存/重签机制消化。
+
+## MARKET-CONN-02：线上 token 签发路径确认（A 路径成立 + 降级归一）
+
+- **结论：dev-token 线上可用，唯一有效参数 `role:"SU"`（大写）**：`POST https://62j75kfyn3.coze.site/api/v1/auth/dev-token` body `{"role":"SU","expires_minutes":45}` → 200（user=admin / user_id=XHPZ#SU-TEST001，RS256 token ~922B）。主 Agent 曾传 `role:"du"/"ddu"/"admin"`（404 no user found for role）与 `{"username":"ddu"}`（404 user not found）——OAS dev-token 仅内置 SU 系种子用户，小写/其他角色均无对应用户。
+- **boothConn.ts 零改动即线上可用**：`OAS_ROLE` 默认 `'SU'`（env `BOOTH_OAS_ROLE` 可覆盖）；`BOOTH_OAS_TOKEN` env 注入长效 token 优先（B 方案备份，签发命令=上式，取 `data.token` 全文注入）。主 Agent 线上复验 EX-2026-0020 时无需设置任何 env——代理自动以 SU 签发。
+- **降级归一（CONN-02 加固）**：`BoothTimelineCard` unreachable 态不再渲染报错样式——与无履约占位同口径显示「暂未进入履约」+弱化小字「Booth 履约通道暂不可达，稍后自动重试」；端点 catch 返回 200+`{matched:false,unreachable:true}`（实证：BOOTH_OAS_BASE 指向不可达地址重启→200 占位非 5xx）。token 缺失/过期/签发失败→时间线卡永远优雅占位。
+- **认证闸门未放松**：代理端点 requireAuth 401 实证保持；token 仍不落浏览器数据接口（仅深链 URL 按 Booth 端既有 ?token= 设计）。
+- **主 Agent 线上复验步骤**：①du-hehe 一键登录→交易单→点 EX-2026-0020 行展开→时间线卡（matched 时四节点/未对齐时占位）；②curl 复核：`curl -H "Authorization: Bearer <du-hehe token>" https://<线上域>/api/orders/o-2001/booth-timeline?match=M20260909142124423`（matched 四节点）与无 token 401。
