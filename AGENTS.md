@@ -229,6 +229,16 @@
 - **回归口径（V1/V2）**：V1 10 个 EU oneclick→me（hatRole EU+boothTarget Booth-E-xx）→/api/supply/products/mine 各见本铺货品；V2 原 17 demo 账号登录回归+DU supplyMall 见新货品（approved 链路通）+上架/供给单链路不破。
 
 
+## 四源全链路样板建设（X-MARKET-TI-04，12 样板三态+6 *DU 采购样板+全链实跑）
+
+- **目标**：四源（EU/YU/HU/TU）各 3 个「注册申请态/认证通过态/已上架可交易态」样板账号+DDU/EDU/CDU/HDU/TDU/YDU 六类 *DU 采购样板账号（并入 TI-03 十 EU 之上，demo 总量 27→45）；并**用样板实际跑通**注册申请→V*M 认证→开供给铺（Booth）→供货上架→DU 系列采购→使用/生产→交付全链路（六类 DU 各至少 1 单）。
+- **三态种子口径**：**申请态**=sa pending（待 V*M 认证，无铺无货，sa-13/sa-16/sa-19/sa-22）；**认证通过态**=sa approved+无铺无货（sa-14/sa-17/sa-20/sa-23，上架入口已解锁）；**已上架态**=sa approved+供给铺+货品 on（sa-15/sa-18/sa-21/sa-24+铺 b-e13/b-y2/b-h2/b-t2+货 sp-17~sp-24）。cert/apply 态 boothId 空串（无铺）。
+- **种子清单**（store.ts）：容器 `c-eu11~13/c-yu1~3/c-hu1~3/c-tu1~3`（12 供给方）+`c-ddu/c-edu/c-cdu/c-hdu/c-tdu`（5 *DU）；unit `u-eu12~14/u-yu2~4/u-hu2~4/u-tu2~4/u-du10~14`（tier L2）；铺 `b-e13`（灵动·电子元器件）`b-y2`（高格·标准厂房）`b-h2`（优派·产线劳务）`b-t2`（云图·技术方案）；货品 `sp-17~24`（每 list 铺 2 个，含大额样板 sp-19 厂房 98000 元/月与 sp-22 技术员 580 元可触发 X-MARKET-15 阈值）；sa `sa-13~24`（12 条三态）。
+- **demo 账号**（demoAccounts 尾部 18 行）：供给样板 `eu-apply-1/eu-cert-1/eu-list-1`、`yu-apply-1/yu-cert-1/yu-list-1`、`hu-apply-1/hu-cert-1/hu-list-1`、`tu-apply-1/tu-cert-1/tu-list-1`（note 标注三态与 sa 编号；list 态 boothTarget 指向本铺）；*DU `ddu/edu/cdu/hdu/tdu/ydu`（hatRole DU，hatId u-du10~15，domainView DDU/CDU 归 DE、edu DE、hdu H、tdu T、ydu Y；duChildDomains 单元素 ['D']/['DE']/['C']/['H']/['T']/['Y'] 驱动 Header 徽标 duChildBadgeTextOf 显示 DDU/EDU/CDU/HDU/TDU/YDU）。
+- **DEMO_ALIAS 陷阱（TI-04 实证）**：`oneclick` 经 `DEMO_ALIAS=Object.fromEntries(demoAccounts.map(a=>[a.id,a]))` 全量自动生成（模块加载时快照）——demoAccounts 追加行即可命中，**无需手工补别名**；但 oneclick 对未知 demoId 静默兜底 `demoAccounts[0]`（小林 CU，仍 200）——**冒烟断言必须验 hatRole/boothTarget 而非仅 HTTP 200**（L2 首跑 ydu 漏种→兜底 CU→「帽 CU 无此权」即此因）。
+- **全链路实跑剧本**（每源一条串行链，验收冒烟用）：V*M 审批预置 pending 申请（POST supply/applications/:id/review，VEM=sa-13/VYM=sa-16/VHM=sa-19/VTM=sa-22）→申请态账号上架货品（POST supply/products，动态 sp-25+）→对应 *DU 采购（POST orders，E→EX/Y→YX/H→HX/T→TX 族码）→DU 履约交付（POST orders/:id/fulfill，X-MARKET-16 域映射执行帽 DEX/DYX/DHX/DTX，status→fulfilling+回执 actor_user/actor_hat）——「使用/生产→交付闭环」以交付回执落 fulfillments 为终态。DDU 补采 sp-1（恒晟 E 域）。小额单（<5000 分阈值）直通 pending 不入审批，大额 sp-19 留作 X-MARKET-15 演示。
+- **回归口径（V1/V2/V3）**：V1 12 样板 oneclick+三态断言（apply/cert mine=0、list mine≥1、boothTarget 正确）；V2 EU 13 个账号（TI-03 十个+TI-04 三个）全通+原 17 demo 回归+supplyMall/上架/供给单链路不破；V3 四源链路实跑全绿+五 DU 各 1 单+cert 态上架验证（eu-cert-1 上架成功终态）。
+
 ## 调试要点
 
 - dev server（tsx watch）修改 server 代码后**不会**可靠热重载路由/store：需 `kill -9 $(cat /app/work/logs/bypass/server.pid)` + `pkill -9 -f 'ts[x] watch'` 后 `(nohup bash ./scripts/dev.sh > logs/dev-start.log 2>&1 &)` 重启。

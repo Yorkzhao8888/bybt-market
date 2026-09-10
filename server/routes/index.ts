@@ -92,6 +92,25 @@ const demoAccounts: DemoAccount[] = [
   { id: 'eu-ruifeng', entry: 'B', hatRole: 'EU', containerId: 'c-eu08', hatId: 'u-eu9', label: '瑞丰耗材 · 劳保供给', note: '以 EU 身份持源头供给实体铺 Booth-E-10（劳保用品）', domainView: 'E', boothTarget: 'b-e10' },
   { id: 'eu-huaxin', entry: 'B', hatRole: 'EU', containerId: 'c-eu09', hatId: 'u-eu10', label: '华信紧固 · 紧固供给', note: '以 EU 身份持源头供给实体铺 Booth-E-11（膨胀紧固）', domainView: 'E', boothTarget: 'b-e11' },
   { id: 'eu-lifeng', entry: 'B', hatRole: 'EU', containerId: 'c-eu10', hatId: 'u-eu11', label: '力锋设备 · 设备供给', note: '以 EU 身份持源头供给实体铺 Booth-E-12（动力设备）', domainView: 'E', boothTarget: 'b-e12' },
+  // ── X-MARKET-TI-04：四源三态样板（每源 apply/cert/list 各 1）+ *DU 五类采购样板 ──
+  { id: 'eu-apply-1', entry: 'B', hatRole: 'EU', containerId: 'c-eu11', hatId: 'u-eu12', label: '新航物资 · 注册申请态样板（EU）', note: '注册申请已提交（sa-13 pending），待 VEM 认证；通过后即可上架（TI-04）', domainView: 'E' },
+  { id: 'eu-cert-1', entry: 'B', hatRole: 'EU', containerId: 'c-eu12', hatId: 'u-eu13', label: '智芯元件 · 认证通过态样板（EU）', note: 'VEM 已认证通过（sa-14 approved），尚无货品，可随时上架（TI-04）', domainView: 'E' },
+  { id: 'eu-list-1', entry: 'B', hatRole: 'EU', containerId: 'c-eu13', hatId: 'u-eu14', label: '灵动电子 · 已上架态样板（EU）', note: '认证通过+Booth-E-13+货品在架可采（TI-04）', domainView: 'E', boothTarget: 'b-e13' },
+  { id: 'yu-apply-1', entry: 'B', hatRole: 'YU', containerId: 'c-yu1', hatId: 'u-yu2', label: '云栖空间 · 注册申请态样板（YU）', note: '注册申请已提交（sa-16 pending），待 VYM 认证（TI-04）', domainView: 'Y' },
+  { id: 'yu-cert-1', entry: 'B', hatRole: 'YU', containerId: 'c-yu2', hatId: 'u-yu3', label: '位来园区 · 认证通过态样板（YU）', note: 'VYM 已认证通过（sa-17 approved），尚无供给铺（TI-04）', domainView: 'Y' },
+  { id: 'yu-list-1', entry: 'B', hatRole: 'YU', containerId: 'c-yu3', hatId: 'u-yu4', label: '高格仓储 · 已上架态样板（YU）', note: '认证通过+Booth-Y-02+厂房/仓储位可租（TI-04）', domainView: 'Y', boothTarget: 'b-y2' },
+  { id: 'hu-apply-1', entry: 'B', hatRole: 'HU', containerId: 'c-hu1', hatId: 'u-hu2', label: '匠星人力 · 注册申请态样板（HU）', note: '注册申请已提交（sa-19 pending），待 VHM 认证（TI-04）', domainView: 'H' },
+  { id: 'hu-cert-1', entry: 'B', hatRole: 'HU', containerId: 'c-hu2', hatId: 'u-hu3', label: '伯乐产线 · 认证通过态样板（HU）', note: 'VHM 已认证通过（sa-20 approved），尚无供给铺（TI-04）', domainView: 'H' },
+  { id: 'hu-list-1', entry: 'B', hatRole: 'HU', containerId: 'c-hu3', hatId: 'u-hu4', label: '优派劳务 · 已上架态样板（HU）', note: '认证通过+Booth-H-02+产线/技术人力可采（TI-04）', domainView: 'H', boothTarget: 'b-h2' },
+  { id: 'tu-apply-1', entry: 'B', hatRole: 'TU', containerId: 'c-tu1', hatId: 'u-tu2', label: '智算引擎 · 注册申请态样板（TU）', note: '注册申请已提交（sa-22 pending），待 VTM 认证（TI-04）', domainView: 'T' },
+  { id: 'tu-cert-1', entry: 'B', hatRole: 'TU', containerId: 'c-tu2', hatId: 'u-tu3', label: '码力工场 · 认证通过态样板（TU）', note: 'VTM 已认证通过（sa-23 approved），尚无供给铺（TI-04）', domainView: 'T' },
+  { id: 'tu-list-1', entry: 'B', hatRole: 'TU', containerId: 'c-tu3', hatId: 'u-tu4', label: '云图方案 · 已上架态样板（TU）', note: '认证通过+Booth-T-02+方案/算力可采（TI-04）', domainView: 'T', boothTarget: 'b-t2' },
+  { id: 'ddu', entry: 'B', hatRole: 'DU', containerId: 'c-ddu', hatId: 'u-du10', label: '恒产集团 · 主业经营 DDU', note: 'DU 主业分经营号（X-MARKET-19 *DU 规范）；TI-04 全链路采购样板', domainView: 'DE', duChildDomains: ['D'] },
+  { id: 'edu', entry: 'B', hatRole: 'DU', containerId: 'c-edu', hatId: 'u-du11', label: '恒产产品线 · 产品经营 EDU', note: 'EDU 分经营号（E 线）；TI-04 采 EU 源样板', domainView: 'DE', duChildDomains: ['DE'] },
+  { id: 'cdu', entry: 'B', hatRole: 'DU', containerId: 'c-cdu', hatId: 'u-du12', label: '恒产客服部 · 客户经营 CDU', note: 'CDU 分经营号（C 域 Mall 面）；TI-04 采购样板', domainView: 'DE', duChildDomains: ['C'] },
+  { id: 'hdu', entry: 'B', hatRole: 'DU', containerId: 'c-hdu', hatId: 'u-du13', label: '恒产人资部 · 人资经营 HDU', note: 'HDU 分经营号（H 线）；TI-04 采 HU 源样板', domainView: 'H', duChildDomains: ['H'] },
+  { id: 'tdu', entry: 'B', hatRole: 'DU', containerId: 'c-tdu', hatId: 'u-du14', label: '恒产技术部 · 技术经营 TDU', note: 'TDU 分经营号（T 线）；TI-04 采 TU 源样板', domainView: 'T', duChildDomains: ['T'] },
+  { id: 'ydu', entry: 'B', hatRole: 'DU', containerId: 'c-ydu', hatId: 'u-du15', label: '恒产智场部 · 智场经营 YDU', note: 'YDU 分经营号（Y 线）；TI-04 采 YU 源样板', domainView: 'Y', duChildDomains: ['Y'] },
 ];
 const DEMO_ALIAS: Record<string, DemoAccount> = Object.fromEntries(demoAccounts.map((a) => [a.id, a]));
 // 帽角色路由 → 演示账号（快捷）
