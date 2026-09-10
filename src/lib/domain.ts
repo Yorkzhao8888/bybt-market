@@ -74,7 +74,7 @@ export const partyOf = (role: string): string => PARTY_OF_ROLE[role] ?? '组织�
 export const isClientRole = (role: string | null | undefined): boolean => role === 'CU' || role === 'XU';
 /** 是否运营管理方 */
 export const isAdminRole = (role: string | null | undefined): boolean =>
-  role === 'VEM' || role === 'VHM' || role === 'VYM' || role === 'VTM' || role === 'VDM' || role === 'VXM';
+  role === 'VEM' || role === 'VHM' || role === 'VYM' || role === 'VTM' || role === 'VDM' || role === 'VMX';
 /** 是否经营/供给（可开铺操作） */
 export const isOperatorRole = (role: string | null | undefined): boolean => {
   if (!role) return false;
@@ -133,7 +133,7 @@ export type WorkbenchKind = 'client' | 'supplier' | 'operator' | 'govern' | 'gov
 const WORKBENCH_SUPPLY_HATS = ['EU', 'HU', 'YU', 'TU', 'EX', 'EXX'];
 const WORKBENCH_OPERATOR_HATS = ['DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX'];
 /** V*M 管家审批家族（X-MARKET-18 域内口径）：落 supply 审批视图（VEM/VYM/VHM/VTM 各审本源，VMX 统筹全域） */
-const WORKBENCH_GOVERN_SUPPLY_HATS = ['VXM', 'VEM', 'VHM', 'VYM', 'VTM'];
+const WORKBENCH_GOVERN_SUPPLY_HATS = ['VMX', 'VEM', 'VHM', 'VYM', 'VTM'];
 
 /* ============ X-MARKET-ROLE-01 治理分线（前端口径，与 server/domainConfig 对齐） ============ */
 /** 管家审批家族 → 本源域映射（X-MARKET-18：VEM 审 E/VYM 审 Y/VHM 审 H/VTM 审 T）；VMX 统筹全域返回 null；VDM 归 market 经营治理 */

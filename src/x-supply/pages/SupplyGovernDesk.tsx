@@ -1,6 +1,6 @@
 // X-MARKET-ROLE-01 A3/A5：X-Supply 管家审批台（X-MARKET-18 域内口径：V*M 家族分源审批 + VMX 统筹）
 // 口径：VEM 治 E 源（EU）/ VYM 治 Y 源（YU）/ VHM 治 H 源（HU）/ VTM 治 T 源（TU），各自治理本源准入；
-// VXM（云中心）全域统筹 + 大额采购升级审批（X-MARKET-15）+ 阈值配置；VDM 归 market 经营治理（/govern），不越界。
+// VMX（云中心）全域统筹 + 大额采购升级审批（X-MARKET-15）+ 阈值配置；VDM 归 market 经营治理（/govern），不越界。
 // 数据层：xSupplyApi.govern（req 原语直调，依赖单向白名单）；后端已按域过滤/校验（家族仅见本源数据）。
 import { useCallback, useEffect, useState } from 'react';
 import { BadgeCheck, CircleSlash, ClipboardCheck, Gavel, ScrollText, Settings2, ShieldCheck } from 'lucide-react';
@@ -16,17 +16,17 @@ import type { GovernThresholds, OrderRow, SupplierApplication, SupplierProduct }
 const PURPLE = '#6D28D9';
 const PURPLE_SOFT = '#f1eafd';
 
-/** 治理域标题：家族显示本源域；VXM 全域 */
+/** 治理域标题：家族显示本源域；VMX 全域 */
 function governScopeLabel(hatRole: string): string {
   const dom = supplyGovernDomainOf(hatRole as never);
-  if (hatRole === 'VXM') return '云中心统筹 · 四源全域';
+  if (hatRole === 'VMX') return '云中心统筹 · 四源全域';
   return dom ? `管家审批 · ${dom} 源（域内准入与货品审批）` : '管家审批（域内）';
 }
 
 export function SupplyGovernDesk() {
   const { user } = useAuth();
   const hatRole = user?.hatRole ?? '';
-  const isVxm = hatRole === 'VXM';
+  const isVxm = hatRole === 'VMX';
   const govDomain = supplyGovernDomainOf(hatRole as never);
 
   const [apps, setApps] = useState<SupplierApplication[]>([]);
@@ -241,7 +241,7 @@ export function SupplyGovernDesk() {
         )}
       </div>
 
-      {/* VXM 专属：大额采购审批（X-MARKET-15）+ 阈值配置 */}
+      {/* VMX 专属：大额采购审批（X-MARKET-15）+ 阈值配置 */}
       {isVxm && (
         <div className="mb-4 grid gap-4 lg:grid-cols-[1fr_300px]">
           <div>
@@ -304,7 +304,7 @@ export function SupplyGovernDesk() {
       <OfdCenter />
 
       <div className="mt-3 flex items-center gap-1.5 text-[10px] text-[#6b675f]">
-        <BadgeCheck size={11} /> 治理分线：家族治本源、VXM 统筹全域、VDM 治经营（/govern）——数据互不越界，越权 403 入审计。
+        <BadgeCheck size={11} /> 治理分线：家族治本源、VMX 统筹全域、VDM 治经营（/govern）——数据互不越界，越权 403 入审计。
       </div>
     </div>
   );

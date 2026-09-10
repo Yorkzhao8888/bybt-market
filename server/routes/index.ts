@@ -66,15 +66,15 @@ const demoAccounts: DemoAccount[] = [
   { id: 'tu-chiyuan', entry: 'B', hatRole: 'TU', containerId: 'c-cy', hatId: 'u-tu1', label: '驰远智联 · 技术供给', note: '以 TU 身份持源头供给实体铺 Booth-T', domainView: 'T', boothTarget: 'b-t1' },
   { id: 'yu-jiezu', entry: 'B', hatRole: 'YU', containerId: 'c-yj', hatId: 'u-yu1', label: '捷租云间 · 空间供给', note: '以 YU 身份持源头供给实体铺 Booth-Y（捷租 Jezoom）', domainView: 'Y', boothTarget: 'b-y1' },
   // DU 唯一经营主体（一个 DU 多店）
-  { id: 'du-hehe', entry: 'B', hatRole: 'DU', containerId: 'c-du', hatId: 'u-du1', label: '合和经营 · 平台直营 DU', note: '以 DU 身份经营 5 类经营实体铺（DY/DH/DT/DE/DC），执行帽 DYX/DHX/DTX/DEX/DCX 分管；复合多挂 *DU 五域分经营号（X-MARKET-19 展示/核算维度，权限仍单帽 DU）', domainView: 'DE', boothTarget: 'b-de1', duChildDomains: ['Y', 'H', 'T', 'DE', 'C'] },
+  { id: 'du-hehe', entry: 'B', hatRole: 'DU', containerId: 'c-du', hatId: 'u-du1', label: '合和经营 · 平台直营 DU', note: '以 DU 身份经营 5 类经营实体铺（DY/DH/DT/DE/DC），执行帽 DYX/DHX/DTX/DEX/DCX 分管；复合多挂 *DU 六类分经营号（含 DDU 主业，X-MARKET-19 展示/核算维度，权限仍单帽 DU）', domainView: 'DE', boothTarget: 'b-de1', duChildDomains: ['D', 'Y', 'H', 'T', 'DE', 'C'] },
   { id: 'du-fengshi', entry: 'B', hatRole: 'DU', containerId: 'c-fs', hatId: 'u-du2', label: '丰时经营 · 加盟 DU', note: '加盟 DU（Y/H/DE 可加盟），经营 Booth-DH', domainView: 'H', boothTarget: 'b-dh2' },
   // B 端客户 XU（买家，走 Market）
   { id: 'xu-huadong', entry: 'B', hatRole: 'XU', containerId: 'c-gou', hatId: 'u-xu1', label: '华东区采购办 · 客户 XU', note: 'B 端采购客户（走 Market，企业采购/询价报价）', domainView: 'E' },
-  // 平台运营方 V*M（X-MARKET-ROLE-01 治理分线：VDM=market 经营治理；VXM+四源家族=supply 域内管家审批，X-MARKET-18）
+  // 平台运营方 V*M（X-MARKET-ROLE-01 治理分线：VDM=market 经营治理；VMX+四源家族=supply 域内管家审批，X-MARKET-18）
   { id: 'vdm', entry: 'B', hatRole: 'VDM', containerId: 'c-plat', hatId: 'u-vdm1', label: '经营管理治理 VDM', note: 'market 经营治理（治理案件/全局订单总账/规则只读/三权审计/履约中心）', domainView: 'DE' },
   { id: 'vem-e', entry: 'B', hatRole: 'VEM', containerId: 'c-plat', hatId: 'u-vem1', label: '管家审批 · 通货市场 VEM', note: 'supply 域内管家审批·E 源（EU 物资供给准入评估/货品审批/大额采购审批，EMX）', domainView: 'E' },
-  // 管家审批统筹（X-MARKET-18：VXM→VMX 总运执行归 OVM；域内管家审批仍 V*M 系 + 大额采购审批统筹）
-  { id: 'vmx-cloud', entry: 'B', hatRole: 'VXM', containerId: 'c-plat', hatId: 'u-vxm1', label: '管家审批统筹 VMX', note: '总运执行（归 OVM）+ supply 管家审批全域统筹（域内准入评估/货品审批/大额采购审批）', domainView: 'E' },
+  // 管家审批统筹（X-MARKET-18：VMX→VMX 总运执行归 OVM；域内管家审批仍 V*M 系 + 大额采购审批统筹）
+  { id: 'vmx-cloud', entry: 'B', hatRole: 'VMX', containerId: 'c-plat', hatId: 'u-vxm1', label: '管家审批统筹 VMX', note: '总运执行（归 OVM）+ supply 管家审批全域统筹（域内准入评估/货品审批/大额采购审批）', domainView: 'E' },
   // X-Supply 供给线执行帽（X-SUPPLY-01：EX 办位，入驻登记/Booth-E 铺面维护）
   { id: 'ex-qiuchen', entry: 'B', hatRole: 'EX', containerId: 'c-qc', hatId: 'u-ex1', label: '启辰·物资供给执行 EX', note: '启辰 Booth-E 驻场执行（办位：供给集市入驻登记/铺面维护）', domainView: 'E', boothTarget: 'b-e1' },
   // 域内管家审批家族（X-MARKET-ROLE-01 + X-MARKET-18：VYM/VHM/VTM 各审本源，仅可末尾追加）
@@ -86,7 +86,7 @@ const DEMO_ALIAS: Record<string, DemoAccount> = Object.fromEntries(demoAccounts.
 // 帽角色路由 → 演示账号（快捷）
 const DEMO_ROUTE: Partial<Record<HatRole, DemoAccount>> = {
   EU: demoAccounts[3], HU: demoAccounts[4], TU: demoAccounts[5], YU: demoAccounts[6],
-  DU: demoAccounts[7], XU: demoAccounts[9], VDM: demoAccounts[10], VEM: demoAccounts[11], VXM: demoAccounts[12], EX: demoAccounts[13],
+  DU: demoAccounts[7], XU: demoAccounts[9], VDM: demoAccounts[10], VEM: demoAccounts[11], VMX: demoAccounts[12], EX: demoAccounts[13],
   VYM: demoAccounts[14], VHM: demoAccounts[15], VTM: demoAccounts[16],
 };
 
@@ -574,7 +574,7 @@ api.get('/orders', requireAuth, (req: AuthReq, res) => {
   });
 
   if (can(user, 'view_all_orders')) {
-    // X-MARKET-ROLE-01 治理分线：VDM（经营治理）见全局总账；V*M 四源家族（VXM/VEM/VHM/VYM/VTM）
+    // X-MARKET-ROLE-01 治理分线：VDM（经营治理）见全局总账；V*M 四源家族（VMX/VEM/VHM/VYM/VTM）
     // 归 supply 面治理，仅见大额采购审批队列（pending_approval/rejected），不见 market 全域订单（信息隔离）
     if (role !== 'VDM') list = list.filter((o) => o.status === 'pending_approval' || o.status === 'rejected');
   } else if (role === 'DU' || line === 'exec' || line === 'supply') {
@@ -867,7 +867,7 @@ const withSupplierNames = (a: SupplierApplication): SupplierApplication => {
 api.get('/supply/applications', requireAuth, (req: AuthReq, res) => {
   const user = req.user!;
   const role = roleOf(user);
-  // X-MARKET-ROLE-01 治理分线：审核列表归 supply 四源治理（VXM 全域 + 家族本源域过滤）；VDM（market 经营治理）不越界
+  // X-MARKET-ROLE-01 治理分线：审核列表归 supply 四源治理（VMX 全域 + 家族本源域过滤）；VDM（market 经营治理）不越界
   if (!isSupplyGovernHat(role)) {
     res.status(403).json({ success: false, error: '供应商准入审核归四源管家审批（supply 面审批台，X-MARKET-18）；market 经营治理（VDM）不参与' });
     return;
@@ -876,7 +876,7 @@ api.get('/supply/applications', requireAuth, (req: AuthReq, res) => {
   ok(res, supplierApplications.filter((a) => (govDomain ? a.domain === govDomain : true)).map(withSupplierNames));
 });
 
-// 四源治理：审核（通过→合格；驳回→附原因，供给方可重提）（X-MARKET-ROLE-01：VXM 全域 + 家族本源域分线）
+// 四源治理：审核（通过→合格；驳回→附原因，供给方可重提）（X-MARKET-ROLE-01：VMX 全域 + 家族本源域分线）
 api.post('/supply/applications/:id/review', requireAuth, (req: AuthReq, res) => {
   const user = req.user!;
   const role = roleOf(user);
@@ -890,7 +890,7 @@ api.post('/supply/applications/:id/review', requireAuth, (req: AuthReq, res) => 
     res.status(404).json({ success: false, error: '登记申请不存在' });
     return;
   }
-  // 四源分线：家族帽仅可裁决本源域申请（VEM→E/VYM→Y/VHM→H/VTM→T；VXM 全域）
+  // 四源分线：家族帽仅可裁决本源域申请（VEM→E/VYM→Y/VHM→H/VTM→T；VMX 全域）
   const govDomain = supplyGovernDomainOf(role);
   if (govDomain && app.domain !== govDomain) {
     res.status(403).json({ success: false, error: `四源分线治理：${role} 仅可裁决 ${govDomain} 源准入申请（本申请属 ${app.domain} 源）` });
@@ -928,7 +928,7 @@ api.get('/supply/products/mine', requireAuth, (req: AuthReq, res) => {
   ok(res, supplierProducts.filter((p) => p.supplierId === user.containerId));
 });
 
-// 四源治理：货品治理列表（违规下架用，客户不可见）（X-MARKET-ROLE-01：VXM 全域 + 家族本源域过滤；VDM 不越界）
+// 四源治理：货品治理列表（违规下架用，客户不可见）（X-MARKET-ROLE-01：VMX 全域 + 家族本源域过滤；VDM 不越界）
 api.get('/supply/products', requireAuth, (req: AuthReq, res) => {
   const user = req.user!;
   const role = roleOf(user);
@@ -951,7 +951,7 @@ api.post('/supply/products', requireAuth, (req: AuthReq, res) => {
   }
   const app = supplierApplications.find((a) => a.supplierId === user.containerId);
   if (!app || app.status !== 'approved') {
-    res.status(403).json({ success: false, error: '仅合格供应商可上架货品（先通过 VXM 云中心准入评估）' });
+    res.status(403).json({ success: false, error: '仅合格供应商可上架货品（先通过 VMX 云中心准入评估）' });
     return;
   }
   const booth = mySupplyBooth(user);
@@ -975,7 +975,7 @@ api.post('/supply/products', requireAuth, (req: AuthReq, res) => {
   ok(res, prod);
 });
 
-// 上架/下架：供给方本人切换；VXM 可治理下架违规货品（重新上架须由供给方操作）
+// 上架/下架：供给方本人切换；VMX 可治理下架违规货品（重新上架须由供给方操作）
 api.post('/supply/products/:id/toggle', requireAuth, (req: AuthReq, res) => {
   const user = req.user!;
   const role = roleOf(user);
@@ -990,7 +990,7 @@ api.post('/supply/products/:id/toggle', requireAuth, (req: AuthReq, res) => {
     const action = prod.status === 'on' ? 'product_remove' : 'product_publish';
     if (!checkPower(action, req, res, boothCodeOf(prod.boothId))) return;
   } else if (isSupplyGovernHat(role)) {
-    // X-MARKET-ROLE-01 四源分线：家族帽仅可治理本源域货品（VEM→E/VYM→Y/VHM→H/VTM→T；VXM 全域）
+    // X-MARKET-ROLE-01 四源分线：家族帽仅可治理本源域货品（VEM→E/VYM→Y/VHM→H/VTM→T；VMX 全域）
     const govDomain = supplyGovernDomainOf(role);
     if (govDomain && prod.domain !== govDomain) {
       res.status(403).json({ success: false, error: `四源分线治理：${role} 仅可治理 ${govDomain} 源货品（本货品属 ${prod.domain} 源）` });
@@ -1001,7 +1001,7 @@ api.post('/supply/products/:id/toggle', requireAuth, (req: AuthReq, res) => {
     if (!checkPower('product_remove', req, res, boothCodeOf(prod.boothId))) return;
   }
   if (!owner) {
-    // VXM 治理动作：只能下架（违规治理），不可替供给方重新上架
+    // VMX 治理动作：只能下架（违规治理），不可替供给方重新上架
     if (prod.status === 'on') {
       prod.status = 'off';
       ok(res, prod);
@@ -1023,7 +1023,7 @@ api.post('/supply/products/:id/take-down', requireAuth, (req: AuthReq, res) => {
     return;
   }
   if (!checkPower('product_govern_remove', req, res, boothCodeOf(prod.boothId))) return;
-  // X-MARKET-ROLE-01 四源分线：家族帽仅可治理下架本源域货品（VXM 全域）
+  // X-MARKET-ROLE-01 四源分线：家族帽仅可治理下架本源域货品（VMX 全域）
   const govDomain = supplyGovernDomainOf(roleOf(user));
   if (govDomain && prod.domain !== govDomain) {
     res.status(403).json({ success: false, error: `四源分线治理：${roleOf(user)} 仅可治理 ${govDomain} 源货品（本货品属 ${prod.domain} 源）` });
@@ -1062,7 +1062,7 @@ api.get('/power/map', requireAuth, (_req: AuthReq, res) => {
 api.get('/power/audit', requireAuth, (req: AuthReq, res) => {
   const user = req.user!;
   const hat = normalizePowerHat(roleOf(user));
-  // 治位帽（V*M/VXM）见全量审计；其余身份仅见本人（actor_user）动作留痕（X-MARKET-13：本人口径，含 denied 越权尝试）
+  // 治位帽（V*M/VMX）见全量审计；其余身份仅见本人（actor_user）动作留痕（X-MARKET-13：本人口径，含 denied 越权尝试）
   const isGovern = (HAT_POWER_BITS[hat] ?? []).includes('govern');
   const base = isGovern ? marketPowerAudit : marketPowerAudit.filter((a) => a.actor_user === user.hatId);
   // 可选筛选（X-MARKET-13）：action=动作码 / result=allowed|denied；可选时间窗 timeFrom/timeTo（毫秒，X-MARKET-14）；无参行为不变
@@ -1088,7 +1088,7 @@ api.get('/power/dashboard', requireAuth, (req: AuthReq, res) => {
   const hat = normalizePowerHat(roleOf(req.user!));
   const isGovern = (HAT_POWER_BITS[hat] ?? []).includes('govern');
   if (!isGovern) {
-    res.status(403).json({ success: false, error: `三权运行看板属治位（云审批评估）查询，帽 ${hat} 无此权（需 VXM/VEM/VDM）` });
+    res.status(403).json({ success: false, error: `三权运行看板属治位（云审批评估）查询，帽 ${hat} 无此权（需 VMX/VEM/VDM）` });
     return;
   }
   const now = Date.now();

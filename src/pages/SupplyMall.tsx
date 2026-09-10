@@ -61,7 +61,7 @@ export default function SupplyMall() {
           </p>
           <div className="mx-auto mt-4 max-w-xl rounded-lg bg-[#f3eee3] px-4 py-3 text-left text-xs leading-6 text-[#8a6d3b]">
             <b>交易单向</b>：供给方唯一交易对手 = DU；DU 采购货品后经 DU 经营实体铺面向客户（XU 走 Market / CU 走 Mall）。
-            客户界面信息隔离：全程不出现供给方名称/报价/产能；本商城数据只在 DU / 供给方 / 云中心（VXM）间流转。
+            客户界面信息隔离：全程不出现供给方名称/报价/产能；本商城数据只在 DU / 供给方 / 云中心（VMX）间流转。
           </div>
         </div>
       </div>
@@ -88,7 +88,7 @@ export default function SupplyMall() {
           <PowerBadge kind="manage" />
         </h1>
         <p className="mt-1 text-sm text-[#6b665a]">
-          云中心（VXM）准入合格的供给方 → 在架货品直采。一键下单生成 DU 采购单（复用 EX-2026-100x 体系，关联 supplierId），客户不可见。
+          云中心（VMX）准入合格的供给方 → 在架货品直采。一键下单生成 DU 采购单（复用 EX-2026-100x 体系，关联 supplierId），客户不可见。
         </p>
       </div>
 

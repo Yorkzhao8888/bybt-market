@@ -174,7 +174,7 @@ export const marketMetaOf = (d: DomainCode | null) =>
   d ? DOMAINS.find((x) => x.code === d) ?? null : null;
 
 /** X-MARKET-ROLE-01 治理分线（A 批）：V*M 四源家族 → 本源域（VEM→E / VYM→Y / VHM→H / VTM→T）；
- *  VXM 云中心统筹四源全域；VDM 归 market 经营治理（/govern），不入四源治理面（信息隔离）。 */
+ *  VMX 云中心统筹四源全域；VDM 归 market 经营治理（/govern），不入四源治理面（信息隔离）。 */
 export const GOVERN_SUPPLY_DOMAIN_OF: Partial<Record<HatRole, DomainCode>> = {
   VEM: 'E',
   VYM: 'Y',
@@ -182,10 +182,10 @@ export const GOVERN_SUPPLY_DOMAIN_OF: Partial<Record<HatRole, DomainCode>> = {
   VTM: 'T',
 };
 
-/** 四源治理帽（supply 面治理席位：VXM 统筹 + 四家族分源；VDM 不在内） */
+/** 四源治理帽（supply 面治理席位：VMX 统筹 + 四家族分源；VDM 不在内） */
 export const isSupplyGovernHat = (hat: HatRole | null): boolean =>
-  hat === 'VXM' || hat === 'VEM' || hat === 'VHM' || hat === 'VYM' || hat === 'VTM';
+  hat === 'VMX' || hat === 'VEM' || hat === 'VHM' || hat === 'VYM' || hat === 'VTM';
 
-/** 四源家族治理域（VXM 统筹返回 null 表示全域；VDM/其他帽返回 null） */
+/** 四源家族治理域（VMX 统筹返回 null 表示全域；VDM/其他帽返回 null） */
 export const supplyGovernDomainOf = (hat: HatRole | null): DomainCode | null =>
   hat ? GOVERN_SUPPLY_DOMAIN_OF[hat] ?? null : null;

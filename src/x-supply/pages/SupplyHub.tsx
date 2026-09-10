@@ -1,7 +1,7 @@
 // X-Supply 供给四源集市（X-SUPPLY-01）：独立路由域 /supply · 组件命名空间 XSupply*
 // 定位：供给四源集市（YU/EU/HU/TU 上游供给）——DU 在此为采购者；X-Market=五域经营面。两交易面中间隔 DU。
-// 权限：EU/VXM/DU 可进；XU/CU 前端守卫 403 + 后端接口 403 双保险
-// 办位（EX/EXX）：入驻登记 + Booth-E 铺面维护（仅本铺）；EU 管位只读 + 指引；VXM/DU 治理/采购视角
+// 权限：EU/VMX/DU 可进；XU/CU 前端守卫 403 + 后端接口 403 双保险
+// 办位（EX/EXX）：入驻登记 + Booth-E 铺面维护（仅本铺）；EU 管位只读 + 指引；VMX/DU 治理/采购视角
 // 双称呼（试行延续 UE-02）：大号市面称呼 + 小号系统称呼；穿透字段保留系统标识
 // 依赖单向（X-SUPPLY-01 补充约束）：仅公共底座（ui/PowerBadge/DualTerm/domain/terminology/Auth）+ 本域数据层，禁止 import X-Market 页面组件
 import { useCallback, useEffect, useState } from 'react';
@@ -122,7 +122,7 @@ export default function XSupplyHub() {
         ) : isSupplyGovernHat(hat) ? (
           <span className="flex flex-wrap items-center gap-2">
             <PowerBadge kind="govern" />
-            治位视角（四源分线 · X-MARKET-ROLE-01）：{supplyGovernDomainOf(hat) ? `${hat} 治 ${supplyGovernDomainOf(hat)} 源准入与货品` : 'VXM 统筹全域四源（含大额采购审批/阈值）'}；下方治理台办理。
+            治位视角（四源分线 · X-MARKET-ROLE-01）：{supplyGovernDomainOf(hat) ? `${hat} 治 ${supplyGovernDomainOf(hat)} 源准入与货品` : 'VMX 统筹全域四源（含大额采购审批/阈值）'}；下方治理台办理。
           </span>
         ) : hat === 'DU' ? (
           <span className="flex flex-wrap items-center gap-2">

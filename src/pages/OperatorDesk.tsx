@@ -256,7 +256,7 @@ export default function OperatorDesk() {
                 <p className="mt-2 text-sm text-[#4a463c]">
                   办在端：履约与门店作业由执行细化层（*DX）落地——<b>Y→YDX 履执行</b>、<b>H→HDX 人执行</b>、<b>T→TDX 技执行</b>、
                   <b>E→EDX 物执行</b>（履约衔接，对应 X-OFD 履约中心）、<b>D/C→CDX 销执行</b>（门店销售作业，对应 X-Shop/X-Mall）。
-                  执行双线（X-MARKET-17 验证结论：*MX 域内运营执行 L2 与 *DX 业务执行 L1 分工成立，本期先验证不迁移）：*MXX 运营（L2）· *DX 业务细化（L1）一一对应执行铺面；D*X 单帽（DYX/DHX/DTX/DEX/DCX）保持办位标注（展示名口径，Booth 码与帽 ID 不变）。
+                  执行双线（X-MARKET-17 v1.1 验证结论：运营线 *MX→*MXX 与业务线 *DX→DXX 分工成立，本期先验证不迁移）：六域运营 *MX（DMX 主业/EMX/CMX/TMX/YMX/HMX）→ *MXX（手下）· 业务执行 *DX（DDX 主业/EDX/CDX/TDX/YDX/HDX）→ DXX（其手下），一一对应执行铺面；D*X 废弃旧帽（DYX/DHX/DTX/DEX/DCX）过渡保留、标注办位语义（展示名口径，Booth 码与帽 ID 不变）；执行身份不独立登录，依附经营视角（代办/只读）。
                 </p>
                 <p className="mt-2 text-xs text-[#8a8577]">
                   穿透追责（X-MARKET-16）：本台履约回执由服务端按订单域自动映射执行帽（客户端不可伪造），审计记

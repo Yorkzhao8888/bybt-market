@@ -1,5 +1,5 @@
 // X-MARKET-11 三权标识徽标：治（云治理 · 紫）/ 管（端经营 · 橙）/ 办（端执行 · 蓝）
-// 口径：治在云（VXM/O*M 审批审计）、管在端（DU 经营决策 / *U 供给经营）、办在端（执行帽落地执行）
+// 口径：治在云（VMX/O*M 审批审计）、管在端（DU 经营决策 / *U 供给经营）、办在端（执行帽落地执行）
 import { POWER_BADGE } from '../lib/domain';
 import type { PowerKind } from '../lib/domain';
 

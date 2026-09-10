@@ -116,8 +116,8 @@ export type UnitRole13 =
 /** B 端客户帽：XU（采购客户/买家，企业容器 XEPZ 或自然人容器 XHPZ 均可挂，按域细分 XU-Y/E/H/T/DE） */
 export type ClientHat = 'XU';
 
-/** 平台运营管理方帽（V*M 运营长系）：VEM/VHM/VYM/VTM/VDM，挂平台容器；VXM=云中心运营审批统筹（X-MARKET-08 供应商准入） */
-export type OperatorHat = 'VEM' | 'VHM' | 'VYM' | 'VTM' | 'VDM' | 'VXM';
+/** 平台运营管理方帽（V*M 运营长系）：VEM/VHM/VYM/VTM/VDM，挂平台容器；VMX=云中心运营审批统筹（X-MARKET-08 供应商准入） */
+export type OperatorHat = 'VEM' | 'VHM' | 'VYM' | 'VTM' | 'VDM' | 'VMX';
 
 /** DU 经营实体五执行帽（DX 系，一一对应 Booth-DY/DH/DT/DE/DC） */
 export type DuExecHat = 'DYX' | 'DHX' | 'DTX' | 'DEX' | 'DCX';
@@ -169,7 +169,7 @@ export const UNIT_ROLE_LABEL: Record<HatRole, string> = {
   XU: '客户', // B 端采购客户帽（买家，走 Market）
   VEM: '通货市场运营长', VHM: '人资市场运营长', VYM: '智场市场运营长',
   VTM: '技术市场运营长', VDM: '产品市场运营长', // V*M 平台运营管理方（称谓=市场代码：E通货/H人资/Y智场/T技术/DE产品）
-  VXM: '云中心运营审批统筹', // X-MARKET-08：供应商准入评估/审核统筹/违规货品治理
+  VMX: '云中心运营审批统筹', // X-MARKET-08：供应商准入评估/审核统筹/违规货品治理
 };
 
 /** 各帽归属线（供给/经营执行/需求/运营） */
@@ -186,7 +186,7 @@ export const HAT_LINE_OF: Record<HatRole, HatLine> = {
   // 客户帽（B 端采购客户）
   XU: 'demand',
   // 运营管理方（平台运营长系）
-  VEM: 'admin', VHM: 'admin', VYM: 'admin', VTM: 'admin', VDM: 'admin', VXM: 'admin',
+  VEM: 'admin', VHM: 'admin', VYM: 'admin', VTM: 'admin', VDM: 'admin', VMX: 'admin',
 };
 
 /** 身份（帽）：挂在容器下的一顶帽（基座 13U + 经营帽 + 执行帽） */
@@ -425,7 +425,7 @@ export interface SupplyContract {
 /** 供应商准入申请状态：pending 待评估 / approved 合格 / rejected 驳回（可重提） */
 export type SupplierAppStatus = 'pending' | 'approved' | 'rejected';
 
-/** 供应商准入登记（供给方提交 → VXM 云中心评估） */
+/** 供应商准入登记（供给方提交 → VMX 云中心评估） */
 export interface SupplierApplication {
   id: string;
   supplierId: string;        // 供给方容器 id
@@ -458,7 +458,7 @@ export interface SupplierProduct {
   priceCents: number;
   unit: string;
   stock: number;
-  status: 'on' | 'off';      // on 在架 / off 下架（含 VXM 治理下架）
+  status: 'on' | 'off';      // on 在架 / off 下架（含 VMX 治理下架）
 }
 
 /** DU 采购商城行（货品 + 供给方名称，仅对 DU 经营线下发） */
@@ -498,7 +498,7 @@ export interface MarketPowerMapRow {
   forbid_hats: PowerHat[];
   tier: PowerTier;
   scope: PowerScope;
-  governance: string;      // 治理口径（如 VXM 评估 / 平台治理下架 / 大额升级 V*M）
+  governance: string;      // 治理口径（如 VMX 评估 / 平台治理下架 / 大额升级 V*M）
   escalate_rule: string;   // 升级规则（空=无；大额升级逻辑归 X-MARKET-15）
   enabled: boolean;
 }
@@ -543,7 +543,7 @@ export interface GovernThresholds {
 
 /** 帽-权位矩阵（HAT_MATRIX）：交叉校验 market_power_map.allow_hats 的一致性 */
 export const HAT_POWER_BITS: Record<PowerHat, PowerBit[]> = {
-  VXM: ['govern'], VEM: ['govern'], VHM: ['govern'], VYM: ['govern'], VTM: ['govern'], VDM: ['govern'],
+  VMX: ['govern'], VEM: ['govern'], VHM: ['govern'], VYM: ['govern'], VTM: ['govern'], VDM: ['govern'],
   DU: ['manage', 'operate'],
   YU: ['manage', 'operate'], EU: ['manage', 'operate'], HU: ['manage', 'operate'], TU: ['manage', 'operate'],
   DYX: ['operate'], DHX: ['operate'], DTX: ['operate'], DEX: ['operate'], DCX: ['operate'],

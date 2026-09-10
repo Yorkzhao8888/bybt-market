@@ -42,7 +42,7 @@ export const ROLE_BRIEF: Record<string, RoleBrief> = {
   EX: { face: 'Supply · 供给面', duty: '供给执行：物资登记 / 铺面维护 / 看单（办位）' },
   EXX: { face: 'Supply · 供给面', duty: '供给执行：铺内作业 / 看单（办位）' },
   VDM: { face: 'Market · 经营治理面', duty: '治理案件 / 规则 / 全局总账 / 三权审计' },
-  VXM: { face: 'Supply · 管家审批面', duty: '总运执行（归 OVM）统筹全域：域内准入审核 / 货品审批 / 大额审批 / 阈值配置' },
+  VMX: { face: 'Supply · 管家审批面', duty: '总运执行（归 OVM）统筹全域：域内准入审核 / 货品审批 / 大额审批 / 阈值配置' },
   VEM: { face: 'Supply · 管家审批面', duty: 'E 源域内管家审批：通货源准入审核与货品审批（EMX）' },
   VHM: { face: 'Supply · 管家审批面', duty: 'H 源域内管家审批：人力源准入审核与货品审批（HMX）' },
   VYM: { face: 'Supply · 管家审批面', duty: 'Y 源域内管家审批：云资源源准入审核与货品审批（YMX）' },

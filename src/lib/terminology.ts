@@ -2,7 +2,7 @@
  * X-Market 双称呼体验方案 v1.1 —— 术语常量表（唯一口径）
  *
  * 规则：
- * - 大号(big) = 市面常态称呼（用户看得懂）；小号(sys) = 系统称呼（DU/VXM/DEX 等帽体系标识）
+ * - 大号(big) = 市面常态称呼（用户看得懂）；小号(sys) = 系统称呼（DU/VMX/DEX 等帽体系标识）
  * - 展示形态：大号为主、小号弱化为副标（DualTerm 组件）；纯短处用「大号」单显
  * - 治理穿透字段（actor_hat/governor/actor_user）保留系统标识原文，禁止大号化
  * - 新增概念：先入本表，再上 UI；禁止页面写死文案
@@ -17,8 +17,8 @@ export interface TermPair {
 /** 角色/身份称呼映射 */
 export const ROLE_TERMS: Record<string, TermPair> = {
   DU: { big: '店主', sys: '经营者 DU' },
-  // X-MARKET-18 治理帽语义对齐：管家审批（域内审批仍 V*M 系）；VXM→VMX（总运执行归 OVM）、FMX 总财执行归 OFM（预留）
-  VXM: { big: '管家审批统筹', sys: 'VMX · 总运执行（归 OVM）' },
+  // X-MARKET-18 治理帽语义对齐：管家审批（域内审批仍 V*M 系）；VMX→VMX（总运执行归 OVM）、FMX 总财执行归 OFM（预留）
+  VMX: { big: '管家审批统筹', sys: 'VMX · 总运执行（归 OVM）' },
   VEM: { big: '管家审批', sys: 'EMX · 管家审批（域内）' },
   VHM: { big: '管家审批', sys: 'HMX · 管家审批（域内）' },
   VYM: { big: '管家审批', sys: 'YMX · 管家审批（域内）' },

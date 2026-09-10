@@ -38,10 +38,10 @@ export const xSupplyApi = {
       req<XSupplyOrder>(`/api/supply/orders/${id}/confirm`, { method: 'POST', body: JSON.stringify({}) }),
   },
 
-  /** X-MARKET-ROLE-01 A3：四源治理数据层（V*M 家族分源 + VXM 统筹）——
+  /** X-MARKET-ROLE-01 A3：四源治理数据层（V*M 家族分源 + VMX 统筹）——
    * 仅 req 原语直调后端契约路径，不 import client 业务方法（依赖单向白名单）。 */
   govern: {
-    /** 准入审核列表（家族仅本源域，VXM 全域；VDM 403 经营治理隔离） */
+    /** 准入审核列表（家族仅本源域，VMX 全域；VDM 403 经营治理隔离） */
     applications: (): Promise<SupplierApplication[]> => req<SupplierApplication[]>('/api/supply/applications'),
 
     /** 准入审核：通过/驳回（家族限本源域，X-MARKET-08 + ROLE-01 分线） */
@@ -64,7 +64,7 @@ export const xSupplyApi = {
         body: JSON.stringify({}),
       }),
 
-    /** 大额采购审批队列（家族/VXM：仅 pending_approval/rejected；VDM 走 /govern 全局总账） */
+    /** 大额采购审批队列（家族/VMX：仅 pending_approval/rejected；VDM 走 /govern 全局总账） */
     orders: (): Promise<OrderRow[]> => req<OrderRow[]>('/api/orders'),
 
     /** 大额采购升级审批（X-MARKET-15） */

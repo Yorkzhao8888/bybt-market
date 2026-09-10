@@ -38,9 +38,9 @@ export default function Board() {
   const todoCount = orders.filter((o) => o.status === 'pending' || o.status === 'pending_approval').length;
   const stream = [...orders].reverse().slice(0, 12);
   const mainBooth = booths[0];
-  const boardTitle = user && (user.hatRole === 'VXM' || user.hatRole?.startsWith('V')) ? '五域集市 · 全域运行' : mainBooth ? `${mainBooth.code} 现场运行` : '五域集市 · 现场运行';
+  const boardTitle = user && (user.hatRole === 'VMX' || user.hatRole?.startsWith('V')) ? '五域集市 · 全域运行' : mainBooth ? `${mainBooth.code} 现场运行` : '五域集市 · 现场运行';
   const myBoothIds = new Set(booths.map((b) => b.id));
-  const myLs = user && (user.hatRole === 'VXM' || user.hatRole?.startsWith('V')) ? listings : listings.filter((l) => l.boothId !== null && myBoothIds.has(l.boothId));
+  const myLs = user && (user.hatRole === 'VMX' || user.hatRole?.startsWith('V')) ? listings : listings.filter((l) => l.boothId !== null && myBoothIds.has(l.boothId));
 
   return (
     <div className="min-h-screen bg-[#17181d] text-[#f5f2eb]">

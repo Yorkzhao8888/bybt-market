@@ -62,7 +62,7 @@ function Header() {
       { to: '/board', label: '现场看板', icon: <Monitor className="h-3.5 w-3.5" /> },
       { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
     ],
-    // X-MARKET-ROLE-01：V*M 管家审批（域内）家族（VXM/VEM/VHM/VYM/VTM，X-MARKET-18）落 supply 审批视图
+    // X-MARKET-ROLE-01：V*M 管家审批（域内）家族（VMX/VEM/VHM/VYM/VTM，X-MARKET-18）落 supply 审批视图
     governSupply: [
       { to: '/supply', label: '供给集市', icon: <Store className="h-3.5 w-3.5" /> },
     ],

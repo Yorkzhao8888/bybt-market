@@ -1,7 +1,7 @@
 // 供应商工作台（X-MARKET-09）：供给帽（EU/HU/YU/TU）登录落点 /supplier
 // 布局 = 业务操作型：左侧导航（准入登记/货品上架/采购单/产能概览），主区列表+表单
 // 主题色 = 源头供给绿 #15803D（顶栏徽标/侧栏激活态/主按钮）
-// 能力（X-MARKET-08）：准入登记 → VXM 评估 → 合格后上架货品 → 供给单据（DU 采购）→ 产能概览
+// 能力（X-MARKET-08）：准入登记 → VMX 评估 → 合格后上架货品 → 供给单据（DU 采购）→ 产能概览
 import { useCallback, useEffect, useState } from 'react';
 import { BadgeCheck, Boxes, Clock3, ClipboardList, FileClock, Gauge, PackagePlus, ShieldAlert, Warehouse, XCircle } from 'lucide-react';
 import { api } from '../api/client';
@@ -140,7 +140,7 @@ export default function SupplyDesk() {
               </p>
               <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[#8a8577]">
                 <PowerBadge kind="manage" />
-                流程：供给方登记 → VXM 云中心评估（通过/驳回）→ 合格供应商 → 纳入 DU 采购商城 → 上架货品 → DU 一键下单。
+                流程：供给方登记 → VMX 云中心评估（通过/驳回）→ 合格供应商 → 纳入 DU 采购商城 → 上架货品 → DU 一键下单。
               </p>
 
               {app?.status === 'rejected' && (
@@ -150,7 +150,7 @@ export default function SupplyDesk() {
               )}
               {app?.status === 'pending' && (
                 <p className="mt-3 rounded-md bg-[#f3eee3] px-3 py-2 text-sm text-[#8a6d3b]">
-                  登记材料已提交（资质：{app.qualification}），云中心运营审批统筹（VXM）评估中。
+                  登记材料已提交（资质：{app.qualification}），云中心运营审批统筹（VMX）评估中。
                 </p>
               )}
 
@@ -237,7 +237,7 @@ export default function SupplyDesk() {
             ) : (
               <div className="rounded-xl border bg-white p-5 text-sm text-[#8a8577]">
                 <Boxes className="mr-2 inline h-4 w-4" />
-                货品上架为合格供应商专属能力——请先完成「准入登记」并通过云中心（VXM）评估。
+                货品上架为合格供应商专属能力——请先完成「准入登记」并通过云中心（VMX）评估。
               </div>
             )
           )}
