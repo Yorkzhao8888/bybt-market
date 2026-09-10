@@ -66,24 +66,41 @@ export const CONCEPT_TERMS: Record<string, TermPair> = {
   supplyInbox: { big: '供货收件箱', sys: '供给方收件（仅本铺）' },
   /* X-MARKET-ROLE-01 角色界面归位（A 批） */
   duChild: { big: '店主', sys: '*DU · 分经营号' },
+  /* V/D 双系定位（2026-09-10 补充澄清）：V 系=生态方（平台方）运营，D 系=经营体系 */
+  vuRoot: { big: '平台方运营', sys: 'VU · 总运营' },
+  vuChild: { big: '生态方域运营', sys: 'V*U · 域运营分身' },
   governMarket: { big: '经营治理', sys: '经营管理治理 VDM' },
   governSupplyView: { big: '四源治理台', sys: 'V*M 家族分源治理' },
   ofdCenter: { big: '履约中心', sys: 'X-OFD 只读接入 · 模拟契约期' },
 };
 
-/** *DU 分经营号域对照（2026-09-10 定版）：域字母取线系，经营范畴按域展示；替代原 D*U 实例写法（DYU/DEU 等） */
+/** 分经营号域对照（2026-09-10 定版·补充澄清）：星号=域字母变量记号，实例化不带星号（YDU/EDU/DCU/HDU/TDU）；模板总称 *DU 保留星号；替代原 D*U 实例写法（DYU/DEU 等）。D 系=经营体系（可直营/加盟/合伙） */
 export const DU_CHILD_BY_DOMAIN: Record<string, string> = {
-  Y: 'Y*DU · 智场经营',
-  E: 'E*DU · 产品经营',
-  DE: 'E*DU · 产品经营',
-  H: 'H*DU · 人资经营',
-  T: 'T*DU · 技术经营',
-  C: 'C*DU · 客户经营',
+  Y: 'YDU · 智场经营',
+  E: 'EDU · 产品经营',
+  DE: 'EDU · 产品经营',
+  H: 'HDU · 人资经营',
+  T: 'TDU · 技术经营',
+  C: 'DCU · 客户经营',
 };
 
-/** 分经营号展示：有域视角给范畴形式（如 E*DU · 产品经营），无域兜底通用 *DU · 分经营号 */
+/** 分经营号展示：有域视角给范畴形式（如 EDU · 产品经营），无域兜底通用 *DU · 分经营号（模板总称） */
 export const duChildTermOf = (domainView: string | null | undefined): string =>
   (domainView && DU_CHILD_BY_DOMAIN[domainView]) || '*DU · 分经营号';
+
+/** V/D 双系定位（2026-09-10 补充澄清）：V 系列=生态方（平台方）运营体系（VU 总运营 → V*U 域运营分身）；D 系列=经营体系。实例化同口径去星号（VYU/VEU/VHU/VTU/VCU） */
+export const VU_CHILD_BY_DOMAIN: Record<string, string> = {
+  Y: 'VYU · 智场域运营',
+  E: 'VEU · 产品域运营',
+  DE: 'VEU · 产品域运营',
+  C: 'VCU · 客户域运营',
+  H: 'VHU · 人资域运营',
+  T: 'VTU · 技术域运营',
+};
+
+/** 生态方域运营展示：有域给范畴形式（如 VYU · 智场域运营），无域兜底 V*U 模板总称 */
+export const vuChildTermOf = (domainView: string | null | undefined): string =>
+  (domainView && VU_CHILD_BY_DOMAIN[domainView]) || 'V*U · 生态方域运营';
 
 /** 订单状态称呼映射（X-MARKET-UE-02：大号=客户视角市面称呼，小号=系统状态口径） */
 export const STATUS_TERMS: Record<string, TermPair> = {

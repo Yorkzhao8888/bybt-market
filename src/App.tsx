@@ -134,7 +134,7 @@ function Header() {
             <>
               {wb === 'operator' ? (
                 <span className="hidden flex-col items-start rounded-md border bg-white px-2.5 py-1 leading-tight sm:flex">
-                  {/* X-MARKET-ROLE-01 经营端标识 + *DU 分经营号命名规范（2026-09-10）：小号按域范畴展示（如 E*DU · 产品经营），语义与帽 ID 不变 */}
+                  {/* X-MARKET-ROLE-01 经营端标识 + 分经营号命名规范（2026-09-10 实例化去星号）：小号按域范畴展示（如 EDU · 产品经营），模板总称 *DU 保留星号，语义与帽 ID 不变 */}
                   <span className="text-xs font-bold" style={{ color: theme.accent }}>{conceptTerm('duChild').big} · {user.containerName ?? user.containerId}</span>
                   <span className="text-[10px] text-[#8a8577]">{duChildTermOf(user.domainView)} · {user.hatId ?? user.containerId}{boothCode ? ` · ${boothCode}` : ''}</span>
                 </span>
