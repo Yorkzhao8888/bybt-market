@@ -15,6 +15,17 @@ export const containers: Container[] = [
   { id: 'c-rs', type: 'XHPZ', name: '任仕人力服务', region: '华北', credit: 85, domainTag: 'H_MARKET' },
   { id: 'c-cy', type: 'XEPZ', name: '驰远智联云仓', region: '华东', credit: 95, domainTag: 'T_MARKET' },
   { id: 'c-yj', type: 'XEPZ', name: '捷租·云间', region: '华南', credit: 91, domainTag: 'Y_MARKET' },
+  // X-MARKET-TI-03：10 个 EU 供应商演示实体（内测批量验证，源头产能容器；方案 A 预置数据）
+  { id: 'c-eu01', type: 'XEPZ', name: '恒晟物资', region: '华东', credit: 90, domainTag: 'E_MARKET' },
+  { id: 'c-eu02', type: 'XEPZ', name: '联科五金', region: '华南', credit: 88, domainTag: 'E_MARKET' },
+  { id: 'c-eu03', type: 'XEPZ', name: '正茂建材', region: '华东', credit: 87, domainTag: 'E_MARKET' },
+  { id: 'c-eu04', type: 'XEPZ', name: '泰和工业', region: '华北', credit: 89, domainTag: 'E_MARKET' },
+  { id: 'c-eu05', type: 'XEPZ', name: '凯盛工具', region: '华中', credit: 86, domainTag: 'E_MARKET' },
+  { id: 'c-eu06', type: 'XEPZ', name: '泓远机电', region: '华东', credit: 91, domainTag: 'E_MARKET' },
+  { id: 'c-eu07', type: 'XEPZ', name: '广泰钢铁', region: '华北', credit: 92, domainTag: 'E_MARKET' },
+  { id: 'c-eu08', type: 'XEPZ', name: '瑞丰耗材', region: '西南', credit: 85, domainTag: 'E_MARKET' },
+  { id: 'c-eu09', type: 'XEPZ', name: '华信紧固', region: '华南', credit: 88, domainTag: 'E_MARKET' },
+  { id: 'c-eu10', type: 'XEPZ', name: '力锋设备', region: '华东', credit: 90, domainTag: 'E_MARKET' },
   // DU 经营实体（唯一经营主体，平台直营/加盟，一个 DU 可开多店）
   { id: 'c-du', type: 'XEPZ', name: '合和经营(平台直营)', region: '全国', credit: 96, domainTag: 'DE_MARKET' },
   { id: 'c-fs', type: 'XEPZ', name: '丰时经营(加盟)', region: '华西', credit: 88, domainTag: 'H_MARKET' },
@@ -35,6 +46,17 @@ export const units: Unit[] = [
   { id: 'u-hu1', code: 'HU-RS', name: '任仕人力服务', role: 'HU', side: 'B', containerId: 'c-rs', domainTags: ['H_MARKET'], tier: 'L2', credit: 85 },
   { id: 'u-tu1', code: 'TU-CY', name: '驰远智联云仓', role: 'TU', side: 'B', containerId: 'c-cy', domainTags: ['T_MARKET'], tier: 'L3', credit: 95 },
   { id: 'u-yu1', code: 'YU-YJ', name: '捷租·云间', role: 'YU', side: 'B', containerId: 'c-yj', domainTags: ['Y_MARKET'], tier: 'L3', credit: 91 },
+  // X-MARKET-TI-03：10 个 EU 供应商演示帽（内测批量验证）
+  { id: 'u-eu2', code: 'EU-HS', name: '恒晟物资', role: 'EU', side: 'B', containerId: 'c-eu01', domainTags: ['E_MARKET'], tier: 'L2', credit: 90 },
+  { id: 'u-eu3', code: 'EU-LK', name: '联科五金', role: 'EU', side: 'B', containerId: 'c-eu02', domainTags: ['E_MARKET'], tier: 'L2', credit: 88 },
+  { id: 'u-eu4', code: 'EU-ZM', name: '正茂建材', role: 'EU', side: 'B', containerId: 'c-eu03', domainTags: ['E_MARKET'], tier: 'L2', credit: 87 },
+  { id: 'u-eu5', code: 'EU-TH', name: '泰和工业', role: 'EU', side: 'B', containerId: 'c-eu04', domainTags: ['E_MARKET'], tier: 'L2', credit: 89 },
+  { id: 'u-eu6', code: 'EU-KS', name: '凯盛工具', role: 'EU', side: 'B', containerId: 'c-eu05', domainTags: ['E_MARKET'], tier: 'L2', credit: 86 },
+  { id: 'u-eu7', code: 'EU-HY', name: '泓远机电', role: 'EU', side: 'B', containerId: 'c-eu06', domainTags: ['E_MARKET'], tier: 'L2', credit: 91 },
+  { id: 'u-eu8', code: 'EU-GT', name: '广泰钢铁', role: 'EU', side: 'B', containerId: 'c-eu07', domainTags: ['E_MARKET'], tier: 'L2', credit: 92 },
+  { id: 'u-eu9', code: 'EU-RF', name: '瑞丰耗材', role: 'EU', side: 'B', containerId: 'c-eu08', domainTags: ['E_MARKET'], tier: 'L2', credit: 85 },
+  { id: 'u-eu10', code: 'EU-HX', name: '华信紧固', role: 'EU', side: 'B', containerId: 'c-eu09', domainTags: ['E_MARKET'], tier: 'L2', credit: 88 },
+  { id: 'u-eu11', code: 'EU-LF', name: '力锋设备', role: 'EU', side: 'B', containerId: 'c-eu10', domainTags: ['E_MARKET'], tier: 'L2', credit: 90 },
   // —— DU 唯一经营主体（经营帽），一个 DU 开多店 ——
   { id: 'u-du1', code: 'DU-HH', name: '合和经营(直营)', role: 'DU', side: 'B', containerId: 'c-du', domainTags: ['Y_MARKET', 'E_MARKET', 'H_MARKET', 'T_MARKET', 'DE_MARKET'], tier: 'L3', credit: 96 },
   { id: 'u-du2', code: 'DU-FS', name: '丰时经营(加盟)', role: 'DU', side: 'B', containerId: 'c-fs', domainTags: ['H_MARKET', 'Y_MARKET', 'DE_MARKET'], tier: 'L2', credit: 88 },
@@ -68,6 +90,17 @@ export const booths: Booth[] = [
   { id: 'b-h1', code: 'Booth-H-01', domain: 'H', kind: 'supply', name: '任仕·人力派遣铺', ownerUnitId: 'u-hu1', operatorContainerId: 'c-rs', chain: 'source', mode: 'HU → Booth-H（源头人力）', frontDesc: '产线/仓储人力，按日按周（铺面层展示）', backDesc: 'Booth 实体·SVC 派单作业系统（作业层）', status: 'open', rating: 4.7, listingCount: 2 },
   { id: 'b-t1', code: 'Booth-T-01', domain: 'T', kind: 'supply', name: '驰远·云仓 SaaS 铺', ownerUnitId: 'u-tu1', operatorContainerId: 'c-cy', chain: 'source', mode: 'TU → Booth-T（源头技术）', frontDesc: '云仓/调度 SaaS 订阅与定制（铺面层展示）', backDesc: 'Booth 实体·LAB 研发作业系统（作业层）', status: 'open', rating: 4.9, listingCount: 2 },
   { id: 'b-y1', code: 'Booth-Y-01', domain: 'Y', kind: 'supply', name: '捷租·共享仓库', ownerUnitId: 'u-yu1', operatorContainerId: 'c-yj', chain: 'source', mode: 'YU → Booth-Y（源头空间，捷租 Jezoom）', frontDesc: '园区仓库/共享仓按天租赁（铺面层展示）', backDesc: 'Booth 实体·DL/WH 空间作业系统（作业层）', status: 'open', rating: 4.8, listingCount: 2 },
+  // X-MARKET-TI-03：10 个 EU 供给铺（内测批量验证，Booth-E-03 起）
+  { id: 'b-e3', code: 'Booth-E-03', domain: 'E', kind: 'supply', name: '恒晟·钢材建材铺', ownerUnitId: 'u-eu2', operatorContainerId: 'c-eu01', chain: 'source', mode: 'EU → Booth-E（源头产能）', frontDesc: '螺纹钢/镀锌管现货直供（铺面层展示）', backDesc: 'Booth 实体·WH 仓储作业系统（作业层）', status: 'open', rating: 4.7, listingCount: 0 },
+  { id: 'b-e4', code: 'Booth-E-04', domain: 'E', kind: 'supply', name: '联科·五金紧固铺', ownerUnitId: 'u-eu3', operatorContainerId: 'c-eu02', chain: 'source', mode: 'EU → Booth-E（源头产能）', frontDesc: '螺栓/紧固件系列现货（铺面层展示）', backDesc: 'Booth 实体·WH 仓储作业系统（作业层）', status: 'open', rating: 4.6, listingCount: 0 },
+  { id: 'b-e5', code: 'Booth-E-05', domain: 'E', kind: 'supply', name: '正茂·水泥建材铺', ownerUnitId: 'u-eu4', operatorContainerId: 'c-eu03', chain: 'source', mode: 'EU → Booth-E（源头产能）', frontDesc: '散装水泥/砂浆建材直供（铺面层展示）', backDesc: 'Booth 实体·WH/DL 作业系统（作业层）', status: 'open', rating: 4.5, listingCount: 0 },
+  { id: 'b-e6', code: 'Booth-E-06', domain: 'E', kind: 'supply', name: '泰和·工业油品铺', ownerUnitId: 'u-eu5', operatorContainerId: 'c-eu04', chain: 'source', mode: 'EU → Booth-E（源头产能）', frontDesc: '液压油/润滑油/切削液（铺面层展示）', backDesc: 'Booth 实体·WH 仓储作业系统（作业层）', status: 'open', rating: 4.7, listingCount: 0 },
+  { id: 'b-e7', code: 'Booth-E-07', domain: 'E', kind: 'supply', name: '凯盛·电动工具铺', ownerUnitId: 'u-eu6', operatorContainerId: 'c-eu05', chain: 'source', mode: 'EU → Booth-E（源头产能）', frontDesc: '电动/气动工具整机套装（铺面层展示）', backDesc: 'Booth 实体·WH/SVC 作业系统（作业层）', status: 'open', rating: 4.6, listingCount: 0 },
+  { id: 'b-e8', code: 'Booth-E-08', domain: 'E', kind: 'supply', name: '泓远·机电设备铺', ownerUnitId: 'u-eu7', operatorContainerId: 'c-eu06', chain: 'source', mode: 'EU → Booth-E（源头产能）', frontDesc: '轴承/电机/传动件现货（铺面层展示）', backDesc: 'Booth 实体·WH 仓储作业系统（作业层）', status: 'open', rating: 4.8, listingCount: 0 },
+  { id: 'b-e9', code: 'Booth-E-09', domain: 'E', kind: 'supply', name: '广泰·型钢型材铺', ownerUnitId: 'u-eu8', operatorContainerId: 'c-eu07', chain: 'source', mode: 'EU → Booth-E（源头产能）', frontDesc: '角钢/槽钢/H 型钢现货（铺面层展示）', backDesc: 'Booth 实体·WH 仓储作业系统（作业层）', status: 'open', rating: 4.7, listingCount: 0 },
+  { id: 'b-e10', code: 'Booth-E-10', domain: 'E', kind: 'supply', name: '瑞丰·劳保用品铺', ownerUnitId: 'u-eu9', operatorContainerId: 'c-eu08', chain: 'source', mode: 'EU → Booth-E（源头产能）', frontDesc: '手套/防护/劳保耗材集采（铺面层展示）', backDesc: 'Booth 实体·WH 仓储作业系统（作业层）', status: 'open', rating: 4.5, listingCount: 0 },
+  { id: 'b-e11', code: 'Booth-E-11', domain: 'E', kind: 'supply', name: '华信·膨胀紧固铺', ownerUnitId: 'u-eu10', operatorContainerId: 'c-eu09', chain: 'source', mode: 'EU → Booth-E（源头产能）', frontDesc: '膨胀螺栓/锚栓/幕墙件（铺面层展示）', backDesc: 'Booth 实体·WH 仓储作业系统（作业层）', status: 'open', rating: 4.6, listingCount: 0 },
+  { id: 'b-e12', code: 'Booth-E-12', domain: 'E', kind: 'supply', name: '力锋·动力设备铺', ownerUnitId: 'u-eu11', operatorContainerId: 'c-eu10', chain: 'source', mode: 'EU → Booth-E（源头产能）', frontDesc: '空压机/磨具/动力设备（铺面层展示）', backDesc: 'Booth 实体·WH/SVC 作业系统（作业层）', status: 'open', rating: 4.7, listingCount: 0 },
   // —— DU 经营实体铺（组织经营，归 DU，执行帽一一对应）——
   { id: 'b-dy1', code: 'Booth-DY-01', domain: 'Y', kind: 'du', name: '合和·智场经营店', ownerUnitId: 'u-du1', execUnitId: 'u-dyx', operatorContainerId: 'c-du', chain: 'du', mode: 'DU·DYX → Booth-DY（经营·智场）', frontDesc: '空间经营店：承接源头空间，面向 XU 企业撮合（铺面层）', backDesc: 'Booth 实体·五大作业系统（DYX 履约，作业层）', franchise: 'direct', status: 'open', rating: 4.7, listingCount: 1 },
   { id: 'b-dh1', code: 'Booth-DH-01', domain: 'H', kind: 'du', name: '合和·人资经营店', ownerUnitId: 'u-du1', execUnitId: 'u-dhx', operatorContainerId: 'c-du', chain: 'du', mode: 'DU·DHX → Booth-DH（经营·人资）', frontDesc: '人力经营店：组织派单承接企业用工（铺面层）', backDesc: 'Booth 实体·SVC/DL 作业系统（DHX 履约）', franchise: 'direct', status: 'open', rating: 4.6, listingCount: 1 },
@@ -133,16 +166,44 @@ export const supplyContracts: SupplyContract[] = [
 export const supplierApplications: SupplierApplication[] = [
   { id: 'sa-1', supplierId: 'c-qc', boothId: 'b-e1', domain: 'E', categories: 'MRO 工业辅料/五金紧固件/建材钢材', capacity: '月供 5000 件，仓储直发', qualification: 'ISO9001 / 危化品经营许可 / 一般纳税人', priceIntent: '月结 30 天，框架价下浮 5%', status: 'approved', createdAt: '2026-09-01' },
   { id: 'sa-2', supplierId: 'c-cy', boothId: 'b-t1', domain: 'T', categories: '边缘计算网关/物联网模组', capacity: '月产 800 台', qualification: 'CCC / 高新技术企业证书', priceIntent: '预付 30%，交付后 7 天结清', status: 'pending', createdAt: '2026-09-09' },
+  // X-MARKET-TI-03：10 个 EU 演示供应商准入（预置 approved，采购商城直接可见）
+  { id: 'sa-3', supplierId: 'c-eu01', boothId: 'b-e3', domain: 'E', categories: '螺纹钢/镀锌管/型材', capacity: '月供 6000 吨，厂库直发', qualification: 'ISO9001 / 一般纳税人', priceIntent: '月结 30 天', status: 'approved', createdAt: '2026-09-09' },
+  { id: 'sa-4', supplierId: 'c-eu02', boothId: 'b-e4', domain: 'E', categories: '螺栓/紧固件/五金工具', capacity: '月供 80000 套', qualification: 'ISO9001 / ROHS', priceIntent: '月结 15 天', status: 'approved', createdAt: '2026-09-09' },
+  { id: 'sa-5', supplierId: 'c-eu03', boothId: 'b-e5', domain: 'E', categories: '散装水泥/砂浆/建材', capacity: '月供 20000 吨', qualification: '生产许可 / 一般纳税人', priceIntent: '款到发货', status: 'approved', createdAt: '2026-09-09' },
+  { id: 'sa-6', supplierId: 'c-eu04', boothId: 'b-e6', domain: 'E', categories: '液压油/润滑油/工业油品', capacity: '月供 1000 吨', qualification: '危化品经营许可 / ISO14001', priceIntent: '月结 30 天', status: 'approved', createdAt: '2026-09-10' },
+  { id: 'sa-7', supplierId: 'c-eu05', boothId: 'b-e7', domain: 'E', categories: '电动工具/气动工具', capacity: '月供 2000 套', qualification: '3C 认证 / ISO9001', priceIntent: '预付 20%，余款到货结清', status: 'approved', createdAt: '2026-09-10' },
+  { id: 'sa-8', supplierId: 'c-eu06', boothId: 'b-e8', domain: 'E', categories: '轴承/电机/传动件', capacity: '月供 12000 件', qualification: 'ISO9001 / 高新技术企业', priceIntent: '月结 30 天，框架价下浮 3%', status: 'approved', createdAt: '2026-09-10' },
+  { id: 'sa-9', supplierId: 'c-eu07', boothId: 'b-e9', domain: 'E', categories: '角钢/槽钢/H 型钢', capacity: '月供 5000 吨', qualification: 'ISO9001 / 一般纳税人', priceIntent: '月结 30 天', status: 'approved', createdAt: '2026-09-10' },
+  { id: 'sa-10', supplierId: 'c-eu08', boothId: 'b-e10', domain: 'E', categories: '劳保手套/防护用品/耗材', capacity: '月供 50000 包', qualification: 'LA 劳安认证', priceIntent: '款到发货，量大价优', status: 'approved', createdAt: '2026-09-10' },
+  { id: 'sa-11', supplierId: 'c-eu09', boothId: 'b-e11', domain: 'E', categories: '膨胀螺栓/锚栓/幕墙紧固', capacity: '月供 30000 盒', qualification: 'ISO9001 / ROHS', priceIntent: '月结 15 天', status: 'approved', createdAt: '2026-09-10' },
+  { id: 'sa-12', supplierId: 'c-eu10', boothId: 'b-e12', domain: 'E', categories: '空压机/磨具磨料/动力设备', capacity: '月供 200 台', qualification: '3C 认证 / 生产许可', priceIntent: '预付 30%，验收结清', status: 'approved', createdAt: '2026-09-10' },
 ];
 
 /** 供应商货品：合格供应商上架（DU 采购商城数据源，含报价/规格/库存，客户不可见） */
 export const supplierProducts: SupplierProduct[] = [
   { id: 'sp-1', supplierId: 'c-qc', boothId: 'b-e1', domain: 'E', name: 'Q235 螺纹钢 Φ12', category: '建材钢材', spec: 'Φ12×9m / GB1499.2', priceCents: 420000, unit: '吨', stock: 800, status: 'on' },
   { id: 'sp-2', supplierId: 'c-qc', boothId: 'b-e1', domain: 'E', name: '不锈钢紧固件组合包', category: '五金紧固', spec: 'M6-M12 / 304 不锈钢', priceCents: 8900, unit: '包', stock: 5000, status: 'on' },
+  // X-MARKET-TI-03：EU 演示供应商初始货品（每铺 1~2 个，供上架/供给/采购验证）
+  { id: 'sp-3', supplierId: 'c-eu01', boothId: 'b-e3', domain: 'E', name: 'HRB400 螺纹钢 Φ14', category: '建材钢材', spec: 'Φ14×9m / GB1499.2', priceCents: 410000, unit: '吨', stock: 600, status: 'on' },
+  { id: 'sp-4', supplierId: 'c-eu01', boothId: 'b-e3', domain: 'E', name: '热镀锌钢管 DN40', category: '管材', spec: 'DN40×6m / Q235B', priceCents: 310000, unit: '吨', stock: 400, status: 'on' },
+  { id: 'sp-5', supplierId: 'c-eu02', boothId: 'b-e4', domain: 'E', name: '304 内六角螺栓组套', category: '五金紧固', spec: 'M5-M16 / A2-70', priceCents: 7900, unit: '套', stock: 8000, status: 'on' },
+  { id: 'sp-6', supplierId: 'c-eu03', boothId: 'b-e5', domain: 'E', name: 'P.O 42.5 散装水泥', category: '建材水泥', spec: 'P.O 42.5 / 散装罐车', priceCents: 45000, unit: '吨', stock: 2000, status: 'on' },
+  { id: 'sp-7', supplierId: 'c-eu04', boothId: 'b-e6', domain: 'E', name: 'L-HM46 抗磨液压油', category: '工业油品', spec: '170kg / 钢桶', priceCents: 96000, unit: '桶', stock: 900, status: 'on' },
+  { id: 'sp-8', supplierId: 'c-eu05', boothId: 'b-e7', domain: 'E', name: '锂电无刷冲击扳手套装', category: '电动工具', spec: '520N·m / 双电 6.0Ah', priceCents: 158000, unit: '套', stock: 350, status: 'on' },
+  { id: 'sp-9', supplierId: 'c-eu06', boothId: 'b-e8', domain: 'E', name: '深沟球轴承 6204', category: '机械传动件', spec: '6204-2RS / GCr15', priceCents: 12500, unit: '个', stock: 12000, status: 'on' },
+  { id: 'sp-10', supplierId: 'c-eu06', boothId: 'b-e8', domain: 'E', name: '三相异步电动机 3kW', category: '机电设备', spec: 'YE3-100L2-4 / 380V', priceCents: 438000, unit: '台', stock: 150, status: 'on' },
+  { id: 'sp-11', supplierId: 'c-eu07', boothId: 'b-e9', domain: 'E', name: 'Q235B 等边角钢 50×5', category: '型材', spec: '50×50×5×6m', priceCents: 350000, unit: '吨', stock: 500, status: 'on' },
+  { id: 'sp-12', supplierId: 'c-eu08', boothId: 'b-e10', domain: 'E', name: '浸胶防割劳保手套', category: '劳保用品', spec: '13 针尼龙 / PU 涂层', priceCents: 3600, unit: '包', stock: 20000, status: 'on' },
+  { id: 'sp-13', supplierId: 'c-eu09', boothId: 'b-e11', domain: 'E', name: '304 不锈钢膨胀螺栓', category: '五金紧固', spec: 'M10×100 / 304', priceCents: 5200, unit: '盒', stock: 15000, status: 'on' },
+  { id: 'sp-14', supplierId: 'c-eu10', boothId: 'b-e12', domain: 'E', name: '螺杆式空压机 7.5kW', category: '动力设备', spec: '0.8MPa / 风冷固定式', priceCents: 268000, unit: '台', stock: 60, status: 'on' },
+  { id: 'sp-15', supplierId: 'c-eu10', boothId: 'b-e12', domain: 'E', name: '树脂增强砂轮片 400', category: '磨具磨料', spec: '400×3×32 / A46P', priceCents: 3200, unit: '片', stock: 30000, status: 'on' },
 ];
 
-/** 供应商准入/货品自增序号（sa/sp 前缀） */
-let supplierSeq = 2;
+/** 供应商准入/货品自增序号（sa/sp 前缀；TI-03 预置种子后按历史最大号续起，防 id 回绕） */
+let supplierSeq = [...supplierApplications, ...supplierProducts].reduce((m, r) => {
+  const n = Number(r.id.split('-')[1]);
+  return Number.isFinite(n) ? Math.max(m, n) : m;
+}, 0);
 export function nextSupplierId(prefix: 'sa' | 'sp'): string {
   supplierSeq += 1;
   return `${prefix}-${supplierSeq}`;

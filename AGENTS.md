@@ -220,6 +220,14 @@
 - **③审计覆盖度联动（TI-02③）**：dashboard coverage 与 `/api/power/audit` 本就同源 `marketPowerAudit`、字段 `action_code` 对齐（代码层无回退，ERP-01 零 server 改动与此无关）；「0/19 vs 留痕 22 条」真因=**内存审计随进程重启清空**的观察时序错位。修复：审计表落盘持久化 `XM_AUDIT_FILE`（默认 /tmp/xm-power-audit.json，loadPowerAudit 启动恢复+合法性过滤+**pa-N id 序列起点同步防回绕**+5000 条上限；写入侧 `powerAudit()` push 后 `schedulePowerAuditPersist()` 防抖）。dashboard 与 audit 端点零改动。
 - **回归口径（V1-V3）**：V1 同 token 两次请求均 200+重启后会话仍在+oneclick 全角色 200；V2 非 pending_approval 单审批 400 且审计无 allowed 新增、approve 成功留 allowed；V3 dashboard coverage>0 且与 audit distinct 一致+五页面+登入端 V1-V7 不回退。
 
+## EU 演示供应商批量预置（X-MARKET-TI-03，方案 A：纯种子数据）
+
+- **范围**：`/api/auth/demos` 预置 **10 个 EU 演示账号**（尾部追加，DEMO_ROUTE 数字索引不受影响），配套容器+unit+供给铺+准入+货品全链种子；**不开放注册/建号 API**（方案 B 另行排期），纯预置数据不动业务逻辑，Login 页演示清单经 `api.demos()` 动态拉取**零前端改动**（bSupply 组 filter EU 自动收纳）。
+- **种子清单**（store.ts）：容器 `c-eu01~c-eu10`（XEPZ，E_MARKET）｜unit `u-eu2~u-eu11`（code EU-HS/LK/ZM/TH/KS/HY/GT/RF/HX/LF，role EU，tier L2）｜供给铺 `b-e3~b-e12`（code **Booth-E-03~12**，kind supply，chain source，ownerUnitId 对应 unit）｜准入 `sa-3~sa-12`（**预置 approved**——mall 过滤 approvedIds 必需）｜货品 `sp-3~sp-15`（每铺 1~2 个 status on，合计 13 个：恒晟螺纹钢+镀锌管/联科内六角/正茂水泥/泰和液压油/凯盛冲击扳手/泓远轴承+电机/广泰角钢/瑞丰劳保手套/华信膨胀螺栓/力锋空压机+砂轮片）。
+- **demo 账号**（routes/index.ts demoAccounts 尾部）：`eu-hengsheng/eu-lianke/eu-zhengmao/eu-taihe/eu-kaisheng/eu-hongyuan/eu-guangtai/eu-ruifeng/eu-huaxin/eu-lifeng`——统一 entry B/hatRole EU/domainView E/boothTarget 对应铺；口令统一 test123（DEV_PASSWORD），oneclick demoId 即登。
+- **防回绕（关键）**：`store.ts` `supplierSeq` 由固定 `2` 改为**按 supplierApplications+supplierProducts 历史 id 最大号动态计算**——预置 sa-12/sp-15 后运行时 nextSupplierId 从 16 续起，避免新申请/新货品 id 与种子撞号。
+- **回归口径（V1/V2）**：V1 10 个 EU oneclick→me（hatRole EU+boothTarget Booth-E-xx）→/api/supply/products/mine 各见本铺货品；V2 原 17 demo 账号登录回归+DU supplyMall 见新货品（approved 链路通）+上架/供给单链路不破。
+
 
 ## 调试要点
 

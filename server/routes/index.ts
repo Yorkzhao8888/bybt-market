@@ -81,6 +81,17 @@ const demoAccounts: DemoAccount[] = [
   { id: 'vym-y', entry: 'B', hatRole: 'VYM', containerId: 'c-plat', hatId: 'u-vym1', label: '管家审批 · 智场市场 VYM', note: 'supply 域内管家审批·Y 源（YU 空间供给准入评估/货品审批/大额采购审批，YMX）', domainView: 'Y' },
   { id: 'vhm-h', entry: 'B', hatRole: 'VHM', containerId: 'c-plat', hatId: 'u-vhm1', label: '管家审批 · 人资市场 VHM', note: 'supply 域内管家审批·H 源（HU 人力供给准入评估/货品审批/大额采购审批，HMX）', domainView: 'H' },
   { id: 'vtm-t', entry: 'B', hatRole: 'VTM', containerId: 'c-plat', hatId: 'u-vtm1', label: '管家审批 · 技术市场 VTM', note: 'supply 域内管家审批·T 源（TU 技术供给准入评估/货品审批/大额采购审批，TMX · 白名单兼任）', domainView: 'T' },
+  // X-MARKET-TI-03：10 个 EU 供应商演示账号（内测批量验证；方案 A 预置数据，不开放注册 API；尾部追加不动 DEMO_ROUTE 索引）
+  { id: 'eu-hengsheng', entry: 'B', hatRole: 'EU', containerId: 'c-eu01', hatId: 'u-eu2', label: '恒晟物资 · 钢材建材供给', note: '以 EU 身份持源头供给实体铺 Booth-E-03（钢材/管材）', domainView: 'E', boothTarget: 'b-e3' },
+  { id: 'eu-lianke', entry: 'B', hatRole: 'EU', containerId: 'c-eu02', hatId: 'u-eu3', label: '联科五金 · 五金供给', note: '以 EU 身份持源头供给实体铺 Booth-E-04（紧固件）', domainView: 'E', boothTarget: 'b-e4' },
+  { id: 'eu-zhengmao', entry: 'B', hatRole: 'EU', containerId: 'c-eu03', hatId: 'u-eu4', label: '正茂建材 · 建材供给', note: '以 EU 身份持源头供给实体铺 Booth-E-05（水泥建材）', domainView: 'E', boothTarget: 'b-e5' },
+  { id: 'eu-taihe', entry: 'B', hatRole: 'EU', containerId: 'c-eu04', hatId: 'u-eu5', label: '泰和工业 · 油品供给', note: '以 EU 身份持源头供给实体铺 Booth-E-06（工业油品）', domainView: 'E', boothTarget: 'b-e6' },
+  { id: 'eu-kaisheng', entry: 'B', hatRole: 'EU', containerId: 'c-eu05', hatId: 'u-eu6', label: '凯盛工具 · 工具供给', note: '以 EU 身份持源头供给实体铺 Booth-E-07（电动工具）', domainView: 'E', boothTarget: 'b-e7' },
+  { id: 'eu-hongyuan', entry: 'B', hatRole: 'EU', containerId: 'c-eu06', hatId: 'u-eu7', label: '泓远机电 · 机电供给', note: '以 EU 身份持源头供给实体铺 Booth-E-08（轴承/电机）', domainView: 'E', boothTarget: 'b-e8' },
+  { id: 'eu-guangtai', entry: 'B', hatRole: 'EU', containerId: 'c-eu07', hatId: 'u-eu8', label: '广泰钢铁 · 型钢供给', note: '以 EU 身份持源头供给实体铺 Booth-E-09（型材）', domainView: 'E', boothTarget: 'b-e9' },
+  { id: 'eu-ruifeng', entry: 'B', hatRole: 'EU', containerId: 'c-eu08', hatId: 'u-eu9', label: '瑞丰耗材 · 劳保供给', note: '以 EU 身份持源头供给实体铺 Booth-E-10（劳保用品）', domainView: 'E', boothTarget: 'b-e10' },
+  { id: 'eu-huaxin', entry: 'B', hatRole: 'EU', containerId: 'c-eu09', hatId: 'u-eu10', label: '华信紧固 · 紧固供给', note: '以 EU 身份持源头供给实体铺 Booth-E-11（膨胀紧固）', domainView: 'E', boothTarget: 'b-e11' },
+  { id: 'eu-lifeng', entry: 'B', hatRole: 'EU', containerId: 'c-eu10', hatId: 'u-eu11', label: '力锋设备 · 设备供给', note: '以 EU 身份持源头供给实体铺 Booth-E-12（动力设备）', domainView: 'E', boothTarget: 'b-e12' },
 ];
 const DEMO_ALIAS: Record<string, DemoAccount> = Object.fromEntries(demoAccounts.map((a) => [a.id, a]));
 // 帽角色路由 → 演示账号（快捷）
