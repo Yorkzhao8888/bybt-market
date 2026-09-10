@@ -2,6 +2,7 @@
 // 认证口径：密码 test123；一键登录免密直接进入预设身份。
 
 import { randomUUID } from 'node:crypto';
+import { readFileSync, writeFileSync } from 'node:fs';
 import type { Request, Response } from 'express';
 import type { HatRole, SessionUser } from '../shared/types';
 
@@ -11,11 +12,49 @@ interface Session {
 }
 
 const sessions = new Map<string, Session>();
-const TTL = 1000 * 60 * 60 * 6; // 6h
+// X-MARKET-TI-02 ①：登录态 TTL ≥2h 达标（当前 6h）；命中即滑动续期（活跃会话不过期），quick-login/oneclick 通道不变
+const TTL = 1000 * 60 * 60 * 6;
+
+// 会话落盘持久化（TI-02 ①：修复「登录态分钟级失效」——真因是内存会话随进程重启/回收清空，TTL 本身 6h 达标）
+const SESSION_FILE = process.env.XM_SESSION_FILE || '/tmp/xm-sessions.json';
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+function persistSessions(): void {
+  try {
+    const now = Date.now();
+    const rows: [string, Session][] = [];
+    for (const [k, v] of sessions) {
+      if (v.expiresAt > now) rows.push([k, v]);
+      if (rows.length >= 2000) break; // 上限防无限膨胀
+    }
+    writeFileSync(SESSION_FILE, JSON.stringify(rows));
+  } catch {
+    /* 落盘失败不阻断会话主流程 */
+  }
+}
+function schedulePersist(): void {
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    persistSessions();
+  }, 500);
+}
+(function loadSessions(): void {
+  try {
+    const raw = readFileSync(SESSION_FILE, 'utf8');
+    const rows = JSON.parse(raw) as [string, Session][];
+    if (!Array.isArray(rows)) return;
+    for (const [token, s] of rows) {
+      if (token && s && typeof s.expiresAt === 'number' && s.user) sessions.set(token, s);
+    }
+  } catch {
+    /* 首次启动/文件损坏 → 空表 */
+  }
+})();
 
 export function createToken(user: SessionUser): string {
   const token = `xm_${randomUUID().replace(/-/g, '')}`;
   sessions.set(token, { user, expiresAt: Date.now() + TTL });
+  schedulePersist();
   return token;
 }
 
@@ -24,13 +63,17 @@ export function getUserByToken(token: string): SessionUser | null {
   if (!s) return null;
   if (Date.now() > s.expiresAt) {
     sessions.delete(token);
+    schedulePersist();
     return null;
   }
+  s.expiresAt = Date.now() + TTL; // 滑动续期：活跃会话命中即顺延（TI-02 ①）
+  schedulePersist();
   return s.user;
 }
 
 export function revokeToken(token: string): void {
   sessions.delete(token);
+  schedulePersist();
 }
 
 /** 开发版共享密钥（测试口径） */

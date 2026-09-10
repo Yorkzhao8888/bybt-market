@@ -213,6 +213,14 @@
 - **回归口径（V1-V6）**：DU /operator 单据/库存/预警入口可勾验；EU /supply/vendor 本帽数据不串源；XU/CU/VDM 直访 ERP 供给台 403（RoleGuard）；菜单按帽裁剪无残留；五页面+登入端 V1-V7 不回退；审计留痕沿用 checkPower（嵌入视图只读为主，写操作走既有端点已留痕）。
 
 
+## 内测版质量修复（X-MARKET-TI-02，P0 三项）
+
+- **①登录态 ≥2h（TI-02①）**：TTL 本为 6h（`server/auth.ts`）已达标，「分钟级失效」真因=**内存会话随进程重启/回收清空**（dev.sh 1200s 回收≈20 分钟，与现象吻合）。修复：a) 会话落盘持久化 `XM_SESSION_FILE`（默认 /tmp/xm-sessions.json，启动 loadSessions 恢复+写侧 500ms 防抖，上限 2000 条防膨胀）；b) **滑动续期**——`getUserByToken` 命中即 `expiresAt=Date.now()+TTL`（活跃会话不过期）；c) revoke/create/过期删除均触发落盘。quick-login/oneclick 通道与 401 文案不变。
+- **②审批业务失败不落 allowed（TI-02②）**：`POST /api/orders/:id/approval` 曾把 `checkPower('order_approval')` 放第一行（allowed 先落库 pa-20）→ 后续 status 400（如 VEM 审批非 pending_approval 单 o-1017）业务失败也留 allowed。已重排对齐 fulfill 端点范式：**读单 404 → status!=='pending_approval' 400 → action 参数 400 → checkPower → 执行**。权威口径：**allowed=权限放行且业务前置校验已过（真实执行的写动作）；denied=权位拒绝（403）；400/404 业务态失败不入审计**。历史脏数据标注不强改。
+- **③审计覆盖度联动（TI-02③）**：dashboard coverage 与 `/api/power/audit` 本就同源 `marketPowerAudit`、字段 `action_code` 对齐（代码层无回退，ERP-01 零 server 改动与此无关）；「0/19 vs 留痕 22 条」真因=**内存审计随进程重启清空**的观察时序错位。修复：审计表落盘持久化 `XM_AUDIT_FILE`（默认 /tmp/xm-power-audit.json，loadPowerAudit 启动恢复+合法性过滤+**pa-N id 序列起点同步防回绕**+5000 条上限；写入侧 `powerAudit()` push 后 `schedulePowerAuditPersist()` 防抖）。dashboard 与 audit 端点零改动。
+- **回归口径（V1-V3）**：V1 同 token 两次请求均 200+重启后会话仍在+oneclick 全角色 200；V2 非 pending_approval 单审批 400 且审计无 allowed 新增、approve 成功留 allowed；V3 dashboard coverage>0 且与 audit distinct 一致+五页面+登入端 V1-V7 不回退。
+
+
 ## 调试要点
 
 - dev server（tsx watch）修改 server 代码后**不会**可靠热重载路由/store：需 `kill -9 $(cat /app/work/logs/bypass/server.pid)` + `pkill -9 -f 'ts[x] watch'` 后 `(nohup bash ./scripts/dev.sh > logs/dev-start.log 2>&1 &)` 重启。

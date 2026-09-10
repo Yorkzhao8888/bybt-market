@@ -693,7 +693,8 @@ api.post('/orders', requireAuth, (req: AuthReq, res) => {
 
 // ================= X-MARKET-15 大额采购治理审批（治位帽，V*M；DU 不可自批） ==================
 api.post('/orders/:id/approval', requireAuth, (req: AuthReq, res) => {
-  if (!checkPower('order_approval', req, res)) return;
+  // X-MARKET-TI-02 ②：业务状态先于权位闸门——404/400 业务态失败不产生审计留痕；checkPower 通过（allowed）即业务成功留痕
+  // （口径：allowed=权限放行且业务前置校验已过；denied=权位拒绝；业务态失败不入审计。对齐 fulfill 端点范式）
   const order = getStore().orders.find((o) => o.id === req.params?.id);
   if (!order) {
     res.status(404).json({ success: false, error: '采购单不存在' });
@@ -704,15 +705,17 @@ api.post('/orders/:id/approval', requireAuth, (req: AuthReq, res) => {
     return;
   }
   const { action, note } = (req.body ?? {}) as { action?: 'approve' | 'reject'; note?: string };
+  if (action !== 'approve' && action !== 'reject') {
+    res.status(400).json({ success: false, error: 'action 须为 approve 或 reject' });
+    return;
+  }
+  if (!checkPower('order_approval', req, res)) return;
   if (action === 'approve') {
     order.status = 'pending'; // 批准 → 回到正常待履约流转，订单生效（供给方自此可见）
     order.approvalNote = note?.trim() || '治理审批通过，采购单生效';
-  } else if (action === 'reject') {
+  } else {
     order.status = 'rejected';
     order.approvalNote = note?.trim() || '治理审批驳回，采购单不生效';
-  } else {
-    res.status(400).json({ success: false, error: 'action 须为 approve 或 reject' });
-    return;
   }
   ok(res, order);
 });

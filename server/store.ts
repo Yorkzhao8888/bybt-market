@@ -2,6 +2,7 @@
 // X-MARKET-05：两套系统 + 三方链路 + Booth 权属定版
 //   容器(主体) → 帽(身份) → 域角色(标签) → Booth 实体(作业层) / 交易对象(铺面层)
 
+import { readFileSync, writeFileSync } from 'node:fs';
 import type { Container, Unit, Booth, Order, Listing, Inquiry, SupplyContract, SupplierApplication, SupplierProduct, MarketPowerMapRow, MarketPowerAuditRow, GovernThresholds, PowerHat } from '../shared/types';
 
 /* ============ 容器（主体） ============ */
@@ -195,6 +196,46 @@ export function nextPowerAuditId(): string {
   powerAuditSeq += 1;
   return `pa-${powerAuditSeq}`;
 }
+
+/* ============ X-MARKET-TI-02 ③：三权审计落盘持久化 ============ */
+// 修复「治理看板审计覆盖度 0/19 与『我的留痕』22 条并存」——真因是内存审计随进程重启清空（覆盖度与留痕同源，观察时序错位）。
+// 进程启动时从磁盘恢复审计行（含 id 序列起点同步），写入侧防抖落盘；dashboard 聚合与 audit 端点同源 marketPowerAudit，无需改口径。
+const AUDIT_FILE = process.env.XM_AUDIT_FILE || '/tmp/xm-power-audit.json';
+const AUDIT_KEEP = 5000;
+let auditSaveTimer: ReturnType<typeof setTimeout> | null = null;
+export function persistPowerAudit(): void {
+  try {
+    writeFileSync(AUDIT_FILE, JSON.stringify(marketPowerAudit.slice(-AUDIT_KEEP)));
+  } catch {
+    /* 落盘失败不阻断审计主流程 */
+  }
+}
+export function schedulePowerAuditPersist(): void {
+  if (auditSaveTimer) return;
+  auditSaveTimer = setTimeout(() => {
+    auditSaveTimer = null;
+    persistPowerAudit();
+  }, 500);
+}
+(function loadPowerAudit(): void {
+  try {
+    const raw = readFileSync(AUDIT_FILE, 'utf8');
+    const rows = JSON.parse(raw) as MarketPowerAuditRow[];
+    if (!Array.isArray(rows)) return;
+    for (const r of rows) {
+      if (r && typeof r.id === 'string' && typeof r.action_code === 'string' && (r.result === 'allowed' || r.result === 'denied' || r.result === 'escalated')) {
+        marketPowerAudit.push(r);
+      }
+    }
+    // 同步审计 id 序列起点（pa-N 取历史最大，避免重启后 id 回绕重复）
+    for (const r of marketPowerAudit) {
+      const m = /^pa-(\d+)$/.exec(r.id);
+      if (m) powerAuditSeq = Math.max(powerAuditSeq, Number(m[1]));
+    }
+  } catch {
+    /* 首次启动/文件损坏 → 空表 */
+  }
+})();
 
 /* ============ X-SUPPLY-01：供给集市数据层已迁 server/x-supply/store.ts（补充约束：供给表与经营数据隔离） ============ */
 

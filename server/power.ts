@@ -1,7 +1,7 @@
 // X-Market · 公共权限底座（X-MARKET-12 三权映射 checkPower / 审计留痕 / 交叉校验）
 // X-SUPPLY-01 补充约束：权限帽属公共底座，X-Market 与 X-Supply 双向依赖本模块；本模块不依赖任何业务路由。
 
-import { marketPowerMap, marketPowerAudit, nextPowerAuditId, normalizePowerHat, getStore } from './store';
+import { marketPowerMap, marketPowerAudit, nextPowerAuditId, normalizePowerHat, schedulePowerAuditPersist, getStore } from './store';
 import { HAT_POWER_BITS, type HatRole, type MarketPowerAuditRow, type MarketPowerMapRow, type PowerHat } from '../shared/types';
 import type { AuthReq, AuthRes } from './auth';
 
@@ -32,6 +32,7 @@ export function powerAudit(row: MarketPowerMapRow | null, actionCode: string, re
     ts: new Date().toISOString(),
   };
   marketPowerAudit.push(audit);
+  schedulePowerAuditPersist(); // X-MARKET-TI-02 ③：审计落盘持久化（防抖）
 }
 
 // 返回 true=放行；false=已写 403 响应+审计。boothCode：能解析到的铺面码（booth_new/supplier_apply 无预存上下文传空）
