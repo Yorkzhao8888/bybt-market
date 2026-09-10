@@ -265,3 +265,13 @@
 - 默认按 TypeScript `strict` 心智写代码；优先复用当前作用域已声明的变量、函数、类型和导入，禁止引用未声明标识符或拼错变量名。
 - 禁止隐式 `any` 和 `as any`；函数参数、返回值、解构项、事件对象、Express `req`/`res`、`catch` 错误在使用前应有明确类型或先完成类型收窄，并清理未使用的变量和导入。
 - 前后端字段命名以 `shared/types.ts` 为唯一口径，页面/客户端禁止私造字段名。
+
+## MARKET-CONN-01：Market 侧 Booth 履约时间线（消费侧展示，双端同景）
+
+- **OAS 鉴权链（server 独持，token 不落地浏览器）**：OAS 站 `https://62j75kfyn3.coze.site`（issuer=ziway-oas，Go）——发现文档 `/.well-known/openid-configuration`（authorization_code only）+ JWKS `/.well-known/jwks.json`（RS256，kid=oas-rsa-001）；**dev-token 换取路径**：`POST /api/v1/auth/dev-token {role:'SU',expires_minutes}` → `{code:200,data:{token,expires_at}}`（RS256，Booth 端持 OAS 公钥验签）；**平台 workload identity token 被 Booth 拒（invalid signature）**——Booth-SEC-01 验的是 OAS 公钥非平台 JWKS，勿再走 workload 路径。
+- **server/boothConn.ts（Booth 连接底座）**：`OAS_BASE/BOOTH_BASE/OAS_ROLE` 常量（环境变量 `BOOTH_OAS_BASE/BOOTH_TIMELINE_BASE/BOOTH_OAS_ROLE/BOOTH_OAS_TOKEN` 可覆盖；BOOTH_OAS_TOKEN 优先=主 Agent 线上可注入长效 token）；`getBoothToken()` 内存缓存至 expires_at-5min 到期重签；`fetchBoothTimeline()` 拉 `GET {BOOTH_BASE}/api/booth/fulfillment/timeline`（Bearer；**Booth API 无过滤参数返回全量 orders[]**，503 冷启动重试 1 次，token 失效重签）；`boothDeepLink(token,orderNo)` 拼 `{BOOTH_BASE}/fulfillment-track?token=..&orderNo=..`（Booth 端 ?token= 透传是其既有设计）。
+- **代理端点 `GET /api/orders/:id/booth-timeline`**：requireAuth+订单可见性（buyer/seller 容器、VDM view_all_orders、DU/执行帽/供给帽按铺归属——与 /orders 列表口径一致，403/404/401 分明）；匹配 `boothOrderNo===order.code`（契约单 v1.1 订单透传对齐后自动生效）+可选 `?match=<boothOrderNo>` 调试参数；响应 `{matched,orderCode,boothOrderNo,timeline,deepLink,fetchedAt,unreachable?}`；Booth 不可达时 unreachable 兜底不报错。
+- **前端 `src/components/BoothTimelineCard.tsx`**：四节点固定序 stepper（placed/accepted/fulfilling/delivered；`NODE_FALLBACK_LABEL` 缺节点补 pending 占位；`STATE_META` done 绿 #16A34A/doing 蓝 #2563EB「处理中」/pending 灰「待推进」）；actor 保留 Booth 脱敏原文（XEPZ-****001）；底部「在 Booth 中查看 ↗」深链新窗口（target=_blank rel=noreferrer）；占位态「暂未进入履约」+深链；unreachable 态琥珀提示；**30s 轮询**（卡内 setInterval，orderId 切换重置）。挂 Orders.tsx 行点击展开（openId），api.boothTimeline(orderId)。
+- **类型**：shared/types.ts `BoothFulfillmentNode/BoothFulfillmentOrder/BoothTimelineResp`；术语词条 CONCEPT_TERMS.boothTimeline（履约时间线/Booth·履约四节点）。
+- **凭证复跑**：`scripts/booth-timeline-check.mjs`（V2 数据一致性比对）+`scripts/booth-timeline-ui-check.mjs`（V1 UI 四节点渲染断言 12 项+截图 assets/conn-01/market-timeline-matched.png；route 注入 Booth 真实结构——Booth 端无公开建单 API，未越权造数）。
+- **已知边界**：①Booth 侧 timeline 当前为手工样板单（orderNo=M+时间戳），与 Market 单号（EX-2026-xxxx）零交集——Booth 侧建 orderNo=Market code 的履约单（或透传落地）后 UI 自动渲染 matched 时间线；②Booth timeline API 全量返回无分页（数据量大时需 Booth 侧补过滤参数）；③dev-token 30min 时效由 boothConn 缓存/重签机制消化。

@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import type { OrderRow } from '../../shared/types';
 import { ORDER_STATUS, isAdminRole, canOperate, hatLabel } from '../lib/domain';
 import { useAuth } from '../Auth';
+import BoothTimelineCard from '../components/BoothTimelineCard';
 
 const FAMILIES: { code: string; name: string; tone: string }[] = [
   { code: 'C', name: 'C端零售', tone: 'bg-[#b8862b]' },
@@ -24,6 +25,7 @@ function FamBadge({ family }: { family: string }) {
 export default function Orders() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [openId, setOpenId] = useState<string | null>(null); // MARKET-CONN-01：展开订单详情（含 Booth 履约时间线）
 
   useEffect(() => { void api.orders().then(setOrders).catch(() => setOrders([])); }, []);
 
@@ -80,8 +82,15 @@ export default function Orders() {
             const st = ORDER_STATUS[o.status] ?? { label: o.status, color: '#6b665a' };
             const isC = o.side === 'C';
             return (
-              <div key={o.id} className={`${i > 0 ? 'border-t' : ''} px-4 py-3 ${isC ? 'bg-[#fbf6ea]' : 'bg-[#f5f2eb]'}`}>
-                <div className="flex flex-wrap items-center justify-between gap-2">
+              <div
+                key={o.id}
+                className={`${i > 0 ? 'border-t' : ''} px-4 py-3 ${isC ? 'bg-[#fbf6ea]' : 'bg-[#f5f2eb]'}`}
+              >
+                <div
+                  className="flex cursor-pointer flex-wrap items-center justify-between gap-2"
+                  onClick={() => setOpenId(openId === o.id ? null : o.id)}
+                  title="点击展开订单详情与 Booth 履约时间线"
+                >
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-bold">{o.code}</span>
                     <FamBadge family={o.family} />
@@ -90,6 +99,7 @@ export default function Orders() {
                       <Link
                         to={isC ? `/mall/booth/${o.boothId}` : `/market/booth/${o.boothId}`}
                         className="text-sm font-medium underline decoration-dotted hover:text-[#b8862b]"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {o.boothName}
                       </Link>
@@ -105,8 +115,19 @@ export default function Orders() {
                     )}
                     <span className="ticker-font font-bold">¥{(o.amountCents / 100).toLocaleString()}</span>
                     <span className="rounded px-2 py-0.5 text-xs font-semibold" style={{ color: st.color, background: `${st.color}18` }}>{st.label}</span>
+                    <button
+                      type="button"
+                      className="rounded-full border border-black/10 px-2 py-0.5 text-[11px] font-medium text-[#6b665a] transition-colors hover:bg-black/5"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenId(openId === o.id ? null : o.id);
+                      }}
+                    >
+                      {openId === o.id ? '收起详情 ▲' : '履约详情 ▼'}
+                    </button>
                   </div>
                 </div>
+                {openId === o.id ? <BoothTimelineCard orderId={o.id} /> : null}
               </div>
             );
           })}

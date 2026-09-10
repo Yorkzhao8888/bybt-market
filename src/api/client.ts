@@ -1,7 +1,7 @@
 // API 客户端：统一封装与类型映射（X-MARKET-05 两套系统 + 三方链路）
 // 视图类型统一从 shared/types 导入（单一来源），client 只做别名与请求封装
 import type {
-  BoothRow, Container, DemoAccount, DomainCode, DomainMeta, FulfillmentReceipt, GovernanceCase, GovernThresholds, HatLine, HatRow, Inquiry, JobSystem,
+  BoothRow, BoothTimelineResp, Container, DemoAccount, DomainCode, DomainMeta, FulfillmentReceipt, GovernanceCase, GovernThresholds, HatLine, HatRow, Inquiry, JobSystem,
   Listing, MarketPowerAuditRow, Order, OrderRow, PowerDashboard, ProfessionalMarket, SessionUser, SupplyContract, SupplierApplication,
   SupplierProduct, SupplyMallItem, Unit, HatRole,
 } from '../../shared/types';
@@ -181,6 +181,8 @@ export const api = {
   // X-MARKET-16 执行帽穿透追责：履约执行（DU 发起，服务端按族映射执行帽，回执含 actor_user/actor_hat）
   fulfillOrder: (id: string, note?: string) =>
     req<{ order: OrderRow; receipt: FulfillmentReceipt }>(`/api/orders/${id}/fulfill`, { method: 'POST', body: JSON.stringify({ note }) }),
+  // MARKET-CONN-01 Booth 履约时间线（server 代理持有 OAS token；数据结构见 shared/types BoothTimelineResp）
+  boothTimeline: (id: string) => req<BoothTimelineResp>(`/api/orders/${id}/booth-timeline`),
   /* ============ X-MARKET-08 供应商准入 + DU 采购商城 ============ */
   submitApplication: (payload: { categories: string; capacity?: string; qualification: string; priceIntent?: string }) =>
     req<SupplierApplication>('/api/supply/applications', { method: 'POST', body: JSON.stringify(payload) }),

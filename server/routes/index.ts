@@ -18,6 +18,7 @@ import {
 import { createToken, getUserByToken, revokeToken, DEV_PASSWORD, requireAuth, optionalAuth, roleOf, type AuthReq, type AuthRes } from '../auth';
 import { checkPower, boothCodeOf, powerAudit } from '../power';
 import xSupply from '../x-supply/routes';
+import { fetchBoothTimeline, getBoothToken, boothBase, boothDeepLink } from '../boothConn';
 import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth, SupplierApplication, SupplierProduct, SupplyMallItem, MarketPowerMapRow, MarketPowerAuditRow, PowerHat, FulfillmentReceipt } from '../../shared/types';
 import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL, HAT_LINE_OF, HAT_POWER_BITS, type Inquiry } from '../../shared/types';
 
@@ -633,6 +634,49 @@ api.get('/orders', requireAuth, (req: AuthReq, res) => {
     list = list.filter((o) => o.buyerContainerId === user.containerId);
   }
   ok(res, list);
+});
+
+// ============ MARKET-CONN-01：Booth 履约时间线代理（server 持有 OAS token，不落地浏览器；requireAuth） ============
+api.get('/orders/:id/booth-timeline', requireAuth, async (req: AuthReq, res) => {
+  const user = req.user!;
+  const store = getStore();
+  const line = lineOf(user);
+  const role = roleOf(user);
+  const order = store.orders.find((o) => o.id === req.params.id);
+  if (!order) return res.status(404).json({ error: '订单不存在' });
+
+  // 可见性与 /orders 列表口径一致：买方/卖方/名下 Booth（DU·执行·供给）/VDM 全局
+  const booth = order.boothId !== null ? store.booths.find((b) => b.id === order.boothId) : undefined;
+  let canSee =
+    order.buyerContainerId === user.containerId || order.sellerContainerId === user.containerId;
+  if (!canSee && can(user, 'view_all_orders') && role === 'VDM') canSee = true;
+  if (!canSee && (role === 'DU' || line === 'exec' || line === 'supply') && booth) {
+    canSee =
+      (line === 'supply' ? booth.ownerUnitId === user.hatId : true) &&
+      (booth.operatorContainerId === user.containerId || booth.ownerUnitId === user.hatId);
+  }
+  if (!canSee) return res.status(403).json({ error: '无权查看该订单的履约时间线' });
+
+  const base = { matched: false, orderCode: order.code, boothOrderNo: null, timeline: null, fetchedAt: Date.now() };
+  try {
+    const boothOrders = await fetchBoothTimeline();
+    // 匹配规则：Booth 履约单 orderNo === Market 订单 code（契约单 v1.1 订单透传对齐后自动生效）；
+    // ?match= 为联调/验收用显式单号（仅展示层，不改业务数据）
+    const matchQ = typeof req.query.match === 'string' ? req.query.match : '';
+    const wantNo = matchQ || order.code;
+    const matched = boothOrders.find((b) => b.orderNo === wantNo) ?? null;
+    const token = await getBoothToken();
+    ok(res, {
+      ...base,
+      matched: !!matched,
+      boothOrderNo: matched?.orderNo ?? null,
+      timeline: matched,
+      deepLink: boothDeepLink(token, matched?.orderNo ?? null),
+    });
+  } catch {
+    // Booth 未就绪/网络失败：结构化占位（不 5xx，前端显示「履约通道暂不可达」）
+    ok(res, { ...base, unreachable: true, deepLink: `${boothBase()}/fulfillment-track` });
+  }
 });
 
 api.post('/orders', requireAuth, (req: AuthReq, res) => {

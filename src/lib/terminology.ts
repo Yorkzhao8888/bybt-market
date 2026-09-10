@@ -82,6 +82,7 @@ export const CONCEPT_TERMS: Record<string, TermPair> = {
   governMarket: { big: '经营治理', sys: '经营管理治理 VDM' },
   governSupplyView: { big: '四源治理台', sys: 'V*M 家族分源治理' },
   ofdCenter: { big: '履约中心', sys: 'X-OFD 只读接入 · 模拟契约期' },
+  boothTimeline: { big: '履约时间线', sys: 'Booth · 履约四节点' },
   /* 命名体系 v1.2：执行双线 + 事业部壳 */
   execDualLine: { big: '执行双线', sys: '*MXX 运营（权限链 L2）· DXX 业务细化（权限链 L1）' },
   vduShell: { big: '产品事业部全域壳', sys: 'VDU · 整合六类（DDU 直属 / 五域引用 VDU::EDU）' },

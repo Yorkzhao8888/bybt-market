@@ -553,3 +553,31 @@ export const HAT_POWER_BITS: Record<PowerHat, PowerBit[]> = {
   OU: [], GU: [], AU: [], FU: [], IU: [], VU: [], SU: [],
   NONE: [],
 };
+
+// ============ MARKET-CONN-01：Booth 履约时间线（Market 消费侧展示，server 代理持有 OAS token） ============
+/** Booth 端履约节点（placed/accepted/fulfilling/delivered，宽类型防形态漂移） */
+export interface BoothFulfillmentNode {
+  key: string;
+  label: string;
+  at: string | null;
+  state: string; // done | doing | pending
+  actor?: string;
+}
+/** Booth 端履约单（orderNo 与 Market order.code 透传对齐后自动匹配） */
+export interface BoothFulfillmentOrder {
+  fulfillmentId: number | string;
+  orderNo: string;
+  waveNo?: string;
+  source?: string; // manual | market（契约单 v1.1 透传来源）
+  nodes: BoothFulfillmentNode[];
+}
+/** GET /api/orders/:id/booth-timeline 响应（代理端点，requireAuth） */
+export interface BoothTimelineResp {
+  matched: boolean;
+  orderCode: string;
+  boothOrderNo: string | null;
+  timeline: BoothFulfillmentOrder | null;
+  deepLink: string;
+  fetchedAt: number;
+  unreachable?: boolean;
+}
