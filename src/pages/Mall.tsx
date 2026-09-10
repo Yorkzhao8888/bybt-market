@@ -1,4 +1,4 @@
-// Mall = C 端买家商城（CU 自然人），承载 DCX（Booth-DC）零售商品；DEX/DYX/DHX/DTX 在 Market B 端。
+// Mall = C 端买家商城（CU 自然人），承载 CDX（门店销）零售商品；EDX/YDX/HDX/TDX 在 Market B 端。
 // X-MARKET-UE-02：商品卡营销化（价格/准入/店铺归属/库存归属）+ 立即购买确认弹层（P0 防误触下单）+ 双称呼试行。
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -74,7 +74,7 @@ export default function Mall() {
       {mallBooths.map((b) => (
         <Link key={b.id} to={`/mall/booth/${b.id}`} className="mb-2 block rounded-lg border bg-white px-3 py-2 text-sm hover:bg-[#efeae0]">
           @{b.name} <span className="font-mono text-xs text-[#8a8577]">{b.code}</span>
-          <span className="ml-2 text-xs text-[#8a8577]">{marketLabel(b.marketCode)} · DCX 在 Mall</span>
+          <span className="ml-2 text-xs text-[#8a8577]">{marketLabel(b.marketCode)} · CDX 在 Mall</span>
         </Link>
       ))}
 

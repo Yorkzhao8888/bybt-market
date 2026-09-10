@@ -72,7 +72,7 @@ export default function Model() {
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <Chain text="上游供给：YU/EU/HU/TU Booth 实体（源头产能）" tone="bg-white/10" />
           <span>→</span>
-          <Chain text="中游经营：DU 唯一主体 Booth-DY/DH/DT/DE/DC（执行帽 DYX/DHX/DTX/DEX/DCX）" tone="bg-white/15" />
+          <Chain text="中游经营：DU 唯一主体 Booth-DY/DH/DT/DE/DC（执行细化 YDX/HDX/TDX/EDX/CDX）" tone="bg-white/15" />
           <span>→</span>
           <Chain text="客户界面：Market(XU 企业) / Mall(CU 自然人)" tone="bg-[#b8862b]" />
         </div>

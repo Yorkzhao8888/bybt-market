@@ -200,7 +200,7 @@ export default function OperatorDesk() {
           </p>
           <div className="space-y-1">
             <button onClick={() => setSec('exec')} className={navCls('exec')} style={sec === 'exec' ? { background: ACCENT } : undefined}>
-              <Boxes className="h-4 w-4" /> 履约执行（DYX/DCX）
+              <Boxes className="h-4 w-4" /> 履约执行（YDX/CDX）
             </button>
             <p className="px-3 text-[10px] leading-relaxed text-[#a39b88]">作业以域映射执行帽落地，审计穿透真实登录人（X-MARKET-16）</p>
           </div>
@@ -245,9 +245,9 @@ export default function OperatorDesk() {
                   <PowerBadge kind="operate" /> 作业执行（办）——执行帽作业层
                 </p>
                 <p className="mt-2 text-sm text-[#4a463c]">
-                  办在端：履约与门店作业由执行帽落地——<b>Y→DYX 履执行</b>、<b>H→DHX 人执行</b>、<b>T→DTX 技执行</b>、
-                  <b>E→DEX 物执行</b>（履约衔接，对应 X-OFD 履约中心）、<b>D/C→DCX 销执行</b>（门店销售作业，对应 X-Shop/X-Mall）。
-                  执行帽一一对应执行帽铺面（Booth-DYX/DHX/DTX/DEX/DCX）。
+                  办在端：履约与门店作业由执行细化层（*DX）落地——<b>Y→YDX 履执行</b>、<b>H→HDX 人执行</b>、<b>T→TDX 技执行</b>、
+                  <b>E→EDX 物执行</b>（履约衔接，对应 X-OFD 履约中心）、<b>D/C→CDX 销执行</b>（门店销售作业，对应 X-Shop/X-Mall）。
+                  执行双线：*MXX 运营（L2）· *DX 业务细化（L1）一一对应执行铺面（展示名口径，Booth 码与帽 ID 不变）。
                 </p>
                 <p className="mt-2 text-xs text-[#8a8577]">
                   穿透追责（X-MARKET-16）：本台履约回执由服务端按订单域自动映射执行帽（客户端不可伪造），审计记

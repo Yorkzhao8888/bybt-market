@@ -19,7 +19,7 @@ export const ROLE_TERMS: Record<string, TermPair> = {
   VEM: { big: '平台监管', sys: '治理者 VEM' },
   VHM: { big: '平台监管', sys: '治理者 VHM' },
   VYM: { big: '平台监管', sys: '治理者 VYM' },
-  VTM: { big: '平台监管', sys: '治理者 VTM' },
+  VTM: { big: '技术运营管理', sys: 'VTM · 兼任白名单' },
   VDM: { big: '经营监管', sys: '治理者 VDM' },
   OU: { big: '组织运营', sys: '组织帽 OU' },
   XU: { big: '采购方', sys: '企业客户 XU' },
@@ -30,11 +30,11 @@ export const ROLE_TERMS: Record<string, TermPair> = {
   TU: { big: '供货商', sys: '供给帽 TU' },
   EX: { big: '供货店长', sys: '供给执行帽 EX' },
   EXX: { big: '供货店长', sys: '执行端帽 EXX' },
-  DYX: { big: '履约店长', sys: '执行帽 DYX' },
-  DHX: { big: '履约店长', sys: '执行帽 DHX' },
-  DTX: { big: '履约店长', sys: '执行帽 DTX' },
-  DEX: { big: '履约店长', sys: '执行帽 DEX' },
-  DCX: { big: '门店店长', sys: '执行帽 DCX' },
+  DYX: { big: '履约店长', sys: '执行细化 YDX' },
+  DHX: { big: '履约店长', sys: '执行细化 HDX' },
+  DTX: { big: '履约店长', sys: '执行细化 TDX' },
+  DEX: { big: '履约店长', sys: '执行细化 EDX' },
+  DCX: { big: '门店店长', sys: '执行细化 CDX' },
 };
 
 /** 业务概念称呼映射（系统称呼 → 市面常态） */
@@ -72,35 +72,52 @@ export const CONCEPT_TERMS: Record<string, TermPair> = {
   governMarket: { big: '经营治理', sys: '经营管理治理 VDM' },
   governSupplyView: { big: '四源治理台', sys: 'V*M 家族分源治理' },
   ofdCenter: { big: '履约中心', sys: 'X-OFD 只读接入 · 模拟契约期' },
+  /* 命名体系 v1.2：执行双线 + 事业部壳 */
+  execDualLine: { big: '执行双线', sys: '*MXX 运营（权限链 L2）· DXX 业务细化（权限链 L1）' },
+  vduShell: { big: '产品事业部全域壳', sys: 'VDU · 整合六类（DDU 直属 / 五域引用 VDU::EDU）' },
 };
 
-/** 分经营号域对照（2026-09-10 定版·补充澄清）：星号=域字母变量记号，实例化不带星号（YDU/EDU/DCU/HDU/TDU）；模板总称 *DU 保留星号；替代原 D*U 实例写法（DYU/DEU 等）。D 系=经营体系（可直营/加盟/合伙） */
+/** 分经营号域对照（命名体系 v1.2 定版）：经营单元统一「域字母+D+U」，六类 DDU（主业）/YDU/EDU/CDU/HDU/TDU；模板总称 *DU 保留星号；旧 D*U 实例写法（DYU/DEU/DCU 等）废除 */
 export const DU_CHILD_BY_DOMAIN: Record<string, string> = {
+  D: 'DDU · 主业经营',
   Y: 'YDU · 智场经营',
   E: 'EDU · 产品经营',
   DE: 'EDU · 产品经营',
   H: 'HDU · 人资经营',
   T: 'TDU · 技术经营',
-  C: 'DCU · 客户经营',
+  C: 'CDU · 客户经营',
 };
 
 /** 分经营号展示：有域视角给范畴形式（如 EDU · 产品经营），无域兜底通用 *DU · 分经营号（模板总称） */
 export const duChildTermOf = (domainView: string | null | undefined): string =>
   (domainView && DU_CHILD_BY_DOMAIN[domainView]) || '*DU · 分经营号';
 
-/** V/D 双系定位（2026-09-10 补充澄清）：V 系列=生态方（平台方）运营体系（VU 总运营 → V*U 域运营分身）；D 系列=经营体系。实例化同口径去星号（VYU/VEU/VHU/VTU/VCU） */
+/** V/D 双系定位（命名体系 v1.2）：V 系列=生态方（平台方）运营体系（VU 总运营 → V*U 域运营分身）；D 系列=经营体系。V 系无 VTU/VOU——技术域运营由 VTM（技术运营管理）兼任白名单承担 */
 export const VU_CHILD_BY_DOMAIN: Record<string, string> = {
   Y: 'VYU · 智场域运营',
   E: 'VEU · 产品域运营',
   DE: 'VEU · 产品域运营',
   C: 'VCU · 客户域运营',
   H: 'VHU · 人资域运营',
-  T: 'VTU · 技术域运营',
 };
 
 /** 生态方域运营展示：有域给范畴形式（如 VYU · 智场域运营），无域兜底 V*U 模板总称 */
 export const vuChildTermOf = (domainView: string | null | undefined): string =>
   (domainView && VU_CHILD_BY_DOMAIN[domainView]) || 'V*U · 生态方域运营';
+
+/** 执行层展示名映射（命名体系 v1.2，仅展示层）：旧 D*X 前缀式帽 ID → 域字母在前的 DXX 系展示名（DYX→YDX / DEX→EDX / DCX→CDX / DHX→HDX / DTX→TDX；O 域预留 ODX）。
+ *  红线：帽 ID/权限逻辑/审计字段不动——穿透字段（actor_hat 等）仍显示帽 ID 原文，本映射仅用于徽标与说明文案 */
+export const EXEC_DISPLAY_OF: Record<string, string> = {
+  DYX: 'YDX',
+  DEX: 'EDX',
+  DCX: 'CDX',
+  DHX: 'HDX',
+  DTX: 'TDX',
+};
+
+/** 帽展示名：*DX 系给 DXX 展示名（如 DYX→YDX），其余原样返回 */
+export const hatDisplayOf = (hat: string | null | undefined): string =>
+  (hat && EXEC_DISPLAY_OF[hat]) || hat || '';
 
 /** 订单状态称呼映射（X-MARKET-UE-02：大号=客户视角市面称呼，小号=系统状态口径） */
 export const STATUS_TERMS: Record<string, TermPair> = {

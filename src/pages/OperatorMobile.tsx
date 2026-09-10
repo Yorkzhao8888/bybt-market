@@ -61,7 +61,7 @@ export default function OperatorMobile() {
             <PowerBadge kind="operate" />
           </div>
           <p className="mt-3 font-serif-display text-2xl font-black">{user?.containerName ?? user?.containerId}</p>
-          <p className="mt-1 text-xs text-white/85">经营号 {user?.hatId ?? '—'} · 执行帽按单域自动映射（DYX/DHX/DTX/DEX/DCX）</p>
+          <p className="mt-1 text-xs text-white/85">经营号 {user?.hatId ?? '—'} · 执行细化按单域自动映射（YDX/HDX/TDX/EDX/CDX）</p>
         </div>
 
         {err && <p className="mt-3 rounded-lg border border-[#e8b4b0] bg-[#fdeaea] px-3 py-2 text-xs font-medium text-[#b3261e]">{err}</p>}

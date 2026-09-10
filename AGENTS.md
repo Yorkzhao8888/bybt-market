@@ -125,6 +125,7 @@
 - **术语表**：CONCEPT_TERMS.duChild 为 {big:'店主', sys:'*DU · 分经营号'}（sys 为模板总称，实例展示经 duChildTermOf 去星号）。
 - **徽标文案**：Header operator 徽标第二行「D*U · 子DU · hatId · Booth 码」→ `{duChildTermOf(user.domainView)} · hatId · Booth 码`（按域展示经营范畴，如「EDU · 产品经营 · u-du1 · b-de1」；**勿出现 Y*DU 带星号实例**）；OperatorDesk 徽标「经营工作台 · *DU」、欢迎区身份按 duChildTermOf 范畴化；SupplyPurchaseDesk 分拨说明「D*U 子店」→「*DU 分店」。
 - **登入端（ENTRANCE-01）**：EntranceRole 角色卡 DU 职责按 *DU 规范书写（「分经营号经营（*DU）：铺面管理 / 询价报价 / 采购商城 / 履约衔接」，*DU 为模板记号），避免后续返工。
+- **v1.2 增补（2026-09-10 定稿）**：经营板块六类 **DDU（主业 domain）/EDU/CDU/HDU/TDU/YDU**（DCU 废除改 CDU；`DU_CHILD_BY_DOMAIN` 增 D 键 DDU 主业经营）；执行层双线 **\*MX→\*MXX（运营）+ \*DX→DXX（业务）**，实例 DDX/EDX/CDX/TDX/YDX/HDX/ODX 及 DDXX 等（terminology `EXEC_DISPLAY_OF`/`execDisplayOf` 展示映射，库内帽 ID DYX 等不动）；**VDU=产品事业部全域壳**（整合六类，DDU 直属/五域引用 VDU::EDU）；**VTM=技术运营管理兼任白名单，无 VTU 无 VOU**（`VU_CHILD_BY_DOMAIN` 已删 T 键）。
 - **红线**：历史章节中 D*U 实例写法为当时实现记录，展示层一律以本规范为准；「店主」大号市面称呼保留；审计 actor_hat 保留系统标识原文（DU/DEX 等）不大号化；实例禁带星号（Y*DU 违规），星号仅出现在模板记号与规范说明。
 
 ## 角色·界面归位（X-MARKET-ROLE-01，A 批：界面收敛 + 治理分线）

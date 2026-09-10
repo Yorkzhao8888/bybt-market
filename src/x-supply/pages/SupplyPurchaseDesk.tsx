@@ -1,6 +1,6 @@
 // X-SUPPLY-02 供给单采购端（DU 采购主体视图）
 // 状态机：initiated（DU 发起）→ accepted（供给方接单）→ quoted（供给方报价）→ confirmed（DU 确认，基础闭环终态）
-// 权限：发起/确认=DU（管·决策，supply_order_initiate/confirm）；执行帽（D*X）只读看单（办位不代经营决策）
+// 权限：发起/确认=DU（管·决策，supply_order_initiate/confirm）；执行细化（*DX）只读看单（办位不代经营决策）
 // *DU 分拨机制预留：本期供给单归属 DU（分拨口径待架构确认，UI 仅落主体视图）
 import { useCallback, useEffect, useState } from 'react';
 import { PackagePlus, ScrollText, X } from 'lucide-react';
@@ -112,7 +112,7 @@ export function SupplyPurchaseDesk() {
 
       {/* *DU 分拨机制预留说明（本期供给单归属 DU） */}
       <div className="rounded border border-[#e4ded2] bg-[#f5f2eb] px-4 py-2.5 text-xs leading-relaxed text-[#57534e]">
-        <b className="text-[#17181d]">*DU 分拨预留：</b>本期供给单归属 DU（采购主体=DU 唯一经营号）；*DU 分店/分拨逐级下发机制待架构确认后接入，界面先落 DU 主体视图。执行帽（D*X）看单不代办——发起/确认属经营决策（管位）。
+        <b className="text-[#17181d]">*DU 分拨预留：</b>本期供给单归属 DU（采购主体=DU 唯一经营号）；*DU 分店/分拨逐级下发机制待架构确认后接入，界面先落 DU 主体视图。执行细化（*DX）看单不代办——发起/确认属经营决策（管位）。
       </div>
 
       {err && <div className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{err}</div>}
@@ -134,7 +134,7 @@ export function SupplyPurchaseDesk() {
                 </div>
                 <div className="mt-1.5 truncate text-[11px] text-[#6b675f]">前店：{b.frontDesc || '—'}</div>
                 <button
-                  onClick={() => (canInitiate ? setTarget(b) : setErr('发起供给单属经营决策（管位），执行帽 D*X 不代办'))}
+                  onClick={() => (canInitiate ? setTarget(b) : setErr('发起供给单属经营决策（管位），执行细化 *DX 不代办'))}
                   className="mt-2 w-full rounded border-2 px-2 py-1.5 text-xs font-bold transition-colors"
                   style={{ borderColor: ORANGE, color: ORANGE_TEXT }}
                 >

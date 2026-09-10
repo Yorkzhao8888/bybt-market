@@ -242,7 +242,7 @@ export const POWER_BADGE: Record<PowerKind, PowerBadgeMeta> = {
     text: '端执行',
     color: '#1D4ED8',
     bg: '#E8EEFB',
-    desc: '办在端：执行帽（DYX/DHX/DTX/DEX/DCX）作业落地，操作归执行帽',
+    desc: '办在端：执行细化层（*DX，展示名 YDX/HDX/TDX/EDX/CDX）作业落地，操作归执行细化帽（帽 ID 口径不变）',
   },
 };
 

@@ -1,4 +1,4 @@
-// Mall Booth（C 端 CU 零售 · DCX 门店）。
+// Mall Booth（C 端 CU 零售 · CDX 门店销）。
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Store, ShoppingCart } from 'lucide-react';
@@ -41,7 +41,7 @@ export default function MallBooth() {
         </div>
         <p className="mt-2 text-sm text-[#cfcabb]">{booth.frontDesc}</p>
         <p className="mt-1 text-xs text-[#8f8a7d] font-mono">
-          {booth.code} · 铺主 {owner ? `${owner.name}（${hatLabel(owner.role)}）` : booth.ownerUnitId} · DCX 在 Mall
+          {booth.code} · 铺主 {owner ? `${owner.name}（${hatLabel(owner.role)}）` : booth.ownerUnitId} · CDX 在 Mall
         </p>
       </div>
 

@@ -132,7 +132,7 @@ export default function XSupplyHub() {
         ) : (
           <span className="flex flex-wrap items-center gap-2">
             <PowerBadge kind="manage" />
-            管位视角：入驻登记/铺面维护由办位（EX/EXX）执行，管位不代办；资质提交链路（EU→EMX）见 X-SUPPLY-02。
+            管位视角：入驻登记/铺面维护由办位（EX/EXX）执行，管位不代办；资质提交链路（EU→EMXX）见 X-SUPPLY-02。
           </span>
         )}
       </div>
