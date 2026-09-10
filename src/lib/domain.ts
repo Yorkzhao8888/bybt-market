@@ -82,7 +82,7 @@ export const isOperatorRole = (role: string | null | undefined): boolean => {
 };
 
 export const ORDER_STATUS: Record<string, { label: string; color: string }> = {
-  pending: { label: '待付款', color: '#b8862b' },
+  pending: { label: '待店铺交付', color: '#b8862b' },
   paid: { label: '已支付', color: '#17a290' },
   fulfilling: { label: '履约中', color: '#4a5fd5' },
   done: { label: '已完成', color: '#6b665a' },

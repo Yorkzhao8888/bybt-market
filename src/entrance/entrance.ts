@@ -10,8 +10,8 @@ export const containerOf = (hatRole: string | null | undefined): ContainerKind =
   hatRole === 'XU' || hatRole === 'CU' ? 'personal' : 'enterprise';
 
 export const CONTAINER_META: Record<ContainerKind, { code: string; name: string; desc: string; accent: string }> = {
-  personal: { code: '#xhpz', name: '个人容器', desc: '自然人视角：Mall 买家购物 / 企业客户采购（个人侧兼容入口）', accent: '#1D4ED8' },
-  enterprise: { code: '#xepz', name: '企业容器', desc: '单位视角：经营 DU / 供给 *U·EX / 治理 V*M（Market 与 Supply 双面）', accent: '#17181d' },
+  personal: { code: '#xhpz', name: '个人容器', desc: '个人购物与采购：商城买家购物 / 企业客户采购（个人侧兼容入口）', accent: '#1D4ED8' },
+  enterprise: { code: '#xepz', name: '企业容器', desc: '单位视角：开店经营 / 供货入驻 / 平台管理（一个企业账号可办理多种业务）', accent: '#17181d' },
 };
 
 /** 预留容器（本单不开放，仅置灰展示） */
@@ -27,25 +27,25 @@ export interface RoleBrief {
 
 /** 角色卡目录（角色·界面归位矩阵 v3 口径） */
 export const ROLE_BRIEF: Record<string, RoleBrief> = {
-  XU: { face: 'Market · 客户面', duty: '企业采购：五市场浏览 / B2B 询价报价 / 订单跟进；第二身份：客户资源供给方（B端客户资源 · 授权式贡献，不占权位）' },
-  CU: { face: 'Mall · 客户面', duty: '买家购物：商城浏览 / 立即购买 / 订单跟进；第二身份：客户资源供给方（C端客户资源 · 授权式贡献，不占权位）' },
-  DU: { face: 'Market · 经营面', duty: '分经营号经营（*DU）：铺面管理 / 询价报价 / 采购商城 / 履约衔接' },
-  DYX: { face: 'Market · 经营面', duty: '业务执行（*DX·L1）：履约执行回执 / 铺内作业（办位）' },
-  DHX: { face: 'Market · 经营面', duty: '业务执行（*DX·L1）：履约执行回执 / 铺内作业（办位）' },
-  DTX: { face: 'Market · 经营面', duty: '业务执行（*DX·L1）：履约执行回执 / 铺内作业（办位）' },
-  DEX: { face: 'Market · 经营面', duty: '业务执行（*DX·L1）：履约执行回执 / 铺内作业（办位）' },
-  DCX: { face: 'Market · 经营面', duty: '业务执行（*DX·L1）：履约执行回执 / 铺内作业（办位）' },
-  EU: { face: 'Supply · 供给面', duty: '通货供货商经营：准入登记 / 货品上下架 / 供给单接单报价' },
-  HU: { face: 'Supply · 供给面', duty: '人力供货商经营：准入登记 / 货品上下架 / 供给单接单报价' },
-  YU: { face: 'Supply · 供给面', duty: '云资源供货商经营：准入登记 / 货品上下架 / 供给单接单报价' },
-  TU: { face: 'Supply · 供给面', duty: '技术供货商经营：准入登记 / 货品上下架 / 供给单接单报价' },
-  EX: { face: 'Supply · 供给面', duty: '供给执行：物资登记 / 铺面维护 / 看单（办位）' },
-  EXX: { face: 'Supply · 供给面', duty: '供给执行：铺内作业 / 看单（办位）' },
-  VDM: { face: 'Market+Supply · 经营治理与管家审批面', duty: '总经营管理执行（归 OVM，X-MARKET-18 v1.2）：治理案件 / 规则 / 全局总账 / 三权审计 + supply 管家审批全域统筹（准入审核/货品审批/大额审批/阈值配置）' },
-  VEM: { face: 'Supply · 管家审批面', duty: 'E 源域内管家审批：通货源准入审核与货品审批（EMX）' },
-  VHM: { face: 'Supply · 管家审批面', duty: 'H 源域内管家审批：人力源准入审核与货品审批（HMX）' },
-  VYM: { face: 'Supply · 管家审批面', duty: 'Y 源域内管家审批：云资源源准入审核与货品审批（YMX）' },
-  VTM: { face: 'Supply · 管家审批面', duty: 'T 源域内管家审批：技术源准入审核与货品审批（TMX · 技术运营管理白名单兼任）' },
+  XU: { face: '企业采购', duty: '企业采购：浏览市场 / 询价报价 / 订单跟进；第二身份：客户资源供给方（客户资源可授权共享，自愿参与）' },
+  CU: { face: '买家商城', duty: '买家购物：逛商城 / 立即购买 / 订单跟进；第二身份：客户资源供给方（客户资源可授权共享，自愿参与）' },
+  DU: { face: '店铺经营', duty: '开店经营：铺面管理 / 询价报价 / 采购进货 / 履约衔接' },
+  DYX: { face: '店铺执行', duty: '店员执行：履约执行回执 / 铺内作业' },
+  DHX: { face: '店铺执行', duty: '店员执行：履约执行回执 / 铺内作业' },
+  DTX: { face: '店铺执行', duty: '店员执行：履约执行回执 / 铺内作业' },
+  DEX: { face: '店铺执行', duty: '店员执行：履约执行回执 / 铺内作业' },
+  DCX: { face: '店铺执行', duty: '店员执行：履约执行回执 / 铺内作业' },
+  EU: { face: '供货入驻', duty: '供货商经营：入驻登记 / 货品上下架 / 接单报价' },
+  HU: { face: '供货入驻', duty: '供货商经营：入驻登记 / 货品上下架 / 接单报价' },
+  YU: { face: '供货入驻', duty: '供货商经营：入驻登记 / 货品上下架 / 接单报价' },
+  TU: { face: '供货入驻', duty: '供货商经营：入驻登记 / 货品上下架 / 接单报价' },
+  EX: { face: '供货执行', duty: '供货助理：物资登记 / 铺面维护 / 看单' },
+  EXX: { face: '供货执行', duty: '供货助理：铺内作业 / 看单' },
+  VDM: { face: '平台管理', duty: '平台经营管理：治理案件 / 规则 / 全局总账 / 留痕台账 + 入驻审核 / 货品审批 / 大额订单审批 / 门槛配置' },
+  VEM: { face: '入驻审批', duty: '管家审批：物资货源入驻审核与货品审批' },
+  VHM: { face: '入驻审批', duty: '管家审批：人力货源入驻审核与货品审批' },
+  VYM: { face: '入驻审批', duty: '管家审批：空间货源入驻审核与货品审批' },
+  VTM: { face: '入驻审批', duty: '管家审批：技术货源入驻审核与货品审批' },
 };
 
 export const roleBriefOf = (role: string | null | undefined): RoleBrief =>

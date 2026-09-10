@@ -59,7 +59,7 @@ const supplierSteps = (domainView: string | null | undefined): TourStep[] => {
     },
     {
       key: 'certify',
-      title: 'V*M 认证（等待 / 通过）',
+      title: '平台认证（等待 / 通过）',
       what: '等待管家审批家族认证你的供给资质；被驳回可修改后重新提交。',
       entryLabel: '供给集市 → 入驻记录（查看认证状态）',
       entryPath: '/supply',
@@ -79,12 +79,12 @@ const supplierSteps = (domainView: string | null | undefined): TourStep[] => {
       what: `在名下供给铺上架可售货品 / 产能（如：${t.goods}）。`,
       entryLabel: '供给台 → 我的货品 → 新增货品',
       entryPath: '/supplier',
-      done: '至少 1 个货品在架，可被 DU 采购。',
+      done: '至少 1 个货品在架，可被商家采购。',
     },
     {
       key: 'receive',
-      title: '接收 DU 采购单',
-      what: 'D*U 经营者从采购商城下单后，你会在交易单中收到采购单（供给方只对 DU 交易）。',
+      title: '接收商家采购单',
+      what: '商家经营者从采购商城下单后，你会在交易单中收到采购单（供给方只与商家交易）。',
       entryLabel: '供给台 → 交易单',
       entryPath: '/orders',
       done: '收到待履约采购单，进入履约准备。',
@@ -116,14 +116,14 @@ const operatorSteps = (hatRole: string | null | undefined): TourStep[] => {
       key: 'browse',
       title: '浏览供给四源集市',
       what: '在采购商城按源（物资 / 空间 / 人力 / 技术）浏览合格供应商的在架货品。',
-      entryLabel: '顶栏 → 采购商城（仅 DU 经营主体可进）',
+      entryLabel: '顶栏 → 采购商城（商家经营号专属）',
       entryPath: '/supply-mall',
       done: '能按源筛选并查看在架货品详情。',
     },
     {
       key: 'purchase',
       title: '发起采购',
-      what: '选好货品一键下单生成采购单；单笔超 5000 元会升级 V*M 审批（通过后生效）。',
+      what: '选好货品一键下单生成采购单；单笔超 5000 元会升级平台治理审批（通过后生效）。',
       entryLabel: '采购商城 → 货品卡 → 下单',
       entryPath: '/supply-mall',
       done: '采购单生成（待治理审批或待履约）。',
@@ -139,14 +139,14 @@ const operatorSteps = (hatRole: string | null | undefined): TourStep[] => {
     {
       key: 'resell',
       title: '商品上架自身铺',
-      what: '把到手的货品 / 产能挂到你的 DU 铺面，对客户可见可售。',
+      what: '把到手的货品 / 产能挂到你的商家铺面，对客户可见可售。',
       entryLabel: isExecHat ? '经营台 → 铺面 / 货品（按执行帽作业）' : '经营台 → 新开铺面 / 我的铺面',
       entryPath: '/operator',
-      done: 'DU 铺有在架货品，客户在 Market / Mall 可见。',
+      done: '商家铺有在架货品，客户在市场 / 商城可见。',
     },
     {
       key: 'serve',
-      title: '服务客户 XU / CU',
+      title: '服务客户',
       what: '客户在 Market 询价 → 你报价 → 签约 → 下单，形成 B2B 交易闭环。',
       entryLabel: '顶栏 → Market（询价报价面板）',
       entryPath: '/market',
@@ -164,7 +164,7 @@ const clientSteps = (hatRole: string | null | undefined): TourStep[] => {
       title: isCU ? '浏览商城' : '浏览市场',
       what: isCU
         ? '在 Mall 商城浏览商品卡（含准入徽章与店铺归属），进入店铺看详情。'
-        : '在 Market 按五大市场挑选 DU 经营铺，查看合格供给与在架货品。',
+        : '在市场按五大分类挑选商家经营铺，查看合格供给与在架货品。',
       entryLabel: isCU ? '顶栏 → Mall' : '顶栏 → Market',
       entryPath: isCU ? '/mall' : '/market',
       done: '找到目标商品 / 铺面。',
@@ -174,7 +174,7 @@ const clientSteps = (hatRole: string | null | undefined): TourStep[] => {
       title: '下单',
       what: isCU
         ? '点「立即购买」在确认弹层核对单价与数量后提交。'
-        : '走 B2B 流程：询价 → DU 报价 → 签合同 → 下单。',
+        : '走企业采购流程：询价 → 商家报价 → 签合同 → 下单。',
       entryLabel: isCU ? '商品卡 → 立即购买' : 'Market → 发起询价',
       entryPath: isCU ? '/mall' : '/market',
       done: '交易单生成，可在「交易单」查看。',

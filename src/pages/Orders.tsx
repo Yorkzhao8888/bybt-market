@@ -37,7 +37,7 @@ export default function Orders() {
     ? '运营方/平台视角：可见管辖域全部订单（全局总账）。'
     : operator
       ? '铺主（DU/供给方）视角：仅可见名下 Booth 相关订单。'
-      : '客户视角（XU/CU）：仅可见自己下的订单（P3 隐私过滤）。';
+      : '买家 / 采购方视角：仅可见你自己下的交易单，对方商业信息已为你隐藏。';
 
   const totals = {
     count: orders.length,
@@ -54,12 +54,15 @@ export default function Orders() {
         当前身份 {user?.hat ? hatLabel(role ?? '') : '未登录'}：{scopeNote}
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-1.5 rounded-lg border border-[#e4ded2] bg-[#fbf9f4] px-3 py-2 text-[11px] text-[#6b665a]">
-        <span className="mr-1 font-semibold text-[#17181d]">订单六族：</span>
-        {FAMILIES.map((f) => (
-          <span key={f.code} className={`rounded px-1.5 py-0.5 font-semibold text-white ${f.tone}`}>{f.code} {f.name}</span>
-        ))}
-      </div>
+      <details className="mb-4 rounded-lg border border-[#e4ded2] bg-[#fbf9f4] px-3 py-2 text-[11px] text-[#6b665a]">
+        <summary className="cursor-pointer select-none text-[11px] font-semibold text-[#17181d]">订单编号规则说明（分类前缀）</summary>
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {FAMILIES.map((f) => (
+            <span key={f.code} className={`rounded px-1.5 py-0.5 font-semibold text-white ${f.tone}`} title={f.name}>{f.code} {f.name}</span>
+          ))}
+          <span>· 编号首字母代表订单分类（零售 / 门店产能 / 人力 / 物资 / 空间 / 技术），用于系统归类，不影响使用。</span>
+        </div>
+      </details>
 
       <div className="mb-4 grid grid-cols-2 gap-3 sm:max-w-md">
         <div className="paper-card hard-shadow rounded-lg px-4 py-3"><div className="text-xs text-[#8a8577]">可见交易单</div><div className="ticker-font text-2xl font-black">{totals.count}</div></div>
@@ -67,10 +70,16 @@ export default function Orders() {
       </div>
 
       {isClientRole && (
-        <div className="mb-4 rounded-lg border border-[#e4ded2] bg-[#faf7f0] px-3 py-2 text-xs leading-5 text-[#6b665a]">
-          <p className="font-bold text-[#17181d]">合同对手与售后（DU 承载）</p>
-          <p>合同对手：{user?.hatRole === 'CU' ? 'Booth-DC 门店（DU 直营）' : 'DU 经营主体'}；供给方名称与 DU 采购合同不对客户展示。</p>
-          <p>发票流：供给方 → DU（进项票）→ 客户（DU 开具销售票）。售后：联系 DU，责任转移点 = 交付回执，DU 向供给方追偿。</p>
+        <div className="mb-4 space-y-2">
+          <div className="rounded-lg border border-[#f0d9a8] bg-[#fdf6e7] px-3 py-2 text-xs leading-5 text-[#7a5c16]">
+            <p className="font-bold text-[#7a5c16]">关于付款：演示环境暂不支持在线支付</p>
+            <p>下单后交易单进入「待店铺交付」状态，无需任何付款操作，由店铺直接安排备货与履约；交付进度在本页展开订单查看。</p>
+          </div>
+          <div className="rounded-lg border border-[#e4ded2] bg-[#faf7f0] px-3 py-2 text-xs leading-5 text-[#6b665a]">
+            <p className="font-bold text-[#17181d]">合同与售后说明</p>
+            <p>交易对手：{user?.hatRole === 'CU' ? '入驻门店（平台直营）' : '经营商家'}；供货商名称与商家采购合同不对买家展示。</p>
+            <p>发票与售后：发票由商家开具；售后直接联系商家，交付确认后责任由商家承担，商家再与供货商结算。</p>
+          </div>
         </div>
       )}
 
@@ -94,7 +103,7 @@ export default function Orders() {
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-bold">{o.code}</span>
                     <FamBadge family={o.family} />
-                    <span className="rounded bg-[#efeae0] px-1.5 py-0.5 text-[11px] font-semibold">{isC ? 'Mall·C端' : 'Market·B端'}</span>
+                    <span className="rounded bg-[#efeae0] px-1.5 py-0.5 text-[11px] font-semibold">{isC ? '商城购买' : '企业采购'}</span>
                     {o.boothCode && (
                       <Link
                         to={isC ? `/mall/booth/${o.boothId}` : `/market/booth/${o.boothId}`}

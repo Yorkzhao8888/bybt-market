@@ -302,3 +302,13 @@
 - **realm 期望值对齐（关键）**：真实 ZiwayOS 签发 **`realm:'xhpz'`**（主 Agent 真票实测）——`EXPECTED_REALM` 默认 'market'→**'xhpz'**（env `ZIWAY_EMBED_REALM` 仍可覆盖）；不改则真票 403 realm 不匹配。
 - **自测升级**：mock（embed-verify-mock.mjs）成功路径全部改为**包装格式** `{code:200,data:{...}}`（realm xhpz）+ 新增 `zt_bare_` 裸格式兼容用例 + 失败路径 `{code,message}`；`embed-exchange-check.mjs` **7/7**（包装 200 会话/裸格式 200 会话/重放 401/role 403/realm 403/app 401/非法 400）；**真域失败分支实证**：恢复常态（verify 指真域）后 exchange 假票 → 401 `reason:"ticket 不存在或已过期"`（message 透出）。
 - **真票端到端脚本（主 Agent 执行）**：`node scripts/embed-real-verify-check.mjs <zt_真票> [基址，默认 http://localhost:5000]`——三断言：真票 exchange 200 会话（xm_ token+CU）→ token 调 /api/auth/me 200 → 同票重放 401；本地 dev 默认 ZIWAY_EMBED_BASE 指真实 ZiwayOS（服务端到服务端），真票本地即可核销。
+
+## X-MARKET-UX-01 体验断链修复（P0 批次）
+
+- **FIX1 游客购买引导（Mall.tsx）**：游客（含嵌入手柄中）点「立即购买」不再静默吞点击（原仅顶部黄条易出视口）——弹「需要登入」确认卡（文案「下单前需要先登入」+主按钮 Link /entrance「去登入端 →」+次按钮「先逛逛」）；登录用户维持原确认下单弹层。
+- **FIX2 待付款状态改向（domain.ts+Orders.tsx）**：`ORDER_STATUS.pending` label '待付款'→**'待店铺交付'**（客户交易单页视角；工作台侧 ORDER_STATUS_META pending '待履约' 不变）；客户视角说明块新增「演示环境暂不支持在线支付：下单后由店铺直接安排履约，无需付款操作」——真支付另立业务单。
+- **FIX3 跳过引导持久化（复现实证已生效）**：OnboardingTour closeWith('skipped')→writeTourState(uid,'skipped',kind)→localStorage xm_tour_v1 按 hatId——`scripts/ux01-tour-skip-check.mjs` 4/4（首登弹/跳过关/存储有记录/同号重登不弹）；UX 报告现象与当前实现不符（疑旧版或路径差异），脚本固化防回归。
+- **FIX4 下单成功引导（Mall.tsx）**：CU 下单成功由一次性 notice 升级为**成功横条**（绿底 CheckCircle2：「下单成功 · 单号 · 金额 · 待店铺交付」+Link「查看交易单 →」/orders）；错误反馈仍走 notice。
+- **FIX5 留痕台账文案对齐（Mall.tsx）**：C 端购买不进三权审计（createOrder 无 checkPower）——原「购买与越权尝试全部留痕」不实，改「越权操作与平台治理动作会留痕（购物订单见交易单页），仅本人可见」。
+- **FIX6 术语收敛第一批（主界面去工程代号）**：entrance.ts 企业容器 desc「经营 DU / 供给 *U·EX / 治理 V*M（Market 与 Supply 双面）」→「单位视角：开店经营 / 供货入驻 / 平台管理（多角色企业账号）」；ROLE_BRIEF duty/face 全用户语言化（去 *DU/*DX·L1/EMX/（办位）/X-Supply 等代号）；Orders.tsx「客户视角（XU/CU）」→「买家 / 采购方视角」、「（P3 隐私过滤）」→「为保护双方隐私，对方名称与进价信息不在列表展示」、订单六族条折叠 `<details>「订单编号规则说明」`（详情层保留 C/D/H/E/Y/T）；'Mall·C端'/'Market·B端'→'商城购买'/'企业采购'、'合同对手与售后（DU 承载）'→'合同与售后说明'、CU 侧「供货商→商家（进项）→你」用户语言化；Mall 副标/门店行/留痕块去 '（个人客户 CU）'/'CDX 在 Mall' 等代号；onboarding.ts 三套引导步骤去 *DU/*DX/V*M 代号（如「采购商城（*DU 分店）」→「采购商城」）。
+- **验收证据（scripts/ux01-shots.mjs 15/15+截图 assets/ux01/）**：A 游客购买弹登入引导（弹窗+链接）/B 登录下单→成功横条→一键到交易单/C 交易单页「买家 / 采购方视角」+「演示环境暂不支持在线支付」+六族折叠且主界面 0 曝光/D 登入端企业容器用户语言+工程代号 0 命中/E Mall 代号 0 命中；FIX3 脚本 4/4；**EMBED-01 协议回归 embed-e2e 8/8**（iframe 握手/免登/嵌入壳隐藏/非嵌入 Header 正常）；lint/ts-check 全绿。
