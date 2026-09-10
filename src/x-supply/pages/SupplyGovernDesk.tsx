@@ -1,6 +1,6 @@
-// X-MARKET-ROLE-01 A3/A5：X-Supply 管家审批台（X-MARKET-18 域内口径：V*M 家族分源审批 + VMX 统筹）
+// X-MARKET-ROLE-01 A3/A5：X-Supply 管家审批台（X-MARKET-18 域内口径：V*M 家族分源审批 + VDM 统筹）
 // 口径：VEM 治 E 源（EU）/ VYM 治 Y 源（YU）/ VHM 治 H 源（HU）/ VTM 治 T 源（TU），各自治理本源准入；
-// VMX（云中心）全域统筹 + 大额采购升级审批（X-MARKET-15）+ 阈值配置；VDM 归 market 经营治理（/govern），不越界。
+// VDM（云中心）全域统筹 + 大额采购升级审批（X-MARKET-15）+ 阈值配置；VDM 归 market 经营治理（/govern），不越界。
 // 数据层：xSupplyApi.govern（req 原语直调，依赖单向白名单）；后端已按域过滤/校验（家族仅见本源数据）。
 import { useCallback, useEffect, useState } from 'react';
 import { BadgeCheck, CircleSlash, ClipboardCheck, Gavel, ScrollText, Settings2, ShieldCheck } from 'lucide-react';
@@ -16,17 +16,17 @@ import type { GovernThresholds, OrderRow, SupplierApplication, SupplierProduct }
 const PURPLE = '#6D28D9';
 const PURPLE_SOFT = '#f1eafd';
 
-/** 治理域标题：家族显示本源域；VMX 全域 */
+/** 治理域标题：家族显示本源域；VDM 全域 */
 function governScopeLabel(hatRole: string): string {
   const dom = supplyGovernDomainOf(hatRole as never);
-  if (hatRole === 'VMX') return '云中心统筹 · 四源全域';
+  if (hatRole === 'VDM') return '云中心统筹 · 四源全域';
   return dom ? `管家审批 · ${dom} 源（域内准入与货品审批）` : '管家审批（域内）';
 }
 
 export function SupplyGovernDesk() {
   const { user } = useAuth();
   const hatRole = user?.hatRole ?? '';
-  const isVxm = hatRole === 'VMX';
+  const isVdm = hatRole === 'VDM';
   const govDomain = supplyGovernDomainOf(hatRole as never);
 
   const [apps, setApps] = useState<SupplierApplication[]>([]);
@@ -44,7 +44,7 @@ export function SupplyGovernDesk() {
       const [a, p] = await Promise.all([xSupplyApi.govern.applications(), xSupplyApi.govern.products()]);
       setApps(a);
       setProducts(p);
-      if (isVxm) {
+      if (isVdm) {
         const [o, t] = await Promise.all([xSupplyApi.govern.orders(), xSupplyApi.govern.thresholds()]);
         setOrders(o);
         setThresholds(t);
@@ -53,7 +53,7 @@ export function SupplyGovernDesk() {
     } catch (e) {
       setErr(e instanceof Error ? e.message : '治理数据加载失败');
     }
-  }, [user, isVxm]);
+  }, [user, isVdm]);
 
   useEffect(() => {
     void load();
@@ -147,7 +147,7 @@ export function SupplyGovernDesk() {
           { label: '待评估申请', value: pending.length, hint: '准入 pending' },
           { label: '合格供应商', value: approved.length, hint: '已准入' },
           { label: '在架货品', value: listed.length, hint: '治理可下架' },
-          isVxm
+          isVdm
             ? { label: '大额审批队列', value: approvals.length, hint: 'X-MARKET-15' }
             : { label: '本源域', value: govDomain ?? '—', hint: '分线治理' },
         ].map((c) => (
@@ -162,10 +162,10 @@ export function SupplyGovernDesk() {
       <div className="mb-4">
         <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[#17181d]">
           <ClipboardCheck size={15} style={{ color: PURPLE }} /> 供应商准入审核
-          <span className="text-[10px] font-normal text-[#6b675f]">{isVxm ? '全域' : `仅 ${govDomain} 源`}</span>
+          <span className="text-[10px] font-normal text-[#6b675f]">{isVdm ? '全域' : `仅 ${govDomain} 源`}</span>
         </div>
         {apps.length === 0 ? (
-          <EmptyState text={isVxm ? '暂无准入申请' : `${govDomain} 源暂无准入申请（供给帽登记后进入本列表）`} />
+          <EmptyState text={isVdm ? '暂无准入申请' : `${govDomain} 源暂无准入申请（供给帽登记后进入本列表）`} />
         ) : (
           <ul className="space-y-2">
             {apps.map((a) => (
@@ -241,8 +241,8 @@ export function SupplyGovernDesk() {
         )}
       </div>
 
-      {/* VMX 专属：大额采购审批（X-MARKET-15）+ 阈值配置 */}
-      {isVxm && (
+      {/* VDM 专属：大额采购审批（X-MARKET-15）+ 阈值配置 */}
+      {isVdm && (
         <div className="mb-4 grid gap-4 lg:grid-cols-[1fr_300px]">
           <div>
             <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[#17181d]">
@@ -304,7 +304,7 @@ export function SupplyGovernDesk() {
       <OfdCenter />
 
       <div className="mt-3 flex items-center gap-1.5 text-[10px] text-[#6b675f]">
-        <BadgeCheck size={11} /> 治理分线：家族治本源、VMX 统筹全域、VDM 治经营（/govern）——数据互不越界，越权 403 入审计。
+        <BadgeCheck size={11} /> 治理分线：家族治本源、VDM 统筹全域、VDM 治经营（/govern）——数据互不越界，越权 403 入审计。
       </div>
     </div>
   );

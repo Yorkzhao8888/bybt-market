@@ -2,7 +2,7 @@
  * X-Market 双称呼体验方案 v1.1 —— 术语常量表（唯一口径）
  *
  * 规则：
- * - 大号(big) = 市面常态称呼（用户看得懂）；小号(sys) = 系统称呼（DU/VMX/DEX 等帽体系标识）
+ * - 大号(big) = 市面常态称呼（用户看得懂）；小号(sys) = 系统称呼（DU/VDM/DEX 等帽体系标识）
  * - 展示形态：大号为主、小号弱化为副标（DualTerm 组件）；纯短处用「大号」单显
  * - 治理穿透字段（actor_hat/governor/actor_user）保留系统标识原文，禁止大号化
  * - 新增概念：先入本表，再上 UI；禁止页面写死文案
@@ -17,13 +17,12 @@ export interface TermPair {
 /** 角色/身份称呼映射 */
 export const ROLE_TERMS: Record<string, TermPair> = {
   DU: { big: '店主', sys: '经营者 DU' },
-  // X-MARKET-18 治理帽语义对齐：管家审批（域内审批仍 V*M 系）；VMX→VMX（总运执行归 OVM）、FMX 总财执行归 OFM（预留）
-  VMX: { big: '管家审批统筹', sys: 'VMX · 总运执行（归 OVM）' },
+  // X-MARKET-18 v1.2 终版：VXM→VMX→VDM 合并（总经营管理执行，归 OVM）；FMX 总财执行归 OFM（预留，ERP 高频角色）；域内管家审批仍 V*M 系（v4.8 V*U 内嵌管家，不进 ERP）
   VEM: { big: '管家审批', sys: 'EMX · 管家审批（域内）' },
   VHM: { big: '管家审批', sys: 'HMX · 管家审批（域内）' },
   VYM: { big: '管家审批', sys: 'YMX · 管家审批（域内）' },
   VTM: { big: '管家审批', sys: 'TMX · 技术运营管理（白名单兼任，域内）' },
-  VDM: { big: '经营监管', sys: '治理者 VDM' },
+  VDM: { big: '总经营管理执行', sys: 'VDM' },
   OU: { big: '组织运营', sys: '组织帽 OU' },
   XU: { big: '采购方', sys: '企业客户 XU', sub: { big: '客户资源供给方', sys: 'B端客户资源 · 授权式贡献（不占权位）' } },
   CU: { big: '买家', sys: '个人客户 CU', sub: { big: '客户资源供给方', sys: 'C端客户资源 · 授权式贡献（不占权位）' } },
@@ -69,7 +68,12 @@ export const CONCEPT_TERMS: Record<string, TermPair> = {
   // 客户资源供给（X-MARKET-18 增补）：需求侧资源，与供给四源严格区分；源头侧=XU/CU 客户本体，管理侧=VCU 平台方运营
   custResource: { big: '客户资源供给', sys: '需求侧资源（客户/流量/需求线索）· 授权式/贡献式，不占权位、不登录操作；区别于供给四源 EU 物资/YU 空间/HU 人力/TU 技术' },
   supplyInbox: { big: '供货收件箱', sys: '供给方收件（仅本铺）' },
-  fmx: { big: '总财执行', sys: 'FMX · 归 OFM（X-MARKET-18 预留概念，不建真帽）' },
+  fmx: { big: '总财执行', sys: 'FMX · 归 OFM（ERP 高频角色；总财执行，概念预留不建真帽）' },
+  /** X-MARKET-18 v1.2：V*M 管家（术语表 v4.8）= V*U 内嵌管家，域内审批、不独立进 ERP */
+  guanjia: {
+    big: 'V*M 管家',
+    sys: 'V*U 内嵌管家（VTM/VEM/VCM/VHM/VYM）· 域内审批不进 ERP；VDU 激活（VDM 主业管家先行归 VDU），VEU/VCU/VTU 未激活',
+  },
   /* X-MARKET-ROLE-01 角色界面归位（A 批） */
   duChild: { big: '店主', sys: '*DU · 分经营号' },
   /* V/D 双系定位（2026-09-10 补充澄清）：V 系=生态方（平台方）运营，D 系=经营体系 */

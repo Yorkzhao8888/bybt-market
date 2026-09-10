@@ -74,7 +74,7 @@ export const partyOf = (role: string): string => PARTY_OF_ROLE[role] ?? '组织�
 export const isClientRole = (role: string | null | undefined): boolean => role === 'CU' || role === 'XU';
 /** 是否运营管理方 */
 export const isAdminRole = (role: string | null | undefined): boolean =>
-  role === 'VEM' || role === 'VHM' || role === 'VYM' || role === 'VTM' || role === 'VDM' || role === 'VMX';
+  role === 'VEM' || role === 'VHM' || role === 'VYM' || role === 'VTM' || role === 'VDM';
 /** 是否经营/供给（可开铺操作） */
 export const isOperatorRole = (role: string | null | undefined): boolean => {
   if (!role) return false;
@@ -132,16 +132,17 @@ export type WorkbenchKind = 'client' | 'supplier' | 'operator' | 'govern' | 'gov
 
 const WORKBENCH_SUPPLY_HATS = ['EU', 'HU', 'YU', 'TU', 'EX', 'EXX'];
 const WORKBENCH_OPERATOR_HATS = ['DU', 'DYX', 'DHX', 'DTX', 'DEX', 'DCX'];
-/** V*M 管家审批家族（X-MARKET-18 域内口径）：落 supply 审批视图（VEM/VYM/VHM/VTM 各审本源，VMX 统筹全域） */
-const WORKBENCH_GOVERN_SUPPLY_HATS = ['VMX', 'VEM', 'VHM', 'VYM', 'VTM'];
+/** V*M 管家审批家族（X-MARKET-18 v1.2 终版）：落 supply 审批视图（VEM/VYM/VHM/VTM 各审本源；VDM 总经营管理执行统筹全域） */
+const WORKBENCH_GOVERN_SUPPLY_HATS = ['VEM', 'VHM', 'VYM', 'VTM'];
 
 /* ============ X-MARKET-ROLE-01 治理分线（前端口径，与 server/domainConfig 对齐） ============ */
-/** 管家审批家族 → 本源域映射（X-MARKET-18：VEM 审 E/VYM 审 Y/VHM 审 H/VTM 审 T）；VMX 统筹全域返回 null；VDM 归 market 经营治理 */
+/** 管家审批家族 → 本源域映射（X-MARKET-18：VEM 审 E/VYM 审 Y/VHM 审 H/VTM 审 T）；VDM 统筹全域返回 null（v1.2 合并口径） */
 const GOVERN_SUPPLY_DOMAIN_OF: Partial<Record<string, string>> = { VEM: 'E', VYM: 'Y', VHM: 'H', VTM: 'T' };
 export const supplyGovernDomainOf = (role: string | null | undefined): string | null =>
   role ? GOVERN_SUPPLY_DOMAIN_OF[role] ?? null : null;
+/** supply 面治理席位（前端）：VDM 统筹 + 四家族（v1.2 终版；workbenchOf 中 VDM 仍落 /govern 经营治理大本营） */
 export const isSupplyGovernHat = (role: string | null | undefined): boolean =>
-  !!role && WORKBENCH_GOVERN_SUPPLY_HATS.includes(role);
+  role === 'VDM' || (!!role && (WORKBENCH_GOVERN_SUPPLY_HATS as readonly string[]).includes(role));
 
 /** 角色类别映射：客户/供应商/经营者/治理者（治理分线：V*M 家族→supply 面，VDM→market 面） */
 export const workbenchOf = (role: string | null | undefined): WorkbenchKind => {
@@ -229,7 +230,7 @@ export const POWER_BADGE: Record<PowerKind, PowerBadgeMeta> = {
     text: '管家审批（域内）',
     color: '#6D28D9',
     bg: '#F0E9FC',
-    desc: '审在云：V*M 管家审批（域内审批，X-MARKET-18；总级治理归 OAS O*M——VMX 总运执行归 OVM、FMX 总财执行归 OFM）。只审不落：评估≠下单、治理下架≠经营',
+    desc: '审在云：V*M 管家审批（域内审批，X-MARKET-18；总级治理归 OAS O*M——VDM 总运执行归 OVM、FMX 总财执行归 OFM）。只审不落：评估≠下单、治理下架≠经营',
   },
   manage: {
     short: '管',

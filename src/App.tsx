@@ -57,14 +57,15 @@ function Header() {
       { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
     ],
     govern: [
-      // X-MARKET-ROLE-01：/govern 归 VDM（market 经营治理）；VDM 无 supply 席位，入口收敛
+      // X-MARKET-18 v1.2：VDM=总经营管理执行（原 VXM/VDM 合并）——/govern 经营治理大本营 + /supply 管家审批统筹入口
       { to: '/govern', label: '治理台', icon: <Crown className="h-3.5 w-3.5" /> },
+      { to: '/supply', label: '管家审批', icon: <ClipboardCheck className="h-3.5 w-3.5" /> },
       { to: '/board', label: '现场看板', icon: <Monitor className="h-3.5 w-3.5" /> },
       { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
     ],
-    // X-MARKET-ROLE-01：V*M 管家审批（域内）家族（VMX/VEM/VHM/VYM/VTM，X-MARKET-18）落 supply 审批视图
+    // X-MARKET-18：V*M 管家审批家族（VEM/VHM/VYM/VTM，v1.2 终版 VDM 废弃并入 VDM）落 supply 审批视图
     governSupply: [
-      { to: '/supply', label: '供给集市', icon: <Store className="h-3.5 w-3.5" /> },
+      { to: '/supply', label: '管家审批', icon: <ClipboardCheck className="h-3.5 w-3.5" /> },
     ],
   };
   const nav = navByWb[wb];
@@ -245,8 +246,8 @@ function AllRoutes() {
               <Route path="/model" element={<Model />} />
               <Route path="/supply-mall" element={<SupplyMall />} />
               <Route path="/supplier" element={<RoleGuard wb="supplier"><SupplyDesk /></RoleGuard>} />
-              {/* X-SUPPLY-01 供给四源集市：EU/EX/EXX/DU 可进；X-MARKET-ROLE-01：V*M 四源家族落此治理视图（governSupply）；VDM/客户 403 兜底 */}
-              <Route path="/supply" element={<RoleGuard wb={['supplier', 'operator', 'governSupply']}><XSupplyHub /></RoleGuard>} />
+              {/* X-SUPPLY-01 供给四源集市：EU/EX/EXX/DU 可进；X-MARKET-ROLE-01：V*M 家族落此治理视图（governSupply）；X-MARKET-18 v1.2：VDM=总经营管理执行兼统筹（wb 'govern' 放行）；客户 403 兜底 */}
+              <Route path="/supply" element={<RoleGuard wb={['supplier', 'operator', 'governSupply', 'govern']}><XSupplyHub /></RoleGuard>} />
               <Route path="/operator" element={<RoleGuard wb="operator"><OperatorDesk /></RoleGuard>} />
               <Route path="/operator/mobile" element={<RoleGuard wb="operator"><OperatorMobile /></RoleGuard>} />
               <Route path="/govern" element={<RoleGuard wb="govern"><Govern /></RoleGuard>} />
