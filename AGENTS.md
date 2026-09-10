@@ -203,6 +203,16 @@
 - **回归口径（红线不破）**：Booth 权属 LOCKED、交易单向、客户不占权位、越权 403 兜底、XU/CU 交易链路全部沿用；权限逻辑/帽 ID/路由/接口/审计字段零改动（duChildDomains 为纯新增可选字段）。历史注释中「四源治理」为当时实现记录，活文案以管家审批域内口径为准。
 - **客户双身份定义（X-MARKET-18 术语增补，09-10 拍板并入）**：XU 主身份=采购方（B端走 Market）+第二身份=客户资源供给方（B端客户资源）；CU 主身份=消费客户（C端走 Mall）+第二身份=客户资源供给方（C端客户资源）。落地（纯术语层，代码与权位不动）：TermPair 扩可选 `sub`（双身份副身份）+ROLE_TERMS.XU/CU 带 sub+`roleSubTermOf(hat)` helper；CONCEPT_TERMS.custResource{big:'客户资源供给',sys:'需求侧资源（客户/流量/需求线索）· 授权式/贡献式，不占权位不登录操作；区别于供给四源'}；entrance ROLE_BRIEF XU/CU duty 追加第二身份；Model 价值链段双身份标注（客户本体供给=源头侧 vs VCU 平台方运营=管理侧，分层不冲突）；domain.ts 价值链注释同步。红线：客户资源供给=授权式/贡献式贡献，不占权位、不登录操作（保住「客户不占权位」）；与供给四源（EU/YU/HU/TU）专名区分。
 
+## ERP 嵌入首批（X-MARKET-ERP-01，P2 经营+采购线）
+
+- **定位与红线**：Market 是 ERP 的新外壳——**ERP 独立资源底座不变、不迁移数据、不改主库结构、不重做业务逻辑**；只做「外壳嵌入+导航归位+权限裁剪」，操作复用既有三权 checkPower/审计留痕与双称呼术语表。零新后端端点（全复用 api.orders/myStores/mallListings/supplyMall/myProducts + xSupplyApi.supplyOrders）。治理线（P3）、客户侧收敛（P1）、撤拒流转（X-SUPPLY-02b）不在本单。
+- **经营线（DU→/operator，目标 95%）**：OperatorDesk 新增 sec='erp'「ERP · 经营台（嵌入）」——四单据卡（采购单→procurement sec / 销售单→overview / 入库单=confirmed 供给单联动清单 / 出库单→exec 履约）+库存总览与预警（api.supplyMall() DU 采购视野货品，stock<20 预警红标）+最近单据表（前 5）+confirmed 供给单联动清单（「入库去向：Booth 实体系统（WH）· 待接线」占位，入库作业归 Booth 实体系统另一窗口）+留守声明卡。侧栏分两组：「Market 经营（既有）」/「ERP · 嵌入台（ERP-MARKET-01）」共存不混杂。
+- **供给线（→/supply/vendor，目标 90%）**：新建 `src/pages/SupplyVendorDesk.tsx` 挂路由 /supply/vendor（RoleGuard wb=['supplier']，客户/治理帽 403 兜底）——**按帽过滤只读**：本帽货品库存表（api.myProducts() owner 过滤，stock+预警）、名下 Booth 单据（api.orders() supply 分支 ownerUnitId 过滤）、本帽供给单全状态表（xSupplyApi.supplyOrders() owner 过滤）、结算依据汇总卡（confirmed 供给单 quotedCents 合计）；Header supplier 导航加「ERP 供给台」（Landmark）；SupplyDesk 顶部加跳转链接。「不串源」由服务端既有过滤保证（products owner/orders ownerUnitId/supplyOrders owner）。
+- **菜单收敛贯通**：Market 侧等价实现「容器→帽→三权 checkPower→sec/菜单按角色裁剪」（RoleGuard wb 数组+服务端 403+前端 sec 分支）；OAS JWT/13U 对接层在 ERP 侧同源收敛（文档声明，本期不实现 JWT）。
+- **留守项（不进 Market，仍从 ERP 进，V5）**：租户管理/适配层/月结/CSV 导出/权限矩阵——界面不复制，仅声明卡注明（OperatorDesk erp sec 与 SupplyVendorDesk 底部均有）。
+- **回归口径（V1-V6）**：DU /operator 单据/库存/预警入口可勾验；EU /supply/vendor 本帽数据不串源；XU/CU/VDM 直访 ERP 供给台 403（RoleGuard）；菜单按帽裁剪无残留；五页面+登入端 V1-V7 不回退；审计留痕沿用 checkPower（嵌入视图只读为主，写操作走既有端点已留痕）。
+
+
 ## 调试要点
 
 - dev server（tsx watch）修改 server 代码后**不会**可靠热重载路由/store：需 `kill -9 $(cat /app/work/logs/bypass/server.pid)` + `pkill -9 -f 'ts[x] watch'` 后 `(nohup bash ./scripts/dev.sh > logs/dev-start.log 2>&1 &)` 重启。

@@ -2,7 +2,7 @@
 // 客户→/market（蓝）· 供应商→/supplier（绿）· 经营者→/operator（橙）· 治理者→/govern（紫）；
 // 导航按角色收敛，越权直访由 RoleGuard 403 兜底；全局背景浅米白+炭黑不变。
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { Store, ShoppingBag, ReceiptText, Boxes, ShieldCheck, LogOut, ShieldBan, LayoutDashboard, Sprout, Crown, ClipboardCheck, Bell, Monitor, Smartphone, Repeat } from 'lucide-react';
+import { Store, ShoppingBag, ReceiptText, Boxes, ShieldCheck, LogOut, ShieldBan, LayoutDashboard, Sprout, Crown, ClipboardCheck, Bell, Monitor, Smartphone, Repeat, Landmark } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { AuthProvider, useAuth } from './Auth';
@@ -18,6 +18,7 @@ import Model from './pages/Model';
 import Govern from './pages/Govern';
 import SupplyMall from './pages/SupplyMall';
 import SupplyDesk from './pages/SupplyDesk';
+import SupplyVendorDesk from './pages/SupplyVendorDesk';
 import { XSupplyHub } from './x-supply';
 import OperatorDesk from './pages/OperatorDesk';
 import Board from './pages/Board';
@@ -47,6 +48,7 @@ function Header() {
     supplier: [
       { to: '/supply', label: '供给集市', icon: <Store className="h-3.5 w-3.5" /> },
       { to: '/supplier', label: '供给台', icon: <Sprout className="h-3.5 w-3.5" /> },
+      { to: '/supply/vendor', label: 'ERP 供给台', icon: <Landmark className="h-3.5 w-3.5" /> },
       { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
     ],
     operator: [
@@ -246,6 +248,8 @@ function AllRoutes() {
               <Route path="/model" element={<Model />} />
               <Route path="/supply-mall" element={<SupplyMall />} />
               <Route path="/supplier" element={<RoleGuard wb="supplier"><SupplyDesk /></RoleGuard>} />
+              {/* X-MARKET-ERP-01 供给线 ERP 嵌入（P2）：/supply/vendor 按帽过滤只读，客户/经营者/治理 403 兜底 */}
+              <Route path="/supply/vendor" element={<RoleGuard wb="supplier"><SupplyVendorDesk /></RoleGuard>} />
               {/* X-SUPPLY-01 供给四源集市：EU/EX/EXX/DU 可进；X-MARKET-ROLE-01：V*M 家族落此治理视图（governSupply）；X-MARKET-18 v1.2：VDM=总经营管理执行兼统筹（wb 'govern' 放行）；客户 403 兜底 */}
               <Route path="/supply" element={<RoleGuard wb={['supplier', 'operator', 'governSupply', 'govern']}><XSupplyHub /></RoleGuard>} />
               <Route path="/operator" element={<RoleGuard wb="operator"><OperatorDesk /></RoleGuard>} />

@@ -3,7 +3,8 @@
 // 主题色 = 源头供给绿 #15803D（顶栏徽标/侧栏激活态/主按钮）
 // 能力（X-MARKET-08）：准入登记 → VDM 评估 → 合格后上架货品 → 供给单据（DU 采购）→ 产能概览
 import { useCallback, useEffect, useState } from 'react';
-import { BadgeCheck, Boxes, Clock3, ClipboardList, FileClock, Gauge, PackagePlus, ShieldAlert, Warehouse, XCircle } from 'lucide-react';
+import { BadgeCheck, Boxes, Clock3, ClipboardList, FileClock, Gauge, Landmark, PackagePlus, ShieldAlert, Warehouse, XCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import PowerAuditList from '../components/PowerAuditList';
 import PowerBadge from '../components/PowerBadge';
@@ -121,6 +122,12 @@ export default function SupplyDesk() {
               <Icon className="h-4 w-4" /> {label}
             </button>
           ))}
+          <Link
+            to="/supply/vendor"
+            className="mb-1 mt-2 flex w-full items-center gap-2 rounded-lg border border-dashed px-3 py-2.5 text-sm font-semibold transition-colors"
+            style={{ color: '#0F766E', borderColor: '#0F766E' }}>
+            <Landmark className="h-4 w-4" /> ERP 供给台（嵌入）
+          </Link>
           <p className="mt-2 rounded-lg px-3 py-2 text-[11px] leading-relaxed text-[#8a8577]">
             交易单向：供给方唯一交易对手 = DU。货品与产能仅对 DU/云中心可见。
           </p>

@@ -5,9 +5,12 @@ import { Link } from 'react-router-dom';
 import {
   Briefcase, LayoutDashboard, Building2, MessagesSquare, ShoppingCart,
   ClipboardList, FileText, FileClock, Store, Coins, Receipt, Boxes, ChevronRight, Smartphone,
+  Landmark, Warehouse, Lock, PackageCheck,
 } from 'lucide-react';
 import { api, type MarketGroup, type OrderRow } from '../api/client';
-import type { BoothRow, SupplyContract, InquiryRow, Container, HatRow, DomainCode, BoothKind, Listing } from '../../shared/types';
+import type { BoothRow, SupplyContract, InquiryRow, Container, HatRow, DomainCode, BoothKind, Listing, SupplyMallItem } from '../../shared/types';
+import { xSupplyApi } from '../x-supply';
+import type { XSupplyOrder } from '../../shared/x-supply';
 import { useAuth } from '../Auth';
 import { colorOf, canOpenMarket, workbenchOf, WORKBENCH_THEME, POWER_BADGE, orderStatusMeta, EXEC_ACCENT } from '../lib/domain';
 import { duChildTermOf, duChildBadgeTextOf, duChildDomainsOf } from '../lib/terminology';
@@ -20,7 +23,7 @@ const ACCENT = WORKBENCH_THEME.operator.accent; // #B45309
 const SOFT = WORKBENCH_THEME.operator.accentSoft; // #fbf0e0
 const TEXT = WORKBENCH_THEME.operator.accentText; // #92400e
 
-type Section = 'overview' | 'booths' | 'inquiries' | 'procurement' | 'contracts' | 'newbooth' | 'audit' | 'exec';
+type Section = 'overview' | 'booths' | 'erp' | 'inquiries' | 'procurement' | 'contracts' | 'newbooth' | 'audit' | 'exec';
 
 const yuan = (cents: number): string => (cents / 100).toLocaleString('zh-CN', { style: 'currency', currency: 'CNY' });
 
@@ -35,6 +38,8 @@ export default function OperatorDesk() {
   const [hats, setHats] = useState<HatRow[]>([]);
   const [inq, setInq] = useState<InquiryRow[]>([]);
   const [listings, setListings] = useState<Listing[]>([]);
+  const [erpMall, setErpMall] = useState<SupplyMallItem[]>([]);
+  const [erpSupplyOrders, setErpSupplyOrders] = useState<XSupplyOrder[]>([]);
   const [msg, setMsg] = useState('');
   const [execMsg, setExecMsg] = useState('');
   const [execErr, setExecErr] = useState('');
@@ -54,6 +59,8 @@ export default function OperatorDesk() {
     void api.supplyContracts().then(setContracts);
     void api.inquiries().then(setInq);
     void api.mallListings().then(setListings);
+    void api.supplyMall().then(setErpMall).catch(() => setErpMall([]));
+    void xSupplyApi.supplyOrders.list().then(setErpSupplyOrders).catch(() => setErpSupplyOrders([]));
   };
 
   useEffect(() => {
@@ -62,6 +69,12 @@ export default function OperatorDesk() {
     void api.containers().then(setContainers);
     void api.units().then(setHats);
   }, []);
+
+  // X-MARKET-ERP-01 经营线 ERP 嵌入（数据同源：Market 既有单据/货品 + 供给单 confirmed 联动）
+  const erpConfirmed = erpSupplyOrders.filter((s) => s.status === 'confirmed');
+  const erpSales = orders.filter((o) => !o.supplierId);
+  const erpStockTotal = erpMall.reduce((sum, m) => sum + (m.stock ?? 0), 0);
+  const erpLow = erpMall.filter((m) => (m.stock ?? 0) < 20);
 
   const myStores = booths.filter((b) => b.operatorContainerId === cid);
   const procurement = orders.filter((o) => o.supplierId);
@@ -96,6 +109,7 @@ export default function OperatorDesk() {
     { key: 'procurement', label: '采购单', icon: <ClipboardList className="h-4 w-4" /> },
     { key: 'contracts', label: '采购合同', icon: <FileText className="h-4 w-4" /> },
     { key: 'newbooth', label: '上新铺', icon: <Store className="h-4 w-4" /> },
+    { key: 'erp', label: 'ERP 经营台', icon: <Landmark className="h-4 w-4" /> },
     { key: 'audit', label: '我的留痕', icon: <FileClock className="h-4 w-4" /> },
   ];
 
@@ -245,6 +259,127 @@ export default function OperatorDesk() {
                 </p>
               </div>
             </>
+          )}
+
+          {sec === 'erp' && (
+            <div className="space-y-4">
+              <div className="rounded-xl border bg-white p-5" style={{ borderLeft: '4px solid #0F766E' }}>
+                <p className="flex items-center gap-2 font-serif-display text-lg font-black" style={{ color: TEXT }}>
+                  <Landmark className="h-5 w-5 text-teal-700" /> ERP · 经营台（嵌入外壳 · X-MARKET-ERP-01）
+                </p>
+                <p className="mt-2 text-sm text-[#4a463c]">
+                  Market 是 ERP 的新外壳：单据/库存/联动入口在本视角内直接可达（经营线目标 95%）。操作复用既有三权 checkPower 与审计留痕；ERP 独立资源底座不变、不迁移数据、不改主库结构。菜单按「容器 → 帽 → 三权」裁剪（OAS JWT/13U 在 ERP 对接层同源收敛，X-MARKET-ERP-01 V4）。
+                </p>
+              </div>
+
+              {/* V1 单据四卡 */}
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <button onClick={() => setSec('procurement')} className="rounded-xl border bg-white p-4 text-left transition hover:shadow-md" style={{ borderLeft: `4px solid ${ACCENT}` }}>
+                  <p className="text-xs text-[#8a8577]">采购单 · 可操作</p>
+                  <p className="font-serif-display text-2xl font-black" style={{ color: TEXT }}>{procurement.length}</p>
+                  <p className="mt-1 text-[11px] font-semibold text-teal-700">打开采购单 →</p>
+                </button>
+                <button onClick={() => setSec('overview')} className="rounded-xl border bg-white p-4 text-left transition hover:shadow-md" style={{ borderLeft: `4px solid ${ACCENT}` }}>
+                  <p className="text-xs text-[#8a8577]">销售单 · 可操作</p>
+                  <p className="font-serif-display text-2xl font-black" style={{ color: TEXT }}>{orders.filter((o) => !o.supplierId).length}</p>
+                  <p className="mt-1 text-[11px] font-semibold text-teal-700">打开经营总览 →</p>
+                </button>
+                <div className="rounded-xl border bg-white p-4" style={{ borderLeft: '4px solid #0F766E' }}>
+                  <p className="text-xs text-[#8a8577]">入库单 · 联动</p>
+                  <p className="font-serif-display text-2xl font-black" style={{ color: TEXT }}>{erpConfirmed.length}</p>
+                  <p className="mt-1 text-[11px] text-[#6b665a]">confirmed 供给单联动清单见下</p>
+                </div>
+                <button onClick={() => setSec('exec')} className="rounded-xl border bg-white p-4 text-left transition hover:shadow-md" style={{ borderLeft: `4px solid ${ACCENT}` }}>
+                  <p className="text-xs text-[#8a8577]">出库/履约单 · 可操作</p>
+                  <p className="font-serif-display text-2xl font-black" style={{ color: TEXT }}>{fulfillable.length}</p>
+                  <p className="mt-1 text-[11px] font-semibold text-teal-700">打开作业执行 →</p>
+                </button>
+              </div>
+
+              {/* V1 库存总览/预警（供给商城货品 · DU 采购视野） */}
+              <div className="rounded-xl border bg-white p-5">
+                <p className="flex items-center gap-2 font-serif-display text-lg font-black" style={{ color: TEXT }}>
+                  <Warehouse className="h-5 w-5 text-teal-700" /> 库存总览与预警（供给商城货品 · 采购视野）
+                </p>
+                <p className="mt-1 text-[11px] text-[#8a8577]">库存归属 Booth 实体系统（WH），此处为 Market 侧只读总览；预警阈值 20（演示口径）。</p>
+                <div className="mt-3 grid grid-cols-3 gap-3">
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-[#8a8577]">在架货品</p>
+                    <p className="font-serif-display text-xl font-black" style={{ color: TEXT }}>{erpMall.length}</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-[#8a8577]">库存合计</p>
+                    <p className="font-serif-display text-xl font-black" style={{ color: TEXT }}>{erpMall.reduce((n, m) => n + (m.stock ?? 0), 0)}</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-[#8a8577]">低库存预警</p>
+                    <p className="font-serif-display text-xl font-black text-red-600">{erpLow.length}</p>
+                  </div>
+                </div>
+                {erpLow.length > 0 && (
+                  <ul className="mt-3 space-y-1">
+                    {erpLow.map((m) => (
+                      <li key={m.id} className="flex items-center justify-between rounded border border-red-200 bg-red-50 px-3 py-1.5 text-xs">
+                        <span className="font-semibold text-red-700">{m.name}</span>
+                        <span className="text-red-600">库存 {m.stock ?? 0} · {m.supplierName ?? m.boothCode}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* 最近单据（抽样可打开） */}
+              <div className="rounded-xl border bg-white p-5">
+                <p className="flex items-center gap-2 font-serif-display text-lg font-black" style={{ color: TEXT }}>
+                  <FileClock className="h-5 w-5 text-teal-700" /> 最近单据（抽样）
+                </p>
+                <table className="mt-3 w-full text-left text-xs">
+                  <thead className="text-[#8a8577]">
+                    <tr><th className="py-1.5">单号</th><th>族</th><th className="text-right">金额</th><th>状态</th></tr>
+                  </thead>
+                  <tbody>
+                    {orders.slice(0, 5).map((o) => (
+                      <tr key={o.id} className="border-t">
+                        <td className="py-1.5 font-mono">{o.code}</td>
+                        <td>{o.family}</td>
+                        <td className="text-right font-mono">¥{(o.amountCents / 100).toFixed(2)}</td>
+                        <td><OrderStatusBadge status={o.status} dual /></td>
+                      </tr>
+                    ))}
+                    {orders.length === 0 && <tr><td colSpan={4} className="py-3 text-center text-[#8a8577]">暂无单据</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 链路：confirmed 供给单 → 入库/履约联动入口 */}
+              <div className="rounded-xl border bg-white p-5">
+                <p className="flex items-center gap-2 font-serif-display text-lg font-black" style={{ color: TEXT }}>
+                  <PackageCheck className="h-5 w-5 text-teal-700" /> 供给单 confirmed → 入库/履约联动
+                </p>
+                <p className="mt-1 text-[11px] text-[#8a8577]">confirmed 为入库输入源（X-SUPPLY-02）；入库登记作业归 Booth 实体系统（WH，另一窗口），Market 侧提供联动清单与去向标注。</p>
+                <ul className="mt-3 space-y-1.5">
+                  {erpConfirmed.map((s) => (
+                    <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded border px-3 py-2 text-xs">
+                      <span className="font-mono font-semibold">{s.code}</span>
+                      <span className="text-[#6b665a]">{s.supplierContainerName} · {s.supplierBoothCode}</span>
+                      <span className="font-mono">¥{((s.quotedCents ?? 0) / 100).toFixed(2)}</span>
+                      <span className="rounded bg-teal-50 px-2 py-0.5 text-[10px] font-semibold text-teal-700">入库去向：Booth 实体系统（WH）· 待接线</span>
+                    </li>
+                  ))}
+                  {erpConfirmed.length === 0 && <li className="rounded border border-dashed px-3 py-3 text-center text-xs text-[#8a8577]">暂无 confirmed 供给单——在「采购商城」完成供给单闭环后自动进入联动清单</li>}
+                </ul>
+              </div>
+
+              {/* V5 留守项声明 */}
+              <div className="rounded-xl border border-dashed bg-[#faf9f5] p-5">
+                <p className="flex items-center gap-2 font-serif-display text-base font-black" style={{ color: TEXT }}>
+                  <Lock className="h-4 w-4 text-[#8a8577]" /> 留守 ERP（不进 Market · V5）
+                </p>
+                <p className="mt-1 text-xs text-[#6b665a]">
+                  租户管理 / 适配层 / 月结 / CSV 导出 / 权限矩阵——运维项仍从 ERP 进入，Market 端界面不复制、无入口（X-MARKET-ERP-01）。
+                </p>
+              </div>
+            </div>
           )}
 
           {sec === 'exec' && (
