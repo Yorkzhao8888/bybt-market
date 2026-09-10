@@ -183,6 +183,10 @@ export const api = {
     req<{ order: OrderRow; receipt: FulfillmentReceipt }>(`/api/orders/${id}/fulfill`, { method: 'POST', body: JSON.stringify({ note }) }),
   // MARKET-CONN-01 Booth 履约时间线（server 代理持有 OAS token；数据结构见 shared/types BoothTimelineResp）
   boothTimeline: (id: string) => req<BoothTimelineResp>(`/api/orders/${id}/booth-timeline`),
+  /* ============ X-MARKET-EMBED-01 ZiwayOS 嵌入握手 ============ */
+  embedExchange: (ticket: string) =>
+    req<{ token: string; user: SessionUser; embed: { role: string; jti: string } }>('/api/embed/exchange', { method: 'POST', body: JSON.stringify({ ticket }) }),
+
   /* ============ X-MARKET-08 供应商准入 + DU 采购商城 ============ */
   submitApplication: (payload: { categories: string; capacity?: string; qualification: string; priceIntent?: string }) =>
     req<SupplierApplication>('/api/supply/applications', { method: 'POST', body: JSON.stringify(payload) }),

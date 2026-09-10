@@ -19,6 +19,7 @@ interface AuthCtx {
   oneClick: (entry: 'C' | 'B') => Promise<void>;
   loginDemo: (demoId: string) => Promise<SessionUser>;
   logout: () => Promise<void>;
+  applySession: (token: string, user: SessionUser) => void;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -107,8 +108,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clear();
   }, [clear]);
 
+  // X-MARKET-EMBED-01：嵌入握手换得的会话直接落位（token+user 已由 /api/embed/exchange 颁发）
+  const applySession = useCallback((tk: string, u: SessionUser) => {
+    setToken(tk);
+    setUser(u);
+    if (u.hatRole) setActiveRole(u.hatRole);
+  }, [setActiveRole]);
+
   return (
-    <Ctx.Provider value={{ user, loading, isAuthed: !!user, activeRole, setActiveRole, clearActiveRole, login, oneClick, loginDemo, logout }}>
+    <Ctx.Provider value={{ user, loading, isAuthed: !!user, activeRole, setActiveRole, clearActiveRole, login, oneClick, loginDemo, logout, applySession }}>
       {children}
     </Ctx.Provider>
   );

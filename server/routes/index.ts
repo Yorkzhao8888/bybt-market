@@ -19,6 +19,7 @@ import { createToken, getUserByToken, revokeToken, DEV_PASSWORD, requireAuth, op
 import { checkPower, boothCodeOf, powerAudit } from '../power';
 import xSupply from '../x-supply/routes';
 import { fetchBoothTimeline, getBoothToken, boothBase, boothDeepLink } from '../boothConn';
+import { verifyTicket, embedMeta } from '../embed';
 import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth, SupplierApplication, SupplierProduct, SupplyMallItem, MarketPowerMapRow, MarketPowerAuditRow, PowerHat, FulfillmentReceipt } from '../../shared/types';
 import { CONTAINER_TYPE_LABEL, UNIT_ROLE_LABEL, HAT_LINE_OF, HAT_POWER_BITS, type Inquiry } from '../../shared/types';
 
@@ -163,6 +164,36 @@ api.post('/auth/oneclick', (req, res) => {
 });
 
 api.get('/auth/demos', (_req, res) => ok(res, demoAccounts));
+
+// ================= X-MARKET-EMBED-01：ZiwayOS 嵌入票核销（免登握手第 4-6 步） =================
+// 票单次消费在 ZiwayOS verify 端发生（信任锚=ZiwayOS，Market 不自建 JWT/密钥）；ticket 不落日志明文
+api.post('/embed/exchange', async (req, res) => {
+  const { ticket } = (req.body ?? {}) as { ticket?: string };
+  if (typeof ticket !== 'string' || !ticket.startsWith('zt_') || ticket.length < 8 || ticket.length > 512) {
+    return res.status(400).json({ error: '无效嵌入票据' });
+  }
+  let verdict: Awaited<ReturnType<typeof verifyTicket>>;
+  try {
+    verdict = await verifyTicket(ticket);
+  } catch {
+    verdict = { ok: false, reason: 'verify_unreachable' };
+  }
+  if (!verdict.ok) {
+    console.warn(`[EMBED] ticket rejected reason=${verdict.reason} ticket=${ticket.slice(0, 6)}…(len=${ticket.length})`);
+    return res.status(401).json({ error: '嵌入票据核销失败', reason: verdict.reason });
+  }
+  if (verdict.realm !== embedMeta.expectedRealm) {
+    console.warn(`[EMBED] realm mismatch got=${verdict.realm} want=${embedMeta.expectedRealm} jti=${verdict.jti}`);
+    return res.status(403).json({ error: '嵌入域（realm）不匹配' });
+  }
+  if (!embedMeta.consumerRoles.has(verdict.role)) {
+    return res.status(403).json({ error: `角色 ${verdict.role} 不支持嵌入消费（仅 CU/GU）` });
+  }
+  // 消费态会话：映射内置 CU 演示身份（side=C），签发 xm_ token（既有认证链路复用）
+  const consumer = buildSession(DEMO_ALIAS['xiaolin']);
+  ok(res, { token: createToken(consumer), user: consumer, embed: { role: verdict.role, jti: verdict.jti } });
+});
+
 
 api.get('/auth/me', requireAuth, (req: AuthReq, res) => ok(res, req.user));
 api.post('/auth/logout', requireAuth, (req: AuthReq, res) => {

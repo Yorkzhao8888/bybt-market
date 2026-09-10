@@ -25,6 +25,7 @@ import Board from './pages/Board';
 import OperatorMobile from './pages/OperatorMobile';
 import OrderStatusBadge from './components/OrderStatusBadge';
 import OnboardingTour, { TourRestartButton } from './components/OnboardingTour';
+import { EmbedGate, useEmbedMode } from './components/EmbedGate';
 import EntranceGate from './entrance/EntranceGate';
 import EntranceLogin from './entrance/EntranceLogin';
 import EntranceRole from './entrance/EntranceRole';
@@ -190,8 +191,20 @@ function Header() {
  *  X-MARKET-ENTRANCE-01 视角容器守卫（V4）：未登录 → 容器类型页；未选角色（activeRole 空/与登录帽不一致）→ 角色选择页。 */
 function RoleGuard({ wb, children }: { wb: WorkbenchKind | WorkbenchKind[]; children: ReactNode }) {
   const { user, isAuthed, loading, activeRole } = useAuth();
+  const embed = useEmbedMode();
   if (loading) return <p className="p-10 text-center text-sm text-[#8a8577]">身份校验中…</p>;
-  if (!isAuthed || !user) return <Navigate to="/entrance" replace />;
+  if (!isAuthed || !user) {
+    // X-MARKET-EMBED-01：嵌入模式下未登录不跳登入端——等宿主握手（EmbedGate），期间呈嵌入游客提示
+    if (embed) {
+      return (
+        <div className="mx-auto max-w-lg rounded-xl border bg-white p-8 text-center shadow-[4px_4px_0_rgba(23,24,29,0.12)]">
+          <p className="font-serif-display text-xl font-black">嵌入模式 · ZiwayOS 免登</p>
+          <p className="mt-2 text-sm text-[#6b665a]">正在等待 ZiwayOS 免登握手完成；也可先以游客身份浏览开放页面。</p>
+        </div>
+      );
+    }
+    return <Navigate to="/entrance" replace />;
+  }
   if (!activeRole || activeRole !== user.hatRole) return <Navigate to="/entrance/role" replace />;
   const allowed: WorkbenchKind[] = Array.isArray(wb) ? wb : [wb];
   if (!allowed.includes(workbenchOf(user.hatRole))) return <Forbidden hatRole={user.hatRole} need={workbenchThemeOf(user.hatRole)} want={allowed[0]} />;
@@ -215,15 +228,20 @@ function Forbidden({ hatRole, need, want }: { hatRole: string | null; need: Retu
 }
 
 function Shell({ children }: { children: ReactNode }) {
+  // X-MARKET-EMBED-01：嵌入模式隐藏自家壳（Header/底栏/引导），握手门接管免登；非嵌入行为完全不变
+  const embed = useEmbedMode();
   return (
     <div className="min-h-screen bg-[#f5f2eb] text-[#17181d]">
-      <Header />
+      {embed && <EmbedGate />}
+      {!embed && <Header />}
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
-      <footer className="border-t border-[#e4ded2] py-4 text-center text-xs text-[#8a8577]">
-        X-Market 五域集市 · 交易不经营 / 铺面即实体 · Booth 实体系统另窗口实现
-      </footer>
+      {!embed && (
+        <footer className="border-t border-[#e4ded2] py-4 text-center text-xs text-[#8a8577]">
+          X-Market 五域集市 · 交易不经营 / 铺面即实体 · Booth 实体系统另窗口实现
+        </footer>
+      )}
       {/* X-MARKET-TI-05 新手引导浮层（登录后按角色自动弹出；非模态不阻塞业务） */}
-      <OnboardingTour />
+      {!embed && <OnboardingTour />}
     </div>
   );
 }
