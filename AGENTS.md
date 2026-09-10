@@ -294,3 +294,11 @@
 - **红线落实**：ticket 不落 URL/localStorage/日志（服务端日志仅前缀+长度 `ticketTag`）；双向 origin 白名单（hello/ticket 均 targetOrigin|origin 校验，无 `*`）；realm/app 服务端校验；非嵌入零行为变化；信任锚=ZiwayOS verify。
 - **自测证据（mock verify `scripts/embed-verify-mock.mjs` :9301，语义=app 不匹配拒/app_mismatch、重放拒/ticket_replayed、role DU 放行、realm other 放行、合法票 CU）**：`scripts/embed-exchange-check.mjs` 六态 6/6（合法票 200 会话 xm_ token+CU；同票重放 401 ticket_replayed；zt_bad_role_ 403；zt_bad_realm_ 403；zt_bad_app_ 401；非法票 400）。E2E `scripts/embed-e2e.mjs` 8/8（真 iframe+postMessage 握手：hello 送达→回票→token 落位→嵌入态无 Header→握手提示收敛→商品渲染；非嵌入顶层 /mall Header 存在无握手提示；截图 assets/embed-01/embed-iframe-mall.png+nonembed-mall.png；E2E 以 `ZIWAY_EMBED_BASE=http://127.0.0.1:9301 VITE_ZIWAY_EMBED_ORIGIN=http://localhost:5000` 重启跑完已恢复常态）。
 - **真实 ZiwayOS verify 探测**：`POST https://ebb131cf-37e1-493f-8717-36c8905a080a.dev.coze.site/api/embed/ticket/verify` → **401 `{"code":401,"message":"ticket 不存在或已过期"}`**——端点可达且语义正确（假票正确拒绝，非 instance_not_found）；端到端联调仅差宿主侧发放真实票（ticket 签发权在 ZiwayOS 宿主，Market 侧无需也无权自造）。
+
+### EMBED-01-FIX：exchange 对 ZiwayOS verify 响应解析修正
+
+- **根因**：真实 verify 响应是 ZiwayOS 统一包装格式 `{code:200, data:{ok,role,realm,jti}}`（401 时 `{code:401,message:"ticket 不存在或已过期"}`，http 同码）；原 verifyTicket 按裸 `{ok:true}` 顶层判定→真实响应下钻失败误判 `verify_rejected`（mock 裸格式掩盖）。
+- **解析修正（server/embed.ts）**：`payload = j.data ?? j`（包装优先/裸兼容）→ `res.ok && payload.ok && role/realm/jti 齐备` 成功；失败 reason 读 `j.message ?? j.error ?? j.data?.message ?? verify_http_${status}`——ZiwayOS 诊断文案（如「ticket 不存在或已过期」）直接透出到 exchange 401 响应。
+- **realm 期望值对齐（关键）**：真实 ZiwayOS 签发 **`realm:'xhpz'`**（主 Agent 真票实测）——`EXPECTED_REALM` 默认 'market'→**'xhpz'**（env `ZIWAY_EMBED_REALM` 仍可覆盖）；不改则真票 403 realm 不匹配。
+- **自测升级**：mock（embed-verify-mock.mjs）成功路径全部改为**包装格式** `{code:200,data:{...}}`（realm xhpz）+ 新增 `zt_bare_` 裸格式兼容用例 + 失败路径 `{code,message}`；`embed-exchange-check.mjs` **7/7**（包装 200 会话/裸格式 200 会话/重放 401/role 403/realm 403/app 401/非法 400）；**真域失败分支实证**：恢复常态（verify 指真域）后 exchange 假票 → 401 `reason:"ticket 不存在或已过期"`（message 透出）。
+- **真票端到端脚本（主 Agent 执行）**：`node scripts/embed-real-verify-check.mjs <zt_真票> [基址，默认 http://localhost:5000]`——三断言：真票 exchange 200 会话（xm_ token+CU）→ token 调 /api/auth/me 200 → 同票重放 401；本地 dev 默认 ZIWAY_EMBED_BASE 指真实 ZiwayOS（服务端到服务端），真票本地即可核销。
