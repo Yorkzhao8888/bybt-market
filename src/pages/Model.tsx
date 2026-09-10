@@ -76,6 +76,7 @@ export default function Model() {
           <span>→</span>
           <Chain text="客户界面：Market(XU 企业) / Mall(CU 自然人)" tone="bg-[#b8862b]" />
         </div>
+        <p className="mt-2 text-xs text-white/70">下游消费端双身份（X-MARKET-18 增补）：XU 主身份=采购方（B端走 Market）/ CU 主身份=消费客户（C端走 Mall）；第二身份=客户资源供给方（需求侧资源：客户/流量/需求线索，授权式/贡献式，不占权位、不登录操作）。客户本体供给=源头侧，VCU=平台方运营客户资源（管理侧），分层不冲突；与供给四源（EU 物资/YU 空间/HU 人力/TU 技术）严格区分。</p>
         <p className="mt-3 text-xs text-white/70">跨主体使用他方 Booth = 越权，已禁止。E/T 仅平台直营 DU 开店；Y/H/DE 可加盟。</p>
       </section>
 

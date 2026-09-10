@@ -27,8 +27,8 @@ export interface RoleBrief {
 
 /** 角色卡目录（角色·界面归位矩阵 v3 口径） */
 export const ROLE_BRIEF: Record<string, RoleBrief> = {
-  XU: { face: 'Market · 客户面', duty: '企业采购：五市场浏览 / B2B 询价报价 / 订单跟进' },
-  CU: { face: 'Mall · 客户面', duty: '买家购物：商城浏览 / 立即购买 / 订单跟进' },
+  XU: { face: 'Market · 客户面', duty: '企业采购：五市场浏览 / B2B 询价报价 / 订单跟进；第二身份：客户资源供给方（B端客户资源 · 授权式贡献，不占权位）' },
+  CU: { face: 'Mall · 客户面', duty: '买家购物：商城浏览 / 立即购买 / 订单跟进；第二身份：客户资源供给方（C端客户资源 · 授权式贡献，不占权位）' },
   DU: { face: 'Market · 经营面', duty: '分经营号经营（*DU）：铺面管理 / 询价报价 / 采购商城 / 履约衔接' },
   DYX: { face: 'Market · 经营面', duty: '业务执行（*DX·L1）：履约执行回执 / 铺内作业（办位）' },
   DHX: { face: 'Market · 经营面', duty: '业务执行（*DX·L1）：履约执行回执 / 铺内作业（办位）' },

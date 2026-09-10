@@ -10,6 +10,8 @@
 export interface TermPair {
   big: string;
   sys: string;
+  /** 双身份副身份（X-MARKET-18 增补）：如 XU/CU 第二身份「客户资源供给方」，可缺省；不占权位、不登录操作 */
+  sub?: { big: string; sys: string };
 }
 
 /** 角色/身份称呼映射 */
@@ -23,8 +25,8 @@ export const ROLE_TERMS: Record<string, TermPair> = {
   VTM: { big: '管家审批', sys: 'TMX · 技术运营管理（白名单兼任，域内）' },
   VDM: { big: '经营监管', sys: '治理者 VDM' },
   OU: { big: '组织运营', sys: '组织帽 OU' },
-  XU: { big: '采购方', sys: '企业客户 XU' },
-  CU: { big: '买家', sys: '个人客户 CU' },
+  XU: { big: '采购方', sys: '企业客户 XU', sub: { big: '客户资源供给方', sys: 'B端客户资源 · 授权式贡献（不占权位）' } },
+  CU: { big: '买家', sys: '个人客户 CU', sub: { big: '客户资源供给方', sys: 'C端客户资源 · 授权式贡献（不占权位）' } },
   YU: { big: '供货商', sys: '供给帽 YU' },
   EU: { big: '供货商', sys: '供给帽 EU' },
   HU: { big: '供货商', sys: '供给帽 HU' },
@@ -64,6 +66,8 @@ export const CONCEPT_TERMS: Record<string, TermPair> = {
   supplySource: { big: '货源', sys: '供给源 Booth-E' },
   /* X-SUPPLY-02 供给单体系 */
   supplyOrder: { big: '供货单', sys: 'X-Supply 供给单 XS' },
+  // 客户资源供给（X-MARKET-18 增补）：需求侧资源，与供给四源严格区分；源头侧=XU/CU 客户本体，管理侧=VCU 平台方运营
+  custResource: { big: '客户资源供给', sys: '需求侧资源（客户/流量/需求线索）· 授权式/贡献式，不占权位、不登录操作；区别于供给四源 EU 物资/YU 空间/HU 人力/TU 技术' },
   supplyInbox: { big: '供货收件箱', sys: '供给方收件（仅本铺）' },
   fmx: { big: '总财执行', sys: 'FMX · 归 OFM（X-MARKET-18 预留概念，不建真帽）' },
   /* X-MARKET-ROLE-01 角色界面归位（A 批） */
@@ -143,6 +147,10 @@ export const STATUS_TERMS: Record<string, TermPair> = {
 
 export const roleTerm = (hat: string | null | undefined): TermPair =>
   (hat && ROLE_TERMS[hat]) || { big: hat ?? '访客', sys: '未登记身份' };
+
+/** 双身份副称呼（X-MARKET-18 增补）：XU/CU 第二身份「客户资源供给方」；无 sub 返回 undefined（代码与权位不动，纯术语层） */
+export const roleSubTermOf = (hat: string | null | undefined): TermPair['sub'] =>
+  (hat && ROLE_TERMS[hat]?.sub) || undefined;
 
 export const conceptTerm = (key: string): TermPair =>
   CONCEPT_TERMS[key] ?? { big: key, sys: key };

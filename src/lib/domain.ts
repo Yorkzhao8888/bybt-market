@@ -1,6 +1,7 @@
 // 域/角色前端映射（X-MARKET-05 三方链路与 Booth 权属定版）
 // 两套系统：Market=铺面层（交易平台，不经营/不持资源/不执行作业）；Booth 实体=作业层（经营实体+五作业系统）。
 // 价值链：供给方 Booth-Y/E/H/T（源头产能）→ DU 经营实体 Booth-DY/DH/DT/DE/DC（组织经营）→ Market/Mall（客户界面）。
+// 客户双身份（X-MARKET-18 增补）：XU/CU 主身份=采购/消费（B/C 端），第二身份=客户资源供给方（源头侧 · 授权式贡献不占权位）；VCU=平台方运营客户资源（管理侧）。
 
 import { UNIT_ROLE_LABEL } from '../../shared/types';
 import type { HatRole } from '../../shared/types';
