@@ -24,6 +24,7 @@ import OperatorDesk from './pages/OperatorDesk';
 import Board from './pages/Board';
 import OperatorMobile from './pages/OperatorMobile';
 import OrderStatusBadge from './components/OrderStatusBadge';
+import OnboardingTour, { TourRestartButton } from './components/OnboardingTour';
 import EntranceGate from './entrance/EntranceGate';
 import EntranceLogin from './entrance/EntranceLogin';
 import EntranceRole from './entrance/EntranceRole';
@@ -162,6 +163,8 @@ function Header() {
                   )}
                 </Link>
               )}
+              {/* X-MARKET-TI-05 新手引导重开入口（纯前端展示层，不阻塞业务） */}
+              <TourRestartButton />
               {/* X-MARKET-ENTRANCE-01 V5：视角内切换角色 → 回角色选择页并清空当前视角会话状态 */}
               <button
                 onClick={() => { clearActiveRole(); navigate('/entrance/role'); }}
@@ -219,6 +222,8 @@ function Shell({ children }: { children: ReactNode }) {
       <footer className="border-t border-[#e4ded2] py-4 text-center text-xs text-[#8a8577]">
         X-Market 五域集市 · 交易不经营 / 铺面即实体 · Booth 实体系统另窗口实现
       </footer>
+      {/* X-MARKET-TI-05 新手引导浮层（登录后按角色自动弹出；非模态不阻塞业务） */}
+      <OnboardingTour />
     </div>
   );
 }

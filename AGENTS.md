@@ -239,6 +239,16 @@
 - **全链路实跑剧本**（每源一条串行链，验收冒烟用）：V*M 审批预置 pending 申请（POST supply/applications/:id/review，VEM=sa-13/VYM=sa-16/VHM=sa-19/VTM=sa-22）→申请态账号上架货品（POST supply/products，动态 sp-25+）→对应 *DU 采购（POST orders，E→EX/Y→YX/H→HX/T→TX 族码）→DU 履约交付（POST orders/:id/fulfill，X-MARKET-16 域映射执行帽 DEX/DYX/DHX/DTX，status→fulfilling+回执 actor_user/actor_hat）——「使用/生产→交付闭环」以交付回执落 fulfillments 为终态。DDU 补采 sp-1（恒晟 E 域）。小额单（<5000 分阈值）直通 pending 不入审批，大额 sp-19 留作 X-MARKET-15 演示。
 - **回归口径（V1/V2/V3）**：V1 12 样板 oneclick+三态断言（apply/cert mine=0、list mine≥1、boothTarget 正确）；V2 EU 13 个账号（TI-03 十个+TI-04 三个）全通+原 17 demo 回归+supplyMall/上架/供给单链路不破；V3 四源链路实跑全绿+五 DU 各 1 单+cert 态上架验证（eu-cert-1 上架成功终态）。
 
+## 用户教育训练·新手引导（X-MARKET-TI-05，纯前端展示层）
+
+- **目标**：登录后按角色弹出分步引导向导（四源供应商 / DU 经营者 / 客户 XU·CU 三套），每步三要素=做什么（what）/去哪个入口点（entry）/完成标准（done）；支持跳过与重开；引导纯前端，零 API 调用/零输入收集/零数据变更/非模态不阻塞业务。
+- **数据层 `src/lib/onboarding.ts`（唯一口径）**：`TourKind='supplier'|'operator'|'client'`；`tourStepsOf(kind,{domainView,hatRole})`——supplier 7 步（注册申请→提交资质→V*M 认证→开 Booth 铺面→供货上架→接收 DU 采购单→履约交付，`SUPPLY_TOUR_TERMS` 按 domainView 差异化：E 物资/YU 空间/HU 人力/TU 技术/DE 归并 E 线）、operator 6 步、client 3 步（XU/CU 文案与入口分流）；`tourKindOf(hatRole,wb)` 按 `workbenchOf` 分发，govern/governSupply 返回 null→三选一入口；本地状态 `localStorage['xm_tour_v1']` 按 hatId 记录 `{status:'done'|'skipped',kind,ts}`（`readTourState`/`writeTourState`）；`TOUR_OPEN_EVENT`+`dispatchTourOpen` 重开事件；`TOUR_IDENTITY_CHOICES` 三选一身份卡（供货商/店主/采购方·买家）。
+- **组件 `src/components/OnboardingTour.tsx`**：默认导出 `OnboardingTour`——首登检测（无本地记录）700ms 延迟自动弹出；浮层 fixed bottom-right 白底硬阴影+工作台主题色（`workbenchThemeOf`），步骤条 dots+三要素行+「前往入口」Link（react-router）+上一步/下一步/完成引导+跳过引导；三选一居中卡轻遮罩（点遮罩=记 skipped）；`TourRestartButton` 导出（Header 登录区「引导」按钮，事件重开不重置完成记录）。
+- **挂载**：`App.tsx` Shell 内 `<OnboardingTour />`（全 Shell 页面可用）+Header 登录区 `<TourRestartButton />`；`terminology.ts` `CONCEPT_TERMS.onboarding={big:'新手引导',sys:'Onboarding · 分步教学向导'}`。
+- **步骤口径**：供应商套「开 Booth 铺面」置于「供货上架」之前——真实业务路径（TI-04 实证：POST supply/products 要求名下供给铺，先开铺才能上架）；工单步骤清单全覆盖。
+- **截图凭证**：`assets/onboarding-ti05/*.png` 22 张（EU 全 7 步/YU·HU·TU 首步差异化/operator 全 6 步/client-CU 全 3 步/client-XU 首步/picker 两张）；复跑 `node scripts/onboarding-shots.mjs`（devDependencies `playwright-core`+沙箱 chromium-1161 缓存，脚本用 `ctx.addInitScript` 预注入 token 消除 me() 竞态——`page.evaluate` 后置注入会被 401→clear 竞态清掉，勿回退）。
+- **回归口径**：lint/ts-check 全绿；业务接口回归（overview/mall listings/market booths/supply mall/orders/demos=45）+SPA 十路由 200 不受引导影响。
+
 ## 调试要点
 
 - dev server（tsx watch）修改 server 代码后**不会**可靠热重载路由/store：需 `kill -9 $(cat /app/work/logs/bypass/server.pid)` + `pkill -9 -f 'ts[x] watch'` 后 `(nohup bash ./scripts/dev.sh > logs/dev-start.log 2>&1 &)` 重启。

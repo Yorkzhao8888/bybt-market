@@ -85,6 +85,8 @@ export const CONCEPT_TERMS: Record<string, TermPair> = {
   /* 命名体系 v1.2：执行双线 + 事业部壳 */
   execDualLine: { big: '执行双线', sys: '*MXX 运营（权限链 L2）· DXX 业务细化（权限链 L1）' },
   vduShell: { big: '产品事业部全域壳', sys: 'VDU · 整合六类（DDU 直属 / 五域引用 VDU::EDU）' },
+  /* X-MARKET-TI-05 用户教育训练（新手引导） */
+  onboarding: { big: '新手引导', sys: 'Onboarding · 分步教学向导' },
 };
 
 /** 分经营号域对照（命名体系 v1.2 定版）：经营单元统一「域字母+D+U」，六类 DDU（主业）/YDU/EDU/CDU/HDU/TDU；模板总称 *DU 保留星号；旧 D*U 实例写法（DYU/DEU/DCU 等）废除 */
