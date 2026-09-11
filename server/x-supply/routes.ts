@@ -199,6 +199,13 @@ xSupply.post('/orders', requireAuth, (req: AuthReq, res: AuthRes) => {
   }
   if (!checkPower('supply_order_initiate', req, res)) return;
   const ownerUnit = unitById(booth.ownerUnitId);
+  // XMK-GOV-01 治理联动：任一侧入驻主体被市场治理冻结（VEM audit freeze）则供给行为拦截
+  const buyerFrozen = xSupplyProfiles.get(user!.containerId)?.vendor_status === 'frozen';
+  const supplierFrozen = xSupplyProfiles.get(ownerUnit?.containerId ?? '')?.vendor_status === 'frozen';
+  if (buyerFrozen || supplierFrozen) {
+    fail(res, 403, '入驻主体已被市场治理冻结（VEM），供给行为被拦截（XMK-GOV-01）');
+    return;
+  }
   const now = new Date().toISOString();
   const order: XSupplyOrder = {
     id: xSupplyNextOrderId(),
@@ -244,6 +251,11 @@ xSupply.post('/orders/:id/accept', requireAuth, (req: AuthReq, res: AuthRes) => 
     return;
   }
   if (!checkPower('supply_order_accept', req, res, order.supplierBoothCode)) return;
+  // XMK-GOV-01 治理联动：供给侧主体被冻结则接单被拦
+  if (xSupplyProfiles.get(order.supplierContainerId)?.vendor_status === 'frozen') {
+    fail(res, 403, '供给侧入驻主体已被市场治理冻结（VEM），接单被拦（XMK-GOV-01）');
+    return;
+  }
   order.status = 'accepted';
   xSupplyAppendEvent(order, 'accept', user!.hatId ?? '', roleOf(user!), order.supplierBoothCode, '已接单');
   ok(res, order);
@@ -317,6 +329,9 @@ xSupply.get('/profile', requireAuth, (req: AuthReq, res: AuthRes) => {
     contact_name: '',
     contact_phone: '',
     intro: '',
+    vendor_status: 'pending',
+    vendor_note: '',
+    governance_events: [],
     updated_at: '',
   };
   ok(res, derived);
@@ -348,6 +363,9 @@ xSupply.put('/profile', requireAuth, (req: AuthReq, res: AuthRes) => {
     contact_name: contactName,
     contact_phone: phone,
     intro: String(body.intro ?? '').trim(),
+    vendor_status: prev?.vendor_status ?? 'pending',
+    vendor_note: prev?.vendor_note ?? '',
+    governance_events: prev?.governance_events ?? [],
     updated_at: new Date().toISOString(),
   };
   xSupplyProfiles.set(user.containerId, profile);

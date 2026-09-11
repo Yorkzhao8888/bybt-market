@@ -158,6 +158,27 @@ export const PLAT_TERMS: Record<
 /** Plat 词条：key 未命中返回 undefined */
 export const platTerm = (key: string): (typeof PLAT_TERMS)[string] | undefined => PLAT_TERMS[key];
 
+/* XMK-GOV-01 市管方角色表（集市三层结构定版 v1.1 第四视角：市场管理方 = XVPZ 平台方，分治制）
+   仅已裁定 Plat 开治理口——E 域 X-Goods/E-Market → VEM 打样；其余 Plat 未裁定，不开治理口 */
+export const MARKET_GOVERNORS: Record<
+  string,
+  { big: string; sys: string; plat: string; market: string; pos: string; enabled: boolean }
+> = {
+  vem: {
+    big: '市管方',
+    sys: 'XVPZ#VEM',
+    plat: 'X-Goods',
+    market: 'E-Market',
+    pos: '市场管理方——入驻准入、供给秩序与经营监察（E-Market 打样）',
+    enabled: true,
+  },
+};
+
+/** 市管方词条：platKey 未命中或未裁定返回 undefined */
+export const governorTerm = (platKey: string): (typeof MARKET_GOVERNORS)[string] | undefined => {
+  const g = MARKET_GOVERNORS[platKey];
+  return g && g.enabled ? g : undefined;
+};
 export const ROLE_TERMS: Record<string, TermPair> = {
   DU: { big: '店主', sys: '经营者 DU' },
   // X-MARKET-18 v1.2 终版：VXM→VMX→VDM 合并（总经营管理执行，归 OVM）；FMX 总财执行归 OFM（预留，ERP 高频角色）；域内管家审批仍 V*M 系（v4.8 V*U 内嵌管家，不进 ERP）
@@ -225,6 +246,10 @@ export const CONCEPT_TERMS: Record<string, TermPair> = {
   governMarket: { big: '经营治理', sys: '经营管理治理 VDM' },
   governSupplyView: { big: '四源治理台', sys: 'V*M 家族分源治理' },
   ofdCenter: { big: '履约中心', sys: 'X-OFD 只读接入 · 模拟契约期' },
+  // XMK-GOV-01：市管方治理面（XVPZ#VEM，E-Market 打样）
+  governanceDesk: { big: '市管台', sys: 'XVPZ · 市管方治理面' },
+  vendorAudit: { big: '入驻审核', sys: '准入状态机 pending→approved⇄frozen' },
+  supplyWatch: { big: '供给单监察', sys: '全域只读 · 状态分布聚合' },
   boothTimeline: { big: '履约时间线', sys: 'Booth · 履约四节点' },
   /* 命名体系 v1.2：执行双线 + 事业部壳 */
   execDualLine: { big: '执行双线', sys: '*MXX 运营（权限链 L2）· DXX 业务细化（权限链 L1）' },

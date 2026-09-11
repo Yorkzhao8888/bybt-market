@@ -60,6 +60,9 @@ export interface XSupplyHubData {
 
 /* ============ XMK-API-01 入驻主体资料（供集写矩阵：DU / XEPZ#CU 企业入驻主体 / 供给帽；XHPZ#CU 403） ============ */
 
+/** 入驻主体准入状态（XMK-GOV-01 治理面：pending 待审 / approved 批准 / frozen 冻结） */
+export type VendorStatus = 'pending' | 'approved' | 'frozen';
+
 /** 入驻主体资料（API 字段 snake_case；identity_id 复用 OAS 身份标识，禁止另建主数据） */
 export interface XSupplyProfile {
   container_id: string;
@@ -69,6 +72,11 @@ export interface XSupplyProfile {
   contact_phone: string;
   intro: string;
   updated_at: string;
+  /** 准入状态（XMK-GOV-01：VEM audit 迁移；frozen 时 /api/supply 写路径联动拦截） */
+  vendor_status: VendorStatus;
+  vendor_note: string;
+  /** 治理事件流（snake_case：action/actor_user/actor_hat/target/note/ts） */
+  governance_events: import('./governance').GovernanceAuditEvent[];
 }
 
 /* ============ X-SUPPLY-02 供给单体系（DU 采购发起 → 供给方接单/报价 → DU 确认） ============ */

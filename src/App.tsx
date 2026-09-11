@@ -16,6 +16,7 @@ import MarketBooth from './pages/MarketBooth';
 import Orders from './pages/Orders';
 import Model from './pages/Model';
 import Govern from './pages/Govern';
+import GovernanceDesk from './pages/GovernanceDesk';
 import SupplyMall from './pages/SupplyMall';
 import SupplyDesk from './pages/SupplyDesk';
 import SupplyVendorDesk from './pages/SupplyVendorDesk';
@@ -73,6 +74,8 @@ function Header() {
     // X-MARKET-18：V*M 管家审批家族（VEM/VHM/VYM/VTM，v1.2 终版 VDM 废弃并入 VDM）落 supply 审批视图
     governSupply: [
       { to: '/supply', label: '管家审批', icon: <ClipboardCheck className="h-3.5 w-3.5" /> },
+      // XMK-GOV-01：市管台（XVPZ#VEM E-Market 打样）——label 走术语 CONCEPT_TERMS.governanceDesk
+      { to: '/governance', label: conceptTerm('governanceDesk').big, icon: <Crown className="h-3.5 w-3.5" /> },
     ],
   };
   const nav = navByWb[wb];
@@ -283,6 +286,8 @@ function AllRoutes() {
               <Route path="/operator" element={<RoleGuard wb="operator"><OperatorDesk /></RoleGuard>} />
               <Route path="/operator/mobile" element={<RoleGuard wb="operator"><OperatorMobile /></RoleGuard>} />
               <Route path="/govern" element={<RoleGuard wb="govern"><Govern /></RoleGuard>} />
+              {/* XMK-GOV-01：市管台（XVPZ#VEM 打样），页面内守卫（非 XVPZ 拒绝页） */}
+              <Route path="/governance" element={<GovernanceDesk />} />
             </Routes>
           </Shell>
         }

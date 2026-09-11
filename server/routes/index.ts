@@ -19,6 +19,7 @@ import { createToken, getUserByToken, revokeToken, DEV_PASSWORD, requireAuth, op
 import { checkPower, boothCodeOf, powerAudit } from '../power';
 import xSupply from '../x-supply/routes';
 import customerRoutes from '../customer/routes';
+import { router as governanceRoutes } from '../governance/routes';
 import { fetchBoothTimeline, getBoothToken, boothBase, boothDeepLink } from '../boothConn';
 import { verifyTicket, embedMeta } from '../embed';
 import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth, SupplierApplication, SupplierProduct, SupplyMallItem, MarketPowerMapRow, MarketPowerAuditRow, PowerHat, FulfillmentReceipt } from '../../shared/types';
@@ -118,6 +119,8 @@ const demoAccounts: DemoAccount[] = [
   { id: 'ydu', entry: 'B', hatRole: 'DU', containerId: 'c-ydu', hatId: 'u-du15', label: '恒产智场部 · 智场经营 YDU', note: 'YDU 分经营号（Y 线）；TI-04 采 YU 源样板', domainView: 'Y', duChildDomains: ['Y'] },
   // XMK-API-01：XEPZ#CU 企业入驻主体客户帽（矩阵 v3 供给动线主体；客集写+供集写双 ✅ 样板；尾部追加不动 DEMO_ROUTE 索引）
   { id: 'cu-ep1', entry: 'B', hatRole: 'CU', containerId: 'c-eu01', hatId: 'u-cu-ep1', label: '恒晟物资 · 企业客户 XEPZ#CU', note: '企业容器（XEPZ）内客户帽：客集需求/意向可写+企业入驻主体供给动线（XMK-API-01 矩阵）', domainView: 'E' },
+  // XMK-GOV-01：第 48 个演示账号——XVPZ#VEM 市管方（E-Market 治理面打样），末位追加不扰动既有 47
+  { id: 'vem-1', entry: 'B', hatRole: 'VEM', containerId: 'c-xvp1', hatId: 'u-vem2', label: '市管方 · XVPZ#VEM', note: 'XVPZ 平台方容器 · E-Market 治理面（XMK-GOV-01，T-PLAT 域）', domainView: 'T' },
 ];
 const DEMO_ALIAS: Record<string, DemoAccount> = Object.fromEntries(demoAccounts.map((a) => [a.id, a]));
 // XMK-CONT-01：acc-dp1 为 XDPZ 经营户演示账号别名（密码登录用 Test1234）
@@ -1274,6 +1277,8 @@ api.get('/power/dashboard', requireAuth, (req: AuthReq, res) => {
 // X-Supply 独立路由域（X-SUPPLY-01 补充约束：/supply 前缀固定，域内路由整体迁出预留）
 api.use('/supply', xSupply);
 api.use('/customer', customerRoutes);
+// XMK-GOV-01 治理面：独立命名空间（客集/供集契约零触碰），准入=仅 XVPZ#VEM
+api.use('/governance', governanceRoutes);
 
 router.use('/api', api);
 export default router;

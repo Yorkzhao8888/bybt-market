@@ -18,6 +18,7 @@ export const containers: Container[] = [
   // X-MARKET-TI-03：10 个 EU 供应商演示实体（内测批量验证，源头产能容器；方案 A 预置数据）
   { id: 'c-eu01', type: 'XEPZ', name: '恒晟物资', region: '华东', credit: 90, domainTag: 'E_MARKET' },
   { id: 'c-eu02', type: 'XEPZ', name: '联科五金', region: '华南', credit: 88, domainTag: 'E_MARKET' },
+  { id: 'c-ep2', type: 'XEPZ', name: '新恒达物资', region: '华东', credit: 80, domainTag: 'E_MARKET' },
   { id: 'c-eu03', type: 'XEPZ', name: '正茂建材', region: '华东', credit: 87, domainTag: 'E_MARKET' },
   { id: 'c-eu04', type: 'XEPZ', name: '泰和工业', region: '华北', credit: 89, domainTag: 'E_MARKET' },
   { id: 'c-eu05', type: 'XEPZ', name: '凯盛工具', region: '华中', credit: 86, domainTag: 'E_MARKET' },
@@ -54,6 +55,8 @@ export const containers: Container[] = [
   { id: 'c-plat', type: 'XOPZ', name: 'X-Market 平台运营', region: '全国', credit: 99 },
   // B 端客户（XU 企业采购）
   { id: 'c-gou', type: 'XEPZ', name: '华东区采购办', region: '华东', credit: 89 },
+  /* XMK-GOV-01：XVPZ 平台方容器（市管方治理面载体，E 域打样） */
+  { id: 'c-xvp1', type: 'XVPZ', name: '平台方治理容器', region: '全国', credit: 99 },
 ];
 
 /* ============ 帽（身份） ============ */
@@ -70,6 +73,7 @@ export const units: Unit[] = [
   // X-MARKET-TI-03：10 个 EU 供应商演示帽（内测批量验证）
   { id: 'u-eu2', code: 'EU-HS', name: '恒晟物资', role: 'EU', side: 'B', containerId: 'c-eu01', domainTags: ['E_MARKET'], tier: 'L2', credit: 90 },
   { id: 'u-eu3', code: 'EU-LK', name: '联科五金', role: 'EU', side: 'B', containerId: 'c-eu02', domainTags: ['E_MARKET'], tier: 'L2', credit: 88 },
+  { id: 'u-ep2-eu', code: 'EU-XHD', name: '新恒达物资', role: 'EU', side: 'B', containerId: 'c-ep2', domainTags: ['E_MARKET'], tier: 'L2', credit: 80 },
   { id: 'u-eu4', code: 'EU-ZM', name: '正茂建材', role: 'EU', side: 'B', containerId: 'c-eu03', domainTags: ['E_MARKET'], tier: 'L2', credit: 87 },
   { id: 'u-eu5', code: 'EU-TH', name: '泰和工业', role: 'EU', side: 'B', containerId: 'c-eu04', domainTags: ['E_MARKET'], tier: 'L2', credit: 89 },
   { id: 'u-eu6', code: 'EU-KS', name: '凯盛工具', role: 'EU', side: 'B', containerId: 'c-eu05', domainTags: ['E_MARKET'], tier: 'L2', credit: 86 },
@@ -123,6 +127,8 @@ export const units: Unit[] = [
   { id: 'u-vtm1', code: 'VTM-PLAT', name: '技术市场运营长', role: 'VTM', side: 'B', containerId: 'c-plat', domainTags: ['T_MARKET'], tier: 'L3', credit: 99 },
   { id: 'u-vdm1', code: 'VDM-PLAT', name: '总经营管理执行长（VDM）', role: 'VDM', side: 'B', containerId: 'c-plat', domainTags: ['E_MARKET', 'H_MARKET', 'Y_MARKET', 'T_MARKET', 'DE_MARKET'], tier: 'L3', credit: 99 },
   { id: 'u-vxm1', code: 'VDM-PLAT-B', name: '总经营管理执行（云统筹 VDM）', role: 'VDM', side: 'B', containerId: 'c-plat', domainTags: ['E_MARKET', 'H_MARKET', 'Y_MARKET', 'T_MARKET', 'DE_MARKET'], tier: 'L3', credit: 99 },
+  /* XMK-GOV-01：市管方 XVPZ#VEM（E-Market 治理面打样，T-PLAT 域标注） */
+  { id: 'u-vem2', code: 'VEM-XVPZ', name: '通货市场管理官（XVPZ）', role: 'VEM', side: 'B', containerId: 'c-xvp1', domainTags: ['T_MARKET'], tier: 'L3', credit: 99 },
 ];
 
 /* ============ Booth 实体（作业层；Market 铺面引用） ============ */
