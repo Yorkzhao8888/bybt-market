@@ -1,8 +1,10 @@
-// X-MARKET-EMBED-01/03 · ZiwayOS 嵌入握手 adapter（前端）
+// X-MARKET-EMBED-01/03/09 · ZiwayOS 嵌入握手 adapter（前端）
 // 协议 v1：hello(多播白名单) -> parent 回票（origin 白名单数组）-> /api/embed/exchange 换会话
 // EMBED-03-M：白名单升数组——ZiwayOS 生产域 + dev 域默认全放行（真浏览器实证：生产壳层
 // https://c8w9k9wq2g.coze.site 发票被单值 dev 白名单丢弃导致免登死锁）。
 // VITE_ZIWAY_EMBED_ORIGIN 仅为本地联调/E2E 追加口（构建期注入，命中任一即放行；拒绝通配）。
+// EMBED-09：票消息多形态兼容提取（ticket / payload.ticket / data.ticket）+ 全链路 xm:embed 诊断日志
+// （收票 origin/形状/exchange 结果可见——「票未送达」与「送达被拒」两类断点可由日志直接区分）。
 const ZIWAY_EMBED_PROD_ORIGIN = 'https://c8w9k9wq2g.coze.site';
 const ZIWAY_EMBED_DEV_ORIGIN = 'https://ebb131cf-37e1-493f-8717-36c8905a080a.dev.coze.site';
 
@@ -30,15 +32,47 @@ export function detectEmbedMode(): boolean {
   }
 }
 
-export interface EmbedTicketMsg {
-  type: string;
-  ticket?: unknown;
+function pickTicket(v: unknown): string | null {
+  return typeof v === 'string' && v.startsWith('zt_') ? v : null;
 }
 
-export function isTicketMsg(ev: MessageEvent): ev is MessageEvent & { data: EmbedTicketMsg & { ticket: string } } {
-  if (!ZIWAY_EMBED_ORIGINS.includes(ev.origin)) return false; // 白名单数组，命中任一即放行，拒绝通配
-  const d = ev.data as EmbedTicketMsg | null;
-  return !!d && d.type === EMBED_TICKET && typeof d.ticket === 'string' && d.ticket.startsWith('zt_');
+function asRecord(v: unknown): Record<string, unknown> | null {
+  return v !== null && typeof v === 'object' ? (v as Record<string, unknown>) : null;
+}
+
+/** 票字段多形态提取：{ticket} | {payload:{ticket}} | {data:{ticket}}（壳侧消息形状演进兼容） */
+export function extractTicket(data: unknown): string | null {
+  const d = asRecord(data);
+  if (!d) return null;
+  const payload = asRecord(d.payload);
+  const inner = asRecord(d.data);
+  return pickTicket(d.ticket) ?? pickTicket(payload?.ticket) ?? pickTicket(inner?.ticket);
+}
+
+export type EmbedMsgVerdict =
+  | { kind: 'ticket'; ticket: string; origin: string }
+  | { kind: 'reject'; reason: string }
+  | { kind: 'noise' };
+
+/**
+ * 收票判定（EMBED-09）：
+ * - type=ziway-embed-ticket 无论 origin 命中与否都参与判定（拒单必带 reason——「票未达前端」与「送达被拒」靠日志区分）
+ * - 其余消息归 noise（Vite HMR / devtools / 宿主其他应用消息），不打日志不刷屏
+ */
+export function inspectEmbedMessage(ev: MessageEvent): EmbedMsgVerdict {
+  const d = asRecord(ev.data);
+  if (!d) return { kind: 'noise' };
+  const type = typeof d.type === 'string' ? d.type : '';
+  if (type !== EMBED_TICKET) return { kind: 'noise' };
+  if (!ZIWAY_EMBED_ORIGINS.includes(ev.origin)) {
+    return { kind: 'reject', reason: `origin 未命中白名单（origin=${ev.origin}，白名单=${ZIWAY_EMBED_ORIGINS.join(' , ')}）` };
+  }
+  const ticket = extractTicket(d);
+  if (!ticket) {
+    const keys = Object.keys(d).join(',');
+    return { kind: 'reject', reason: `票字段缺失或格式不合规（期望 zt_ 前缀 ticket，消息 keys=${keys}）` };
+  }
+  return { kind: 'ticket', ticket, origin: ev.origin };
 }
 
 /** hello 多播：对白名单逐域 postMessage（origin 不匹配的被浏览器丢弃，命中宿主域的送达；严禁 * 通配） */
