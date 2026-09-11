@@ -5,14 +5,22 @@
 // VITE_ZIWAY_EMBED_ORIGIN 仅为本地联调/E2E 追加口（构建期注入，命中任一即放行；拒绝通配）。
 // EMBED-09：票消息多形态兼容提取（ticket / payload.ticket / data.ticket）+ 全链路 xm:embed 诊断日志
 // （收票 origin/形状/exchange 结果可见——「票未送达」与「送达被拒」两类断点可由日志直接区分）。
+// MKT-SYNC-01：红线 3 收口——白名单继续含 ZiwayOS 生产壳 c8w9k9wq2g，新增 ZiwayDS 生产壳
+// 8vyt5xfk57（三层升级协调单点名，防 EMBED-03-M 修过未部署教训回归）。
 const ZIWAY_EMBED_PROD_ORIGIN = 'https://c8w9k9wq2g.coze.site';
+const ZIWAY_EMBED_DS_ORIGIN = 'https://8vyt5xfk57.coze.site';
 const ZIWAY_EMBED_DEV_ORIGIN = 'https://ebb131cf-37e1-493f-8717-36c8905a080a.dev.coze.site';
 
 const envOrigin = import.meta.env?.VITE_ZIWAY_EMBED_ORIGIN;
 
-/** origin 白名单数组：ZiwayOS 生产 + dev 默认，VITE_ZIWAY_EMBED_ORIGIN 追加（去重） */
+/** origin 白名单数组：ZiwayOS 生产 + ZiwayDS 生产 + dev 默认，VITE_ZIWAY_EMBED_ORIGIN 追加（去重） */
 export const ZIWAY_EMBED_ORIGINS: readonly string[] = Array.from(
-  new Set([ZIWAY_EMBED_PROD_ORIGIN, ZIWAY_EMBED_DEV_ORIGIN, ...(envOrigin ? [String(envOrigin)] : [])]),
+  new Set([
+    ZIWAY_EMBED_PROD_ORIGIN,
+    ZIWAY_EMBED_DS_ORIGIN,
+    ZIWAY_EMBED_DEV_ORIGIN,
+    ...(envOrigin ? [String(envOrigin)] : []),
+  ]),
 );
 
 /** 向后兼容：首个白名单项（生产域优先） */

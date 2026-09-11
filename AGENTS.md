@@ -324,3 +324,9 @@
 - **术语表（terminology.ts）**：`CONTAINER_TERMS` 六容器词条（code/short/big/sys）+`BOOTH_FORM_TERMS` 六形态词条（en/big/sys）——后续 UI 引用统一走词条，禁止页面写死。
 - **命名规范 v1.3**：`X-Market_原型_20260908/知味数智生态_命名体系规范_v1.3_20260911.html`（六容器全谱表：全称/简称/主体线/开放状态；六形态中文定名表：英文/中文/尾字字辈/定位；变更记录 v1.2→v1.3）。
 - **验收**：cont01-check **10/10**（oneclick dp1 200+hatRole DU、me DU、container c-dp1、acc-dp1 别名 200、密码 Test1234 200+DU、错密码 401、V3 抽样 xiaolin CU/xu-huadong XU/du-hehe DU、**红线 46 账号 oneclick 全通**）；cont01-shots **17/17**（六卡+六徽标+xopz 非「平台容器」+dp 登录页+XDPZ#DU demo 卡+一键登录落 /operator+Header 经营者徽标；截图 assets/cont01/entrance-six-cards.png、xdpz-login-page.png、xdpz-operator-view.png）；**CONN 履约时间线回归 booth-timeline-ui-check 10/10**；lint/ts-check 全绿。
+
+## MKT-SYNC-01 三层升级协调单（红线收口 + 升级范围确认，2026-09-11）
+
+- **协调单全文**：`assets/mkt_sync01.md`——主人授权三层升级（X-Customer / X-Market&Mall / X-Supply），嵌入契约升级期间冻结。
+- **红线（遵守状态）**：①`/api/embed/*` 全部端点契约冻结（exchange POST 400 校验保留 / verify / 白名单逻辑，请求响应结构不变）——**未动**；②`/xhpz/embed/market` 路由+握手协议稳定，三形态票兼容（data.ticket / payload.ticket / data.ticket）不删任一——**未动**；③origin 白名单必须含 ZiwayOS 生产壳 `c8w9k9wq2g.coze.site` + ZiwayDS 生产壳 `8vyt5xfk57.coze.site`——**本次收口**（lib/embed.ts `ZIWAY_EMBED_ORIGINS` 补 8vyt5xfk57，EMBED-03-M 教训防回归）；④守卫横条逻辑（8s 无票→游客条）——**未动**。
+- **范围确认（回主 Agent 三问）**：①拆新模块渐进升级，不重构现有 repo 路由；客集 `/api/customer/*` 新开含本期；②本期不涉 `/api/embed/*` 与嵌入页 UI（唯一白名单追加已随本次 commit 落地）；③部署时点=白名单收口 commit 即可部署，后续三层升级按工单分批。
