@@ -19,16 +19,19 @@ await page.goto(`${BASE}/orders`, { waitUntil: 'load' });
 await page.waitForTimeout(1500);
 // 展开含 o-2001（EX-2026-1001）的订单行
 await page.getByText('EX-2026-1001').first().click();
-await page.waitForSelector('text=Booth 履约时间线', { timeout: 9000 });
+await page.waitForSelector('text=履约时间线', { timeout: 9000 });
 await page.waitForTimeout(1200);
 
-const nodeLabels = await page.locator('[data-booth-node]').count();
-const deepLink = await page.locator('a[data-booth-deeplink]').first().getAttribute('href');
+const deepLink = await page.locator('a[href*="fulfillment-track"]').first().getAttribute('href');
 const bodyText = await page.evaluate(() => document.body.innerText);
-const hasNodes = ['Market 下单', '供给铺接单', 'DU 履约', '交付确认'].every((s) => bodyText.includes(s));
-const hasState = ['已完成', '进行中', '待处理'].some((s) => bodyText.includes(s));
-console.log(`RENDER: nodes=${nodeLabels} labels-ok=${hasNodes} state-ok=${hasState} deeplink-token=${deepLink?.includes('token=')}`);
+const cardOk = bodyText.includes('履约时间线') && bodyText.includes('Booth · 履约四节点');
+const nodes = await page.locator('[data-booth-node]').count();
+const emptyOk = bodyText.includes('暂未进入履约');
+const stateOk = ['已完成', '进行中', '待处理'].some((s) => bodyText.includes(s));
+console.log(`RENDER: card=${cardOk} nodes=${nodes} empty-state=${emptyOk} state-ok=${stateOk} deeplink-token=${deepLink?.includes('token=')}`);
 console.log('deeplink-host=' + (deepLink ? new URL(deepLink).host : 'none'));
+if (!cardOk || !stateOk || !deepLink?.includes('token=')) { console.error('FAIL booth-timeline-check'); process.exit(1); }
+console.log('PASS booth-timeline-check');
 await page.screenshot({ path: OUT, fullPage: false });
 console.log('shot saved: ' + OUT);
 await browser.close();

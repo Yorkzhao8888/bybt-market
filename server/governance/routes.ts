@@ -7,10 +7,11 @@
  */
 import { Router } from 'express';
 import { requireAuth, roleOf, type AuthReq, type AuthRes } from '../auth';
-import { containerById, normalizePowerHat } from '../store';
+import { containerById, normalizePowerHat, supplierApplications } from '../store';
 import { xSupplyProfiles, xSupplyOrders } from '../x-supply/store';
-import { VENDOR_STATUS_TRANSITIONS, type GovernanceAuditEvent } from '../../shared/governance';
+import { APPLICATION_STATUS_TRANSITIONS, VENDOR_STATUS_TRANSITIONS, type GovernanceApplicationRow, type GovernanceAuditEvent } from '../../shared/governance';
 import type { XSupplyProfile } from '../../shared/x-supply';
+import type { HatRole } from '../../shared/types';
 
 const ok = (res: AuthRes, data: unknown): void => {
   res.status(200).json({ success: true, data });
@@ -25,7 +26,7 @@ const governance = Router();
 const isEDomain = (domainTag: string | undefined): boolean =>
   domainTag === 'E_MARKET' || domainTag === 'DE_MARKET';
 
-/** 准入守卫：仅 XVPZ#VEM（市管方）。旧治理号（XVMZ 容器 VEM）与 CU/DU/EU/VDM 一律 403。 */
+/** 准入守卫：XVPZ 治理帽（VEM 市管方 / VXM 评估统筹，EU-CHAIN-01 对齐 X-MARKET-08 不新造帽）。旧治理号与 CU/DU/EU/VDM 一律 403。 */
 const requireGovernor = (req: AuthReq, res: AuthRes): boolean => {
   const user = req.user;
   if (!user) {
@@ -33,8 +34,8 @@ const requireGovernor = (req: AuthReq, res: AuthRes): boolean => {
     return false;
   }
   const hat = normalizePowerHat(roleOf(user));
-  if (hat !== 'VEM' || user.containerType !== 'XVPZ') {
-    fail(res, 403, '治理面准入不通过：/api/governance 仅市管方（XVPZ#VEM）可访问（XMK-GOV-01 矩阵）');
+  if ((hat !== 'VEM' && hat !== 'VXM') || user.containerType !== 'XVPZ') {
+    fail(res, 403, '治理面准入不通过：/api/governance 仅市管方（XVPZ#VEM/VXM）可访问（XMK-GOV-01 矩阵）');
     return false;
   }
   return true;
@@ -90,6 +91,101 @@ governance.post('/supply/vendors/:id/audit', requireAuth, (req: AuthReq, res: Au
   };
   p.governance_events.push(ev);
   ok(res, p);
+});
+
+/**
+ * 准入申请评估（XMK-EU-CHAIN-01：X-MARKET-08 定版口径 VXM 评估统筹，XVPZ 治理面承接）。
+ * 状态机：submitted（兼容旧 pending）→reviewing→approved/rejected；线性门控，非法迁移 409。
+ * 裁决回写 GET /api/supply/profile：approve→vendor_status='approved'；reject→'rejected'（+原因）——ZiwayOS SupplyHub 自动可见。
+ */
+governance.get('/applications', requireAuth, (req: AuthReq, res: AuthRes) => {
+  if (!requireGovernor(req, res)) return;
+  const rows: GovernanceApplicationRow[] = [...supplierApplications]
+    .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+    .map((a) => ({
+      ...a,
+      containerName: containerById(a.supplierId)?.name ?? a.supplierId,
+    }));
+  ok(res, rows);
+});
+
+governance.post('/applications/:id/claim', requireAuth, (req: AuthReq, res: AuthRes) => {
+  if (!requireGovernor(req, res)) return;
+  const user = req.user!;
+  const a = supplierApplications.find((x) => x.id === String(req.params.id ?? ''));
+  if (!a) {
+    fail(res, 404, '准入申请不存在');
+    return;
+  }
+  const allowed = APPLICATION_STATUS_TRANSITIONS[a.status] ?? [];
+  if (!allowed.includes('reviewing')) {
+    fail(res, 409, `状态机非法迁移：${a.status} 不可开始评估（EU-CHAIN-01 线性门控）`);
+    return;
+  }
+  a.status = 'reviewing';
+  a.reviewedAt = new Date().toISOString();
+  a.reviewedBy = user.hatId ?? '';
+  ok(res, a);
+});
+
+governance.post('/applications/:id/audit', requireAuth, (req: AuthReq, res: AuthRes) => {
+  if (!requireGovernor(req, res)) return;
+  const user = req.user!;
+  const a = supplierApplications.find((x) => x.id === String(req.params.id ?? ''));
+  if (!a) {
+    fail(res, 404, '准入申请不存在');
+    return;
+  }
+  const body = (req.body ?? {}) as { action?: string; rejectReason?: string; note?: string };
+  const action = String(body.action ?? '');
+  const reason = String(body.rejectReason ?? body.note ?? '').slice(0, 120);
+  if (action !== 'approve' && action !== 'reject') {
+    fail(res, 400, '评估动作非法：仅 approve（通过）/ reject（驳回）');
+    return;
+  }
+  const allowed = APPLICATION_STATUS_TRANSITIONS[a.status] ?? [];
+  const next = action === 'approve' ? 'approved' : 'rejected';
+  if (!allowed.includes(next)) {
+    fail(res, 409, `状态机非法迁移：${a.status} 不可裁决 ${next}（须先开始评估 reviewing）`);
+    return;
+  }
+  if (action === 'reject' && !reason) {
+    fail(res, 400, '驳回必须附原因（驳回后可修改重提）');
+    return;
+  }
+  a.status = next;
+  a.reviewedAt = new Date().toISOString();
+  a.reviewedBy = user.hatId ?? '';
+  a.rejectReason = action === 'reject' ? reason : a.rejectReason;
+  // 裁决回写供集 profile（GET /api/supply/profile 供 ZiwayOS SupplyHub 自动可见；无资料容器初始化骨架）
+  const targetContainer = a.supplierId;
+  if (!xSupplyProfiles.has(targetContainer)) {
+    xSupplyProfiles.set(targetContainer, {
+      container_id: targetContainer,
+      container_name: containerById(targetContainer)?.name ?? '',
+      identity_id: '',
+      contact_name: '',
+      contact_phone: '',
+      intro: a.priceIntent ?? '',
+      vendor_status: 'pending',
+      vendor_note: '',
+      governance_events: [],
+      updated_at: new Date().toISOString(),
+    });
+  }
+  const p = xSupplyProfiles.get(targetContainer)!;
+  p.vendor_status = next === 'approved' ? 'approved' : 'rejected';
+  p.vendor_note = action === 'approve' ? '准入评估通过（XVPZ 治理面）' : `准入驳回：${reason}`;
+  p.updated_at = new Date().toISOString();
+  p.governance_events.push({
+    action: action === 'approve' ? 'application_approve' : 'application_reject',
+    actor_user: user.hatId ?? '',
+    actor_hat: user.hatRole as HatRole,
+    target: targetContainer,
+    note: action === 'approve' ? '准入评估通过' : `准入驳回：${reason}`,
+    ts: new Date().toISOString(),
+  });
+  ok(res, a);
 });
 
 /** 供给单全域监察（只读 + 状态分布聚合） */

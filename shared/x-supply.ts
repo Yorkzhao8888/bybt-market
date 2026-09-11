@@ -61,7 +61,7 @@ export interface XSupplyHubData {
 /* ============ XMK-API-01 入驻主体资料（供集写矩阵：DU / XEPZ#CU 企业入驻主体 / 供给帽；XHPZ#CU 403） ============ */
 
 /** 入驻主体准入状态（XMK-GOV-01 治理面：pending 待审 / approved 批准 / frozen 冻结） */
-export type VendorStatus = 'pending' | 'approved' | 'frozen';
+export type VendorStatus = 'pending' | 'approved' | 'frozen' | 'rejected';
 
 /** 入驻主体资料（API 字段 snake_case；identity_id 复用 OAS 身份标识，禁止另建主数据） */
 export interface XSupplyProfile {

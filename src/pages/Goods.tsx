@@ -9,8 +9,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Boxes, ArrowRight, Search, ShoppingBag, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
 import MarketLayerNav from '../components/MarketLayerNav';
+import { SectionTitle } from '../components/ui';
 import { api } from '../api/client';
 import type { MallListing } from '../api/client';
+import type { SupplyMallItem } from '../../shared/types';
+import type { Order } from '../../shared/types';
 import { customerApi } from '../api/customer';
 import { platTerm, layerTerm, RESOURCE_SET_TERMS, BOOTH_FORM_TERMS, conceptTerm } from '../lib/terminology';
 import { marketLabel, money, colorOf } from '../lib/domain';
@@ -28,6 +31,30 @@ export default function Goods() {
   const [cat, setCat] = useState('');
   const [doneMsg, setDoneMsg] = useState('');
   const [err, setErr] = useState('');
+  const [bItems, setBItems] = useState<SupplyMallItem[]>([]);
+  const [bErr, setBErr] = useState('');
+  const [bDone, setBDone] = useState('');
+  const [bQty, setBQty] = useState<Record<string, number>>({});
+  const [bLoaded, setBLoaded] = useState(false);
+  const [bBusy, setBBusy] = useState('');
+
+  useEffect(() => {
+    void api.supplyMall()
+      .then((d) => { setBItems(d); setBLoaded(true); })
+      .catch((e: unknown) => { setBErr(e instanceof Error ? e.message : '企业采购专区加载失败'); setBLoaded(true); });
+  }, []);
+
+  /** C（EU-CHAIN-01）：B 端企业采购一键下单——orders POST 族码口径（EX-/YX-…），mall C 端与 goods B 端双轨并存 */
+  const runBOrder = (it: SupplyMallItem): void => {
+    if (!user) { navigate('/entrance'); return; }
+    setBErr(''); setBDone('');
+    setBBusy(it.id);
+    const qty = bQty[it.id] ?? 1;
+    api.createOrder({ supplierProductId: it.id, qty })
+      .then((o: Order) => setBDone(`企业采购单已生成：${o.code}（${it.name} × ${qty}${it.unit}，按 ${it.domain} 域族码口径落库）`))
+      .catch((e: unknown) => setBErr(e instanceof Error ? e.message : '下单失败'))
+      .finally(() => setBBusy(''));
+  };
 
   useEffect(() => { void api.mallListings().then(setListings).catch(() => setListings([])); }, []);
 
@@ -73,7 +100,7 @@ export default function Goods() {
         </div>
         <p className="mt-1.5 text-sm text-[#6b665a]">
           {scm?.sys}——{scm?.big}资源在{marketLayer?.big}成交：{marketLayer?.pos}。
-          本页为同源商品只读列表（与{layerTerm('customer')?.big}共用 DCX 门店货架数据），B 端完整采购流程后续工单交付。
+          本页为同源商品只读列表（与{layerTerm('customer')?.big}共用 DCX 门店货架数据）+ 企业采购专区（B 端，XMK-EU-CHAIN-01）。
         </p>
       </div>
 
@@ -156,6 +183,68 @@ export default function Goods() {
         </div>
       )}
 
+      {/* 企业采购专区（XMK-EU-CHAIN-01 C：B 端 EX-/YX- 采购单口径，mall C 端与 goods B 端双轨并存） */}
+      <div className="mt-6">
+        <SectionTitle>
+          企业采购专区
+          <span className="ml-2 align-middle text-xs font-normal text-[#8a8577]">B 端 · 供集在架货品 · EX-/YX- 采购单口径</span>
+        </SectionTitle>
+        {bErr ? (
+          <div className="mt-3 rounded-lg border border-[#f3c1c1] bg-[#fdf1f1] p-4 text-sm font-semibold text-[#b91c1c]">
+            {bErr}
+            {!user && (
+              <Link to="/entrance" className="ml-2 inline-flex items-center underline">
+                去登入端 <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            )}
+          </div>
+        ) : bItems.length === 0 ? (
+          <div className="mt-3 rounded-lg border border-dashed border-[#c9c2b2] bg-[#faf8f3] p-4 text-sm text-[#8a8577]">供集暂无在架货品（合格供应商上架后此处承接）。</div>
+        ) : (
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {bItems.map((p) => (
+              <div key={p.id} className="paper-card p-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold" style={{ color: colorOf(p.domain) }}>{marketLabel(p.domain)}</span>
+                  <span className="text-[11px] font-semibold text-[#8a8577]">{p.boothCode || p.boothId}</span>
+                </div>
+                <p className="mt-1.5 truncate text-sm font-bold" title={p.name}>{p.name}</p>
+                <p className="mt-0.5 truncate text-xs text-[#8a8577]">{p.spec || '标准规格'} · 库存 {p.stock ?? '—'}{p.supplierName ? ` · ${p.supplierName}` : ''}</p>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="font-serif-display text-lg font-black text-[#b8862b]">{money(p.priceCents)}<span className="ml-0.5 text-[10px] font-normal text-[#8a8577]">/{p.unit}</span></span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={1}
+                      value={bQty[p.id] ?? 1}
+                      onChange={(e) => setBQty({ ...bQty, [p.id]: Math.max(1, Number(e.target.value) || 1) })}
+                      className="w-14 rounded border border-[#d8d2c2] px-1.5 py-1 text-right text-xs"
+                      aria-label={`采购数量 ${p.name}`}
+                    />
+                    <button
+                      onClick={() => runBOrder(p)}
+                      disabled={bBusy === p.id}
+                      className="inline-flex items-center gap-1 rounded bg-[#17181d] px-2.5 py-1.5 text-[11px] font-bold text-white hover:opacity-90 disabled:opacity-50"
+                    >
+                      <ShoppingBag className="h-3 w-3" /> {bBusy === p.id ? '下单中…' : '一键下单'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {bDone && (
+          <div className="mt-3 rounded-lg border border-[#bfe3c8] bg-[#f0faf3] p-3 text-sm font-bold text-[#166534]">
+            {bDone}
+          </div>
+        )}
+      </div>
+
+      {/* 品牌露出（XMK-EU-CHAIN-01 D：百泰OS） */}
+      <p className="mt-8 flex items-center justify-center gap-1.5 text-xs text-[#a49e8f]">
+        <Boxes className="h-3.5 w-3.5" /> 百泰OS · 知味数智生态驱动
+      </p>
       {/* 占位说明卡（保留 STRUCT-01 消歧内容） */}
       <div className="mt-5 rounded-xl border border-dashed border-[#c9c2b2] bg-[#faf8f3] p-6">
         <div className="flex items-center gap-2">

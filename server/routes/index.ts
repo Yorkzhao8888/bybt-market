@@ -95,8 +95,8 @@ const demoAccounts: DemoAccount[] = [
   { id: 'eu-kaisheng', entry: 'B', hatRole: 'EU', containerId: 'c-eu05', hatId: 'u-eu6', label: '凯盛工具 · 工具供给', note: '以 EU 身份持源头供给实体铺 Booth-E-07（电动工具）', domainView: 'E', boothTarget: 'b-e7' },
   { id: 'eu-hongyuan', entry: 'B', hatRole: 'EU', containerId: 'c-eu06', hatId: 'u-eu7', label: '泓远机电 · 机电供给', note: '以 EU 身份持源头供给实体铺 Booth-E-08（轴承/电机）', domainView: 'E', boothTarget: 'b-e8' },
   { id: 'eu-guangtai', entry: 'B', hatRole: 'EU', containerId: 'c-eu07', hatId: 'u-eu8', label: '广泰钢铁 · 型钢供给', note: '以 EU 身份持源头供给实体铺 Booth-E-09（型材）', domainView: 'E', boothTarget: 'b-e9' },
-  { id: 'eu-ruifeng', entry: 'B', hatRole: 'EU', containerId: 'c-eu08', hatId: 'u-eu9', label: '瑞丰耗材 · 劳保供给', note: '以 EU 身份持源头供给实体铺 Booth-E-10（劳保用品）', domainView: 'E', boothTarget: 'b-e10' },
-  { id: 'eu-huaxin', entry: 'B', hatRole: 'EU', containerId: 'c-eu09', hatId: 'u-eu10', label: '华信紧固 · 紧固供给', note: '以 EU 身份持源头供给实体铺 Booth-E-11（膨胀紧固）', domainView: 'E', boothTarget: 'b-e11' },
+  { id: 'eu-ruifeng', entry: 'B', hatRole: 'EU', containerId: 'c-eu08', hatId: 'u-eu9h', label: '瑞丰耗材 · 劳保供给', note: '以 EU 身份持源头供给实体铺 Booth-E-10（劳保用品）', domainView: 'E', boothTarget: 'b-e10' },
+  { id: 'eu-huaxin', entry: 'B', hatRole: 'EU', containerId: 'c-eu09', hatId: 'u-eu10h', label: '华信紧固 · 紧固供给', note: '以 EU 身份持源头供给实体铺 Booth-E-11（膨胀紧固）', domainView: 'E', boothTarget: 'b-e11' },
   { id: 'eu-lifeng', entry: 'B', hatRole: 'EU', containerId: 'c-eu10', hatId: 'u-eu11', label: '力锋设备 · 设备供给', note: '以 EU 身份持源头供给实体铺 Booth-E-12（动力设备）', domainView: 'E', boothTarget: 'b-e12' },
   // ── X-MARKET-TI-04：四源三态样板（每源 apply/cert/list 各 1）+ *DU 五类采购样板 ──
   { id: 'eu-apply-1', entry: 'B', hatRole: 'EU', containerId: 'c-eu11', hatId: 'u-eu12', label: '新航物资 · 注册申请态样板（EU）', note: '注册申请已提交（sa-13 pending），待 VEM 认证；通过后即可上架（TI-04）', domainView: 'E' },
@@ -121,6 +121,8 @@ const demoAccounts: DemoAccount[] = [
   { id: 'cu-ep1', entry: 'B', hatRole: 'CU', containerId: 'c-eu01', hatId: 'u-cu-ep1', label: '恒晟物资 · 企业客户 XEPZ#CU', note: '企业容器（XEPZ）内客户帽：客集需求/意向可写+企业入驻主体供给动线（XMK-API-01 矩阵）', domainView: 'E' },
   // XMK-GOV-01：第 48 个演示账号——XVPZ#VEM 市管方（E-Market 治理面打样），末位追加不扰动既有 47
   { id: 'vem-1', entry: 'B', hatRole: 'VEM', containerId: 'c-xvp1', hatId: 'u-vem2', label: '市管方 · XVPZ#VEM', note: 'XVPZ 平台方容器 · E-Market 治理面（XMK-GOV-01，T-PLAT 域）', domainView: 'T' },
+  { id: 'eu-9x', entry: 'B', hatRole: 'EU', containerId: 'c-eu9x', hatId: 'u-eu9x', label: '恒泰建材 · 供给方 EU', note: '准入审批端到端闭环验证账号（XMK-EU-CHAIN-01 A：submitted→reviewing→approved）', domainView: 'E' },
+  { id: 'eu-10x', entry: 'B', hatRole: 'EU', containerId: 'c-eu10x', hatId: 'u-eu10x', label: '沃野农产 · 供给方 EU', note: '准入驳回重提链路验证账号（XMK-EU-CHAIN-01 A：rejected→重提 submitted）', domainView: 'E' },
 ];
 const DEMO_ALIAS: Record<string, DemoAccount> = Object.fromEntries(demoAccounts.map((a) => [a.id, a]));
 // XMK-CONT-01：acc-dp1 为 XDPZ 经营户演示账号别名（密码登录用 Test1234）
@@ -940,13 +942,13 @@ api.post('/supply/applications', requireAuth, (req: AuthReq, res) => {
     res.status(400).json({ success: false, error: '已是合格供应商，无需重复登记' });
     return;
   }
-  if (existing && existing.status === 'pending') {
+  if (existing && (existing.status === 'submitted' || existing.status === 'reviewing' || existing.status === 'pending')) {
     res.status(400).json({ success: false, error: '登记申请云中心评估中，请耐心等待' });
     return;
   }
   if (existing) {
-    // rejected → 重新提交：重置为待评估并更新材料（X-MARKET-15：重提计数 +1，超 3 次升级标记）
-    existing.status = 'pending';
+    // rejected → 重新提交：重置为待评估并更新材料（X-MARKET-15：重提计数 +1，超 3 次升级标记；EU-CHAIN-01：状态机 submitted）
+    existing.status = 'submitted';
     existing.categories = categories.trim();
     existing.capacity = capacity?.trim() ?? '';
     existing.qualification = qualification.trim();
@@ -961,7 +963,7 @@ api.post('/supply/applications', requireAuth, (req: AuthReq, res) => {
   const app: SupplierApplication = {
     id: nextSupplierId('sa'), supplierId: user.containerId, boothId: booth.id, domain: booth.domain,
     categories: categories.trim(), capacity: capacity?.trim() ?? '', qualification: qualification.trim(),
-    priceIntent: priceIntent?.trim() ?? '', status: 'pending',
+    priceIntent: priceIntent?.trim() ?? '', status: 'submitted',
     createdAt: new Date().toISOString().slice(0, 10),
   };
   supplierApplications.push(app);
@@ -1053,12 +1055,17 @@ api.get('/supply/products/mine', requireAuth, (req: AuthReq, res) => {
 api.get('/supply/products', requireAuth, (req: AuthReq, res) => {
   const user = req.user!;
   const role = roleOf(user);
-  if (!isSupplyGovernHat(role)) {
-    res.status(403).json({ success: false, error: '货品治理列表归四源治理（supply 面治理台）；market 经营治理（VDM）不参与' });
+  if (isSupplyGovernHat(role)) {
+    const govDomain = supplyGovernDomainOf(role);
+    ok(res, supplierProducts.filter((p) => (govDomain ? p.domain === govDomain : true)));
     return;
   }
-  const govDomain = supplyGovernDomainOf(role);
-  ok(res, supplierProducts.filter((p) => (govDomain ? p.domain === govDomain : true)));
+  // 供给帽本人：可见自己名下货品（SupplyDesk 上架管理，X-MARKET-08）
+  if (isSupplyHat(role)) {
+    ok(res, supplierProducts.filter((p) => p.supplierId === user.containerId));
+    return;
+  }
+  res.status(403).json({ success: false, error: '货品治理列表归四源治理（supply 面治理台）；market 经营治理（VDM）不参与' });
 });
 
 // 供给方：上架货品（需云中心准入合格）

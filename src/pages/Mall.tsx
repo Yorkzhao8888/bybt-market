@@ -3,7 +3,7 @@
 // XMK-MALL-RICH-01：逛购升级——分类筛选+关键词搜索+价格排序+商品详情弹层+逛→买动线接客集 F2/F3/供集 buyer（未登录引导不静默）。
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileClock, ShoppingCart, ShieldCheck, Minus, Plus, X, CheckCircle2, ArrowRight, Users, Search, ShoppingBag, ClipboardList, Building2, AlertCircle } from 'lucide-react';
+import { FileClock, ShoppingCart, ShieldCheck, Minus, Plus, X, CheckCircle2, ArrowRight, Users, Search, ShoppingBag, ClipboardList, Building2, AlertCircle, Boxes } from 'lucide-react';
 import { api, req } from '../api/client';
 import type { MallListing, DecoratedBooth } from '../api/client';
 import { customerApi } from '../api/customer';
@@ -423,6 +423,10 @@ export default function Mall() {
           </div>
         </div>
       )}
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-[#c9c2b2] p-3 text-xs text-[#6b6f76]">
+        <span className="flex items-center gap-1.5"><Boxes size={13} /> <span className="font-bold text-[#3f434a]">百泰OS</span> · 知味数智生态驱动 —— 五域集市 X-Market</span>
+        <span>C 端零售动线 · 企业采购走 /goods（B 端双轨）</span>
+      </div>
     </div>
   );
 }

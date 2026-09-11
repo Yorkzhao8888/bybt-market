@@ -8,7 +8,7 @@ import type { XSupplyOrder, VendorStatus } from './x-supply';
 
 /** 治理审计事件（snake_case 延续：actor_hat 系统标识原文） */
 export interface GovernanceAuditEvent {
-  action: 'vendor_approve' | 'vendor_freeze';
+  action: 'vendor_approve' | 'vendor_freeze' | 'application_approve' | 'application_reject';
   actor_user: string;
   actor_hat: HatRole;
   /** 治理对象（入驻主体容器 id） */
@@ -45,14 +45,15 @@ export interface GovernanceOrdersView {
 
 /** E-Market 经营看板（治理只读，不做交易撮合） */
 export interface GovernanceOverview {
-  /** 成交量（confirmed 供给单数，E 域） */
-  confirmed_count: number;
-  /** 成交额（分；confirmed 单 quoted_cents 之和，E 域） */
-  confirmed_amount_cents: number;
-  /** 供给方数（approved 入驻主体，E 域） */
-  approved_vendors: number;
-  order_stats: GovernanceOrderStats;
-  generated_at: string;
+  plat: string;
+  market: string;
+  volume: number;
+  volume_cents: number;
+  vendors_total: number;
+  vendors_approved: number;
+  vendors_pending: number;
+  vendors_frozen: number;
+  status_dist: Record<string, number>;
 }
 
 /** 审核动作入参（POST /api/governance/supply/vendors/:id/audit） */
@@ -66,4 +67,17 @@ export const VENDOR_STATUS_TRANSITIONS: Record<VendorStatus, VendorStatus[]> = {
   pending: ['approved'],
   approved: ['frozen'],
   frozen: ['approved'],
+  rejected: [],
+};
+
+/** 准入申请状态机（XMK-EU-CHAIN-01，submitted→reviewing→approved/rejected 线性门控） */
+export const APPLICATION_STATUS_TRANSITIONS: Record<string, string[]> = {
+  submitted: ['reviewing'],
+  pending: ['reviewing'],
+  reviewing: ['approved', 'rejected'],
+};
+
+/** 治理台准入评估行（supplierApplication + 容器名补充） */
+export type GovernanceApplicationRow = import('./types').SupplierApplication & {
+  containerName?: string;
 };

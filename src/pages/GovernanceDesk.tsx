@@ -5,7 +5,15 @@ import { conceptTerm, governorTerm } from '../lib/terminology';
 import { governanceApi } from '../api/governance';
 import DualTerm from '../components/DualTerm';
 import { SectionTitle, EmptyState, Stat } from '../components/ui';
-import type { GovernanceVendor, GovernanceOrdersView, GovernanceOverview } from '../../shared/governance';
+import type { GovernanceVendor, GovernanceOrdersView, GovernanceOverview, GovernanceApplicationRow } from '../../shared/governance';
+
+const APP_STATUS_META: Record<string, { text: string; cls: string }> = {
+  submitted: { text: '已提交', cls: 'bg-[#DBEAFE] text-[#1D4ED8]' },
+  pending: { text: '已提交', cls: 'bg-[#DBEAFE] text-[#1D4ED8]' },
+  reviewing: { text: '评估中', cls: 'bg-[#FEF3C7] text-[#B45309]' },
+  approved: { text: '已批准', cls: 'bg-[#DCFCE7] text-[#166534]' },
+  rejected: { text: '已驳回', cls: 'bg-[#FEE2E2] text-[#991B1B]' },
+};
 
 const GOV_ACCENT = '#6D28D9';
 
@@ -38,6 +46,7 @@ export default function GovernanceDesk() {
   const [vendors, setVendors] = useState<GovernanceVendor[]>([]);
   const [orders, setOrders] = useState<GovernanceOrdersView | null>(null);
   const [overview, setOverview] = useState<GovernanceOverview | null>(null);
+  const [apps, setApps] = useState<GovernanceApplicationRow[]>([]);
   const [note, setNote] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
@@ -49,15 +58,17 @@ export default function GovernanceDesk() {
     let alive = true;
     const load = async () => {
       try {
-        const [v, o, ov] = await Promise.all([
+        const [v, o, ov, ap] = await Promise.all([
           governanceApi.vendors(),
           governanceApi.orders(),
           governanceApi.overview(),
+          governanceApi.applications(),
         ]);
         if (!alive) return;
         setVendors(v);
         setOrders(o);
         setOverview(ov);
+        setApps(ap);
         setErr('');
       } catch (e) {
         if (alive) setErr(e instanceof Error ? e.message : String(e));
@@ -104,6 +115,40 @@ export default function GovernanceDesk() {
 
   const pendingVendors = vendors.filter((v) => v.vendor_status !== 'approved');
 
+  const claimApp = async (id: string) => {
+    setMsg('');
+    setErr('');
+    try {
+      await governanceApi.claimApplication(id);
+      setMsg(`已受理评估 ${id}`);
+      setApps(await governanceApi.applications());
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const auditApp = async (id: string, action: 'approve' | 'reject') => {
+    setMsg('');
+    setErr('');
+    try {
+      await governanceApi.auditApplication(id, { action, rejectReason: note[`app-${id}`] ?? '' });
+      setMsg(action === 'approve' ? `已批准准入 ${id}` : `已驳回 ${id}`);
+      setNote((n) => ({ ...n, [`app-${id}`]: '' }));
+      setApps(await governanceApi.applications());
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const APP_STATUS_META: Record<string, { text: string; cls: string }> = {
+    submitted: { text: '已提交', cls: 'bg-[#DBEAFE] text-[#1D4ED8]' },
+    pending: { text: '已提交', cls: 'bg-[#DBEAFE] text-[#1D4ED8]' },
+    reviewing: { text: '评估中', cls: 'bg-[#FEF3C7] text-[#B45309]' },
+    approved: { text: '已批准', cls: 'bg-[#DCFCE7] text-[#166534]' },
+    rejected: { text: '已驳回', cls: 'bg-[#FEE2E2] text-[#991B1B]' },
+  };
+  const appQueue = apps.filter((a) => a.status !== 'approved');
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="flex items-center justify-between">
@@ -130,15 +175,70 @@ export default function GovernanceDesk() {
           <EmptyState text="看板加载中…" />
         ) : (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Stat label="成交量（确认单）" value={overview.confirmed_count} color={GOV_ACCENT} />
-            <Stat label="成交额（演示分）" value={`¥${centsText(overview.confirmed_amount_cents)}`} color={GOV_ACCENT} />
-            <Stat label="准入供给方数" value={overview.approved_vendors} color="#15803D" />
+            <Stat label="成交量（确认单）" value={overview.volume} color={GOV_ACCENT} />
+            <Stat label="成交额（演示分）" value={`¥${centsText(overview.volume_cents)}`} color={GOV_ACCENT} />
+            <Stat label="准入供给方数" value={overview.vendors_approved} color="#15803D" />
             <Stat
               label="状态分布"
-              value={Object.entries(overview.order_stats)
+              value={Object.entries(overview.status_dist ?? {})
                 .map(([k, n]) => `${ORDER_STATUS_TEXT[k] ?? k}:${n}`)
                 .join(' / ')}
             />
+          </div>
+        )}
+      </section>
+
+      {/* 区块 1.5：准入评估（EU-CHAIN-01：submitted→reviewing→approved/rejected） */}
+      <section className="mt-6">
+        <SectionTitle sub="VXM 统筹评估（X-MARKET-08）· 状态机 submitted→reviewing→approved/rejected · 驳回可重提">
+          准入评估
+        </SectionTitle>
+        {appQueue.length === 0 ? (
+          <EmptyState text="暂无待评估申请" />
+        ) : (
+          <div className="mt-3 space-y-2">
+            {appQueue.map((a) => {
+              const meta = APP_STATUS_META[a.status] ?? APP_STATUS_META.submitted;
+              return (
+                <div key={a.id} className="paper-card p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-xs text-[#57534E]">{a.id}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] ${meta.cls}`}>{meta.text}</span>
+                    <span className="font-medium">{a.supplierName}</span>
+                    <span className="text-xs text-[#57534E]">{a.containerName ?? a.supplierId}</span>
+                    <span className="ml-auto text-[11px] text-[#57534E]">重提 {a.resubmitCount ?? 0} 次</span>
+                  </div>
+                  {a.qualification ? <p className="mt-1 text-xs text-[#57534E]">资质说明：{a.qualification}</p> : null}
+                  {a.rejectReason ? <p className="mt-1 text-xs text-[#991B1B]">驳回原因：{a.rejectReason}</p> : null}
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {a.status === 'submitted' || a.status === 'pending' ? (
+                      <button className="btn" onClick={() => claimApp(a.id)}>
+                        受理评估
+                      </button>
+                    ) : null}
+                    {a.status === 'reviewing' ? (
+                      <>
+                        <button className="btn" onClick={() => auditApp(a.id, 'approve')}>
+                          批准准入
+                        </button>
+                        <button
+                          className="btn border-[#DC2626] text-[#DC2626]"
+                          onClick={() => auditApp(a.id, 'reject')}
+                        >
+                          驳回
+                        </button>
+                        <input
+                          value={note[`app-${a.id}`] ?? ''}
+                          onChange={(e) => setNote((n) => ({ ...n, [`app-${a.id}`]: e.target.value }))}
+                          placeholder="驳回原因（重提依据）"
+                          className="min-w-0 flex-1 rounded border border-[#DDD8CE] px-2 py-1.5 text-sm"
+                        />
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </section>

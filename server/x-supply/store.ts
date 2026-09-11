@@ -116,4 +116,5 @@ export const VENDOR_STATUS_TRANSITIONS: Record<VendorStatus, VendorStatus[]> = {
   pending: ['approved'],
   approved: ['frozen'],
   frozen: ['approved'],
+  rejected: [],
 };

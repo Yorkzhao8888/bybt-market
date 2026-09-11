@@ -128,7 +128,7 @@ export type DuExecHat = 'DYX' | 'DHX' | 'DTX' | 'DEX' | 'DCX';
 export type SupplyExecHat = 'EX' | 'EXX';
 
 /** 完整帽角色（基座 13U + DU 五执行帽 + 供给线执行帽 + 客户帽 XU + 运营管理帽 V*M） */
-export type HatRole = UnitRole13 | DuExecHat | SupplyExecHat | ClientHat | OperatorHat;
+export type HatRole = UnitRole13 | DuExecHat | SupplyExecHat | ClientHat | OperatorHat | 'VXM';
 
 /** 市场四方角色：客户/供应商/平台加盟商/平台运营管理方 */
 export type PartyRole = 'client' | 'supplier' | 'franchiser' | 'operator';
@@ -145,6 +145,7 @@ export const HAT_LINE_LABEL: Record<HatLine, string> = {
 };
 
 export const UNIT_ROLE_LABEL: Record<HatRole, string> = {
+  VXM: '云统筹审批', // X-MARKET-08 四源准入评估统筹
   CU: '顾客',       // Mall C端消费者
   DU: '经营主体',   // 唯一经营主体（平台直营/加盟），下辖五执行帽
   TU: '技术',       // T 技术供给（源头产能）
@@ -175,6 +176,7 @@ export const UNIT_ROLE_LABEL: Record<HatRole, string> = {
 
 /** 各帽归属线（供给/经营执行/需求/运营） */
 export const HAT_LINE_OF: Record<HatRole, HatLine> = {
+  VXM: 'admin',
   // 供给线（源头产能）
   EU: 'supply', HU: 'supply', YU: 'supply', TU: 'supply', DU: 'supply',
   // 供给线执行帽（X-Supply，X-SUPPLY-01：E 域先行）
@@ -430,7 +432,7 @@ export interface SupplyContract {
 /* ============ X-MARKET-08 供应商准入 + DU 采购商城 ============ */
 
 /** 供应商准入申请状态：pending 待评估 / approved 合格 / rejected 驳回（可重提） */
-export type SupplierAppStatus = 'pending' | 'approved' | 'rejected';
+export type SupplierAppStatus = 'pending' | 'submitted' | 'reviewing' | 'approved' | 'rejected';
 
 /** 供应商准入登记（供给方提交 → VDM 云中心评估） */
 export interface SupplierApplication {
@@ -449,6 +451,9 @@ export interface SupplierApplication {
   resubmitCount?: number;
   /** X-MARKET-15 重提超 3 次升级标记（VYM 复核后续接入，界面提示「升级待复核」） */
   escalated?: boolean;
+  /** XMK-EU-CHAIN-01 评估留痕：reviewing 起填充（claim/audit 时间与评估人） */
+  reviewedAt?: string;
+  reviewedBy?: string;
   supplierName?: string;     // 展示冗余（服务端填充；仅 DU/供给方/V*M 可见，客户不可见）
   boothCode?: string;        // 展示冗余（供给实体铺码）
 }
@@ -550,7 +555,7 @@ export interface GovernThresholds {
 
 /** 帽-权位矩阵（HAT_MATRIX）：交叉校验 market_power_map.allow_hats 的一致性 */
 export const HAT_POWER_BITS: Record<PowerHat, PowerBit[]> = {
-  VEM: ['govern'], VHM: ['govern'], VYM: ['govern'], VTM: ['govern'], VDM: ['govern'], // VDM=总经营管理执行（v1.2 合并 VXM/VDM）
+  VXM: ['govern'], VEM: ['govern'], VHM: ['govern'], VYM: ['govern'], VTM: ['govern'], VDM: ['govern'], // VXM=X-MARKET-08 评估统筹；VDM=总经营管理执行
   DU: ['manage', 'operate'],
   YU: ['manage', 'operate'], EU: ['manage', 'operate'], HU: ['manage', 'operate'], TU: ['manage', 'operate'],
   DYX: ['operate'], DHX: ['operate'], DTX: ['operate'], DEX: ['operate'], DCX: ['operate'],
