@@ -256,6 +256,12 @@ export const CONCEPT_TERMS: Record<string, TermPair> = {
   vduShell: { big: '产品事业部全域壳', sys: 'VDU · 整合六类（DDU 直属 / 五域引用 VDU::EDU）' },
   /* X-MARKET-TI-05 用户教育训练（新手引导） */
   onboarding: { big: '新手引导', sys: 'Onboarding · 分步教学向导' },
+  /* XMK-CRM-UI-01：客集工作台（X-Customer 客户集市，CU 全功能面；F1-F5 区块名词典化） */
+  customerWorkbench: { big: '客集工作台', sys: 'X-Customer · 客户集市' },
+  customerDemand: { big: '需求单', sys: 'XCD · X-Customer 需求单' },
+  customerIntent: { big: '采购意向', sys: 'XCI · X-Customer 采购意向' },
+  customerProfile: { big: '客户档案', sys: 'CRM 档案 · OAS 派生只读' },
+  customerTimeline: { big: '供给单时间线', sys: 'X-Supply · 买家视角' },
 };
 
 /** 分经营号域对照（命名体系 v1.2 定版）：经营单元统一「域字母+D+U」，六类 DDU（主业）/YDU/EDU/CDU/HDU/TDU；模板总称 *DU 保留星号；旧 D*U 实例写法（DYU/DEU/DCU 等）废除 */

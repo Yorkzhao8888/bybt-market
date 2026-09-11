@@ -11,6 +11,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Mall from './pages/Mall';
 import MallBooth from './pages/MallBooth';
+import CustomerWorkbench from './pages/CustomerWorkbench';
 import Market from './pages/Market';
 import MarketBooth from './pages/MarketBooth';
 import Orders from './pages/Orders';
@@ -273,6 +274,8 @@ function AllRoutes() {
               <Route path="/mall/booth/:id" element={<MallBooth />} />
               {/* XMK-STRUCT-01：X-Goods（E-Market 通货集市）占位页——真 UI 后续工单 */}
               <Route path="/goods" element={<Goods />} />
+              {/* XMK-CRM-UI-01：客集工作台（X-Customer F1-F5），页面内身份矩阵守卫（匿名跳登录/XVPZ 引导治理台/非 CU 拒绝页） */}
+              <Route path="/customer" element={<CustomerWorkbench />} />
               <Route path="/market" element={<Market />} />
               <Route path="/market/booth/:id" element={<MarketBooth />} />
               <Route path="/orders" element={<Orders />} />

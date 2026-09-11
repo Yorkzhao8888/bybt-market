@@ -2,7 +2,7 @@
 // X-MARKET-UE-02：商品卡营销化（价格/准入/店铺归属/库存归属）+ 立即购买确认弹层（P0 防误触下单）+ 双称呼试行。
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileClock, ShoppingCart, ShieldCheck, Minus, Plus, X, CheckCircle2, ArrowRight } from 'lucide-react';
+import { FileClock, ShoppingCart, ShieldCheck, Minus, Plus, X, CheckCircle2, ArrowRight, Users } from 'lucide-react';
 import { api } from '../api/client';
 import type { MallListing, DecoratedBooth } from '../api/client';
 import PowerAuditList from '../components/PowerAuditList';
@@ -63,6 +63,18 @@ export default function Mall() {
     <div>
       {/* XMK-STRUCT-01 集市域内三层导航区（X-Mall=C-Market 落客集层） */}
       <MarketLayerNav active="customer" />
+      {/* XMK-CRM-UI-01：三层导航客集区下的客集工作台入口（F1 挂点） */}
+      <Link
+        to="/customer"
+        className="mb-5 flex items-center gap-2.5 rounded-xl border border-[#e4ded2] bg-white px-4 py-3 transition-colors hover:border-[#17181d]"
+      >
+        <Users className="h-4 w-4 text-[#1D4ED8]" />
+        <span className="font-serif-display text-sm font-black text-[#17181d]">{conceptTerm('customerWorkbench').big}</span>
+        <span className="text-[11px] text-[#8a8577]">
+          {conceptTerm('customerDemand').big} / {conceptTerm('customerIntent').big} / {conceptTerm('customerProfile').big} / {conceptTerm('customerTimeline').big}
+        </span>
+        <ArrowRight className="ml-auto h-3.5 w-3.5 text-[#b0aa9c]" />
+      </Link>
       <div className="rounded-xl border bg-white p-4 mb-5">
         <p className="font-serif-display text-xl font-black">买家商城</p>
         <p className="mt-1 text-sm text-[#6b665a]">个人买家的零售商城：门店店铺的零售货架在这里，企业客户批量采购请前往「企业采购」市场。</p>
