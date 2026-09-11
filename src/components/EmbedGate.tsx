@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../Auth';
-import { detectEmbedMode, inspectEmbedMessage, postHelloToParent, EMBED_APP, EMBED_HELLO, ZIWAY_EMBED_ORIGINS } from '../lib/embed';
+import { detectEmbedMode, inspectEmbedMessage, postAckToParent, postHelloToParent, EMBED_APP, EMBED_HELLO, ZIWAY_EMBED_ORIGINS } from '../lib/embed';
 
 export function useEmbedMode(): boolean {
   const [embed] = useState<boolean>(() => detectEmbedMode());
@@ -50,11 +50,18 @@ export function EmbedGate() {
           console.info(`[xm:embed] exchange 成功（${Date.now() - t0}ms role=${res.embed?.role ?? '?'} jti=${res.embed?.jti ?? '?'}）`);
           applySession(res.token, res.user);
           setPhase('ready');
+          // EMBED-L2-R2：核销成功回执 -> 壳态机 authed 绿（单播回票来源 origin，严禁 *）
+          postAckToParent(v.origin, true);
+          console.info(`[xm:embed] ack(ok) 已回执 -> ${v.origin}`);
         })
         .catch((e: unknown) => {
           // 票无效/已消费/verify 不可达：呈游客态，可重握手
           console.warn(`[xm:embed] exchange 失败（${Date.now() - t0}ms）：${e instanceof Error ? e.message : String(e)}`);
-          if (!dead) setPhase('timeout');
+          if (dead) return;
+          setPhase('timeout');
+          // EMBED-L2-R2：核销失败回执 -> 壳态机 failed 红条（终止琥珀悬挂），reason 透传
+          postAckToParent(v.origin, false, e instanceof Error ? e.message : String(e));
+          console.warn(`[xm:embed] ack(fail) 已回执 -> ${v.origin}`);
         });
     };
     window.addEventListener('message', onMsg);
@@ -63,6 +70,9 @@ export function EmbedGate() {
       if (!dead && userRef.current === null) {
         console.warn('[xm:embed] 握手超时（8s 内未收到合规票或 exchange 未成功），呈游客浏览模式');
         setPhase('timeout');
+        // EMBED-L2-R2：超时回执（票未达、来源未知 -> 白名单多播）让壳态机脱离琥珀等待
+        postAckToParent(null, false, 'ticket_timeout');
+        console.warn('[xm:embed] ack(fail: ticket_timeout) 已多播白名单');
       }
     }, 8000);
     return () => {

@@ -28,6 +28,8 @@ export const ZIWAY_EMBED_ORIGIN = ZIWAY_EMBED_ORIGINS[0];
 
 export const EMBED_HELLO = 'ziway-embed-hello';
 export const EMBED_TICKET = 'ziway-embed-ticket';
+// EMBED-L2-R2：壳侧状态机等待业务端确认（authed 绿/failed 红）——验票结果回执消息
+export const EMBED_ACK = 'ziway-embed-ack';
 export const EMBED_APP = 'market';
 
 // 检测嵌入环境：在 iframe 内且 URL 显式携带 embed=ziway（双条件，避免误判）
@@ -91,5 +93,25 @@ export function postHelloToParent(payload: { type: string; app: string }): void 
     }
   } catch {
     /* parent 不可达则等重试 */
+  }
+}
+
+/**
+ * EMBED-L2-R2：验票结果回执（单播）。
+ * 壳侧状态机消费 {type:'ziway-embed-ack', ok:boolean, reason?}——ok=true→authed 绿，ok=false→failed 红。
+ * targetOrigin 必须为收票来源 origin（严禁 '*'：会话状态只出握手对端）。
+ */
+export function postAckToParent(origin: string | null, ok: boolean, reason?: string): void {
+  if (typeof window === 'undefined' || window.parent === window) return;
+  const payload: { type: string; ok: boolean; reason?: string } = { type: EMBED_ACK, ok };
+  if (reason) payload.reason = reason;
+  // EMBED-L2-R2：单播回票来源 origin；超时（票未达、来源未知）时降级为白名单多播（ok/reason 无敏感字段）
+  const targets = origin ? [origin] : ZIWAY_EMBED_ORIGINS;
+  for (const target of targets) {
+    try {
+      window.parent?.postMessage(payload, target);
+    } catch {
+      /* 目标 origin 非法时浏览器抛错，防御性吞掉（本地游客态兜底不阻断） */
+    }
   }
 }

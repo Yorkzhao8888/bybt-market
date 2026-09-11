@@ -356,3 +356,11 @@
 - **演示账号（末位追加）**：`cu-ep1`（XEPZ#CU @ c-eu01 恒晟物资，u-cu-ep1，label「恒晟物资 · 企业客户 XEPZ#CU」，domainView E）——oneclick 46→**47/47**。
 - **验收（api01-check.mjs 33/33）**：矩阵逐格实测（匿名×4 全 401；XEPZ#CU 客集✅供集✅；XDPZ#DU 客集 403 供集✅；XHPZ#CU 客集✅供集 403+PUT profile 403；EU 客集 403）；跨容器越权 confirm/accept 403；状态机全链路+confirmed 再 accept/confirm 409+initiated 直接 quote 409；事件流 snake_case 七字段（无 camelCase 混入）+actor_hat 系统标识（accept→EU/confirm→CU）；content-type/JSON 外壳全断言；oneclick 47/47+booth-timeline-ui 10/10+test_run lint/ts-check PASS。
 - **SessionUser 可空字段教训**：hatId/containerId/containerName 均为 string|null——新 snake_case 契约字段赋值一律 `?? ''` 归一（TS2322 五连的根因是 hatId 非 container 字段，勿凭行号直觉修）。
+
+## EMBED-L2-R2 嵌入 ack 回执补齐（2026-09-11）
+
+- **现象**：L2 终验壳侧票送达成功（状态机「免登票已送达 · 等待业务端确认」琥珀横幅 5 轮 poll 稳定），Market 始终未回确认、未达 authed 绿；L3→ERP 已通。
+- **根因（坐实）**：**Market 前台从未实现验票结果回执**——EMBED-01/03-M/09 全链路止步于 exchange+applySession，`embed.ts` 无 EMBED_ACK 常量、EmbedGate 无任何验票后 postMessage。壳侧状态机（生产 bundle `/assets/index-C_DFZONd.js` 实证）消费两种确认消息：`ziway-embed-ack`（`ok:true`→authed 绿；`ok:false`+`reason`→failed 红，同时兼容旧协议 `ziway:handshake:ack`）与 `ziway-embed-ready`（直接 authed）——无 ack 则永久琥珀悬挂。ERP 端已实现该回执故 L3 先通。
+- **修复（契约 v1 增量，hello/ticket/exchange/verify 零改动）**：`src/lib/embed.ts` 新增 `EMBED_ACK='ziway-embed-ack'`+`postAckToParent(origin, ok, reason?)`——**单播**（targetOrigin=收票来源 origin，严禁 `*`；仅超时无票来源时按白名单多播，payload 仅 ok/reason 无会话字段）。`EmbedGate.tsx` 三挂点：exchange 成功→`ack(ok)`；exchange 失败→`ack(ok:false, reason=err message)`（壳转 failed 红条，不再琥珀悬挂）；8s 守卫超时→`ack(ok:false,'ticket_timeout')`+重新握手后再成功会覆盖 failed→authed（壳 ack 消费为无条件 setState，最终一致）。
+- **自测（embed-diag 9→12 场景）**：新增 h-parent-ack-ok（父窗收 `{type:'ziway-embed-ack',ok:true}`）/ i-parent-ack-fail（坏票收 ok:false+reason）/ g-parent-ack-timeout（无票收超时 ack fail）；回归 embed-e2e **8/8**+exchange-check **7/7**+ts-check 干净。
+- **部署判定注记**：终验 bundle `0db2453`=EMBED-09（含三形态收票+诊断日志，无 ack——EMBED-09 当时契约面无 ack 要求）；部署 EMBED-L2-R2 后壳侧应见 票送达→ack→authed 绿 全链。
