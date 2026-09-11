@@ -12,6 +12,7 @@ import { useAuth } from '../Auth';
 import { colorOf, canOperate, isAdminRole, roleLabel, PRO_MARKET_ORDER, workbenchOf, WORKBENCH_THEME, money, MARKET_TITLES } from '../lib/domain';
 import { conceptTerm, roleTerm } from '../lib/terminology';
 import InquiryList from '../components/InquiryList';
+import MarketLayerNav from '../components/MarketLayerNav';
 import PowerAuditList from '../components/PowerAuditList';
 import PowerBadge from '../components/PowerBadge';
 import OrderStatusBadge from '../components/OrderStatusBadge';
@@ -134,6 +135,8 @@ export default function Market() {
 
   return (
     <div className="space-y-6">
+      {/* XMK-STRUCT-01 集市域内三层导航区（X-Market 落集市层） */}
+      <MarketLayerNav active="market" />
       {/* 顶部欢迎卡：双称呼徽标（采购方 · 企业客户 XU） */}
       <div className="rounded-xl border bg-white p-5 shadow-[4px_4px_0_rgba(23,24,29,0.12)]">
         <div className="flex items-center justify-between gap-3">

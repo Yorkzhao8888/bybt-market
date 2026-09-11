@@ -36,6 +36,128 @@ export const BOOTH_FORM_TERMS: Record<string, { en: string; code: string; big: s
   xplaz: { en: 'X-Plaz', code: 'Booth-YDP', big: '空间场', sys: 'X-Plaz · 空间场（场）· Booth-YDP' },
 };
 
+/* ==========================================================================
+ * XMK-STRUCT-01 集市三层结构定版 v1.4（2026-09-11 主人契约：集市三分）
+ * 契约原件（主 Agent 侧）：集市三层结构定版v1_20260911.md / Ziway_Market_API协议v1_20260911.md
+ * 三层 = 客集 X-Customer（谁在买）/ 集市 X-Market（在哪成交）/ 供集 X-Supply（谁在卖）
+ * 界面零帽名：本表 big 全部为市面称呼，sys 保留系统代码
+ * ========================================================================== */
+
+/** 集市三层模块定义 */
+export interface LayerTerm {
+  key: string;
+  /** 系统代码：X-Customer / X-Market / X-Supply */
+  code: string;
+  /** 大号：客集 / 集市 / 供集 */
+  big: string;
+  /** 小号副标 */
+  sys: string;
+  /** 一句话定位（谁在买/在哪成交/谁在卖） */
+  pos: string;
+  /** 图标 lucide 名（导航区渲染用） */
+  icon: 'users' | 'store' | 'package';
+}
+
+export const MARKET_LAYERS: Record<string, LayerTerm> = {
+  customer: {
+    key: 'customer',
+    code: 'X-Customer',
+    big: '客集',
+    sys: 'X-Customer · 客户集市',
+    pos: '谁在买——客户进店选货，需求从这里进来',
+    icon: 'users',
+  },
+  market: {
+    key: 'market',
+    code: 'X-Market',
+    big: '集市',
+    sys: 'X-Market · 通货集市',
+    pos: '在哪成交——询价报价签约下单，交易在这里完成',
+    icon: 'store',
+  },
+  supply: {
+    key: 'supply',
+    code: 'X-Supply',
+    big: '供集',
+    sys: 'X-Supply · 供给集市',
+    pos: '谁在卖——供给方摆货上架，货源从这里进来',
+    icon: 'package',
+  },
+};
+
+/** 三层模块词条：key 未命中返回 undefined（调用方自行兜底） */
+export const layerTerm = (key: string): LayerTerm | undefined => MARKET_LAYERS[key];
+
+/** XMK-STRUCT-01 资源集别名表（322 全景图 v3 终版）：一客集挂 CRM；四供集挂 SCM/TAMS/HRM/FAMS */
+export const RESOURCE_SET_TERMS: Record<
+  string,
+  { alias: string; layer: 'customer' | 'supply'; domain: string; big: string; sys: string }
+> = {
+  crm: { alias: 'CRM', layer: 'customer', domain: 'C', big: '客户资源', sys: 'CRM · 客集 X-Customer（客域 C）' },
+  scm: { alias: 'SCM', layer: 'supply', domain: 'E', big: '供应链', sys: 'SCM · 供集 X-Supply（供域 E）' },
+  tams: { alias: 'TAMS', layer: 'supply', domain: 'T', big: '技术资产', sys: 'TAMS · 供集 X-Supply（技域 T）' },
+  hrm: { alias: 'HRM', layer: 'supply', domain: 'H', big: '人力资源', sys: 'HRM · 供集 X-Supply（人域 H）' },
+  fams: { alias: 'FAMS', layer: 'supply', domain: 'Y', big: '场地资产', sys: 'FAMS · 供集 X-Supply（场域 Y）' },
+};
+
+/** 按层取资源集别名（customer→CRM；supply→SCM/TAMS/HRM/FAMS；market 层无别名） */
+export const resourceSetsOfLayer = (layer: string) =>
+  Object.values(RESOURCE_SET_TERMS).filter((r) => r.layer === layer);
+
+/* XMK-STRUCT-01 Plat 族定名（322 全景图 v3 终版别名）：集市域内六大 Plat，模块≠客户端 */
+export const PLAT_TERMS: Record<
+  string,
+  { plat: string; market: string; domain: string; big: string; sys: string; route?: string }
+> = {
+  mall: {
+    plat: 'X-Mall',
+    market: 'C-Market',
+    domain: 'C',
+    big: '商城',
+    sys: 'X-Mall = C-Market · 客域通货集市',
+    route: '/mall',
+  },
+  goods: {
+    plat: 'X-Goods',
+    market: 'E-Market',
+    domain: 'E',
+    big: '通货集市',
+    sys: 'X-Goods = E-Market · 供域通货集市',
+    route: '/goods',
+  },
+  tech: {
+    plat: 'X-Tech',
+    market: 'T-Market',
+    domain: 'T',
+    big: '技术集市',
+    sys: 'X-Tech = T-Market · 技域集市',
+  },
+  cajob: {
+    plat: 'X-Cajob',
+    market: 'H-Market',
+    domain: 'H',
+    big: '人事集市',
+    sys: 'X-Cajob = H-Market · 人域集市',
+  },
+  jezoom: {
+    plat: 'X-Jezoom',
+    market: 'Y-Market',
+    domain: 'Y',
+    big: '空间集市',
+    sys: 'X-Jezoom = Y-Market · 场域集市',
+  },
+  ofd: {
+    plat: 'X-OFD',
+    market: '履约中心 Plat',
+    domain: '-',
+    big: '履约中心',
+    sys: 'X-OFD · 履约中心 Plat',
+  },
+};
+
+/** Plat 词条：key 未命中返回 undefined */
+export const platTerm = (key: string): (typeof PLAT_TERMS)[string] | undefined => PLAT_TERMS[key];
+
 export const ROLE_TERMS: Record<string, TermPair> = {
   DU: { big: '店主', sys: '经营者 DU' },
   // X-MARKET-18 v1.2 终版：VXM→VMX→VDM 合并（总经营管理执行，归 OVM）；FMX 总财执行归 OFM（预留，ERP 高频角色）；域内管家审批仍 V*M 系（v4.8 V*U 内嵌管家，不进 ERP）

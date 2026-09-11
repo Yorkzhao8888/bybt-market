@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>知味数智生态 · 命名体系规范 v1.4（2026-09-11）</title>
+<style>
+  :root {
+    --ink: #17181d; --paper: #f5f2eb; --card: #fbf9f4; --line: #e4ded2;
+    --muted: #6b665a; --accent: #b8862b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--paper); color: var(--ink); font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif; line-height: 1.7; padding: 40px 20px; }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 26px; margin-bottom: 4px; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+  h2 { font-size: 19px; margin: 34px 0 10px; padding-left: 10px; border-left: 4px solid var(--accent); }
+  p.note { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 14px; }
+  th { background: #efeae0; text-align: left; padding: 9px 12px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+  td { padding: 9px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+  td.code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; white-space: nowrap; }
+  .badge { display: inline-block; padding: 1px 8px; border: 1px solid var(--ink); border-radius: 999px; font-family: ui-monospace, monospace; font-size: 12px; font-weight: 700; margin-right: 6px; }
+  .badge.reserved { border-color: var(--muted); color: var(--muted); }
+  .tag { display: inline-block; background: #efeae0; border-radius: 6px; padding: 0 8px; font-size: 12px; color: var(--muted); }
+  .sect { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-top: 10px; font-size: 13.5px; }
+  .sect ul { padding-left: 18px; }
+  .sect li { margin: 4px 0; }
+  .ver { margin-top: 34px; border-top: 1px dashed var(--line); padding-top: 14px; color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>知味数智生态 · 命名体系规范 <span class="tag">v1.4</span></h1>
+  <div class="meta">版本：v1.4（2026-09-11） ｜ 前版：v1.3（2026-09-11） ｜ 主管战场：X-Market 命名体系 ｜ 本版拍板：集市三层结构定版 + 资源集别名 + Plat 族定名（主人契约：集市三层结构定版v1 / Ziway_Market_API协议v1）</div>
+
+  <h2>一、集市三层结构定版（2026-09-11 主人契约：集市三分）</h2>
+  <p class="note">集市三分：<b>客集 X-Customer（谁在买）/ 集市 X-Market（在哪成交）/ 供集 X-Supply（谁在卖）</b>。三层=「我要干什么」的结构分层，与登入端六容器（「我是谁」）分轨，不得混放——容器卡归 /entrance，三层导航归集市域内页面。</p>
+  <table>
+    <thead><tr><th>层</th><th>系统代码</th><th>一句话定位</th><th>Market 落地</th></tr></thead>
+    <tbody>
+      <tr><td><b>客集</b></td><td class="code">X-Customer</td><td>谁在买——客户进店选货，需求从这里进来</td><td>X-Mall（C-Market）客户端 / Market 客户工作台</td></tr>
+      <tr><td><b>集市</b></td><td class="code">X-Market</td><td>在哪成交——询价报价签约下单，交易在这里完成</td><td>X-Goods（E-Market）等集市 Plat / B2B 成交链路</td></tr>
+      <tr><td><b>供集</b></td><td class="code">X-Supply</td><td>谁在卖——供给方摆货上架，货源从这里进来</td><td>X-Supply 供给四源集市（供给方/经营方进入）</td></tr>
+    </tbody>
+  </table>
+
+  <h2>二、资源集别名表（322 全景图 v3 终版）</h2>
+  <p class="note">别名挂接：<b>一客集挂 CRM；四供集挂 SCM / TAMS / HRM / FAMS</b>。集市层（X-Market）无资源集别名——别名属于资源面（客/供），不属于成交面。</p>
+  <table>
+    <thead><tr><th>别名</th><th>资源集</th><th>挂接层</th><th>域</th><th>域说明</th></tr></thead>
+    <tbody>
+      <tr><td class="code"><b>CRM</b></td><td>客户资源</td><td>客集 X-Customer</td><td>客域 C</td><td>客户/流量/需求线索（授权式/贡献式，不占权位）</td></tr>
+      <tr><td class="code"><b>SCM</b></td><td>供应链</td><td>供集 X-Supply</td><td>供域 E</td><td>物资与产能供给（EU 源头产能）</td></tr>
+      <tr><td class="code"><b>TAMS</b></td><td>技术资产</td><td>供集 X-Supply</td><td>技域 T</td><td>技术供给（TU 源头产能）</td></tr>
+      <tr><td class="code"><b>HRM</b></td><td>人力资源</td><td>供集 X-Supply</td><td>人域 H</td><td>人力供给（HU 源头产能）</td></tr>
+      <tr><td class="code"><b>FAMS</b></td><td>场地资产</td><td>供集 X-Supply</td><td>场域 Y</td><td>空间与场地供给（YU 源头产能）</td></tr>
+    </tbody>
+  </table>
+
+  <h2>三、Plat 族定名（322 全景图 v3 终版别名）</h2>
+  <p class="note">集市域内六大 Plat，<b>模块≠客户端</b>——Plat 是集市面模块实例（{Plat} = {域}-Market），客户端是登录入口（/entrance 六容器）。</p>
+  <table>
+    <thead><tr><th>Plat</th><th>市场别名</th><th>域</th><th>中文定名</th><th>Market 落地</th></tr></thead>
+    <tbody>
+      <tr><td class="code"><b>X-Mall</b></td><td class="code">C-Market</td><td>客域 C</td><td><b>商城</b></td><td>已上线（Mall 零售货架，买家 CU）</td></tr>
+      <tr><td class="code"><b>X-Goods</b></td><td class="code">E-Market</td><td>供域 E</td><td><b>通货集市</b></td><td>占位页（XMK-STRUCT-01，真 UI 后续单）</td></tr>
+      <tr><td class="code"><b>X-Tech</b></td><td class="code">T-Market</td><td>技域 T</td><td><b>技术集市</b></td><td>预留（真 UI 后续单）</td></tr>
+      <tr><td class="code"><b>X-Cajob</b></td><td class="code">H-Market</td><td>人域 H</td><td><b>人事集市</b></td><td>预留（真 UI 后续单）</td></tr>
+      <tr><td class="code"><b>X-Jezoom</b></td><td class="code">Y-Market</td><td>场域 Y</td><td><b>空间集市</b></td><td>预留（真 UI 后续单）</td></tr>
+      <tr><td class="code"><b>X-OFD</b></td><td class="code">履约中心 Plat</td><td>跨域</td><td><b>履约中心</b></td><td>只读接入（模拟契约期，Govern/供给治理台挂载）</td></tr>
+    </tbody>
+  </table>
+  <div class="sect">
+    <b>消歧红线</b>：Booth-C（客域供给实体铺，历史概念）≠ <b>Booth-CDP</b>（零售店，Booth 六形态正式编码）；<b>模块≠客户端</b>（X-Goods 是集市面 Plat，不是客户端）；界面文案零帽名（中文名走 terminology v1.4 常量：MARKET_LAYERS / RESOURCE_SET_TERMS / PLAT_TERMS）。
+  </div>
+
+  <h2>四、容器六类定版（v1.3 口径沿用）</h2>
+  <p class="note">容器编码 X?PZ 六类全谱；简称规则 <b>X?PZ → ?P</b>（XHPZ→HP、XEPZ→EP、XDPZ→DP、XVPZ→VP、XOPZ→OP、XGPZ→GP）。</p>
+  <table>
+    <thead><tr><th>容器编码</th><th>简称</th><th>容器名</th><th>主体线</th><th>Market 落地状态</th></tr></thead>
+    <tbody>
+      <tr><td class="code">#xhpz</td><td><span class="badge">HP</span></td><td>个人容器</td><td>自然个人</td><td>已开放登录</td></tr>
+      <tr><td class="code">#xepz</td><td><span class="badge">EP</span></td><td>企业容器</td><td>自然企业</td><td>已开放登录</td></tr>
+      <tr><td class="code">#xdpz</td><td><span class="badge">DP</span></td><td>经营户容器</td><td>生态方经营户</td><td>已开放登录（XMK-CONT-01）</td></tr>
+      <tr><td class="code">#xvpz</td><td><span class="badge reserved">VP</span></td><td>平台容器</td><td>生态方平台</td><td>预留（未开放）</td></tr>
+      <tr><td class="code">#xopz</td><td><span class="badge reserved">OP</span></td><td>治理容器</td><td>生态方治理</td><td>预留（未开放）</td></tr>
+      <tr><td class="code">#xgpz</td><td><span class="badge reserved">GP</span></td><td>政府容器</td><td>政府</td><td>预留（未开放）</td></tr>
+    </tbody>
+  </table>
+
+  <h2>五、Booth 六形态中文定名（v1.3 口径沿用 ｜ 09:48 图版口径正式编码）</h2>
+  <p class="note">尾字字辈：<b>店 — 台 — 厂 — 室 — 部 — 场</b>；正式编码结构：<b>Booth-{域}DP</b>。</p>
+  <table>
+    <thead><tr><th>英文定名（图版口径）</th><th>正式编码</th><th>域</th><th>中文定名</th><th>尾字字辈</th></tr></thead>
+    <tbody>
+      <tr><td class="code">X-Shop</td><td class="code"><b>Booth-CDP</b></td><td>客域 C</td><td><b>零售店</b></td><td>店</td></tr>
+      <tr><td class="code">X-Domain</td><td class="code"><b>Booth-DDP</b></td><td>主域 D</td><td><b>项目台</b></td><td>台</td></tr>
+      <tr><td class="code">X-Factory</td><td class="code"><b>Booth-EDP</b></td><td>供域 E</td><td><b>制造厂</b></td><td>厂</td></tr>
+      <tr><td class="code">X-Lab</td><td class="code"><b>Booth-TDP</b></td><td>技域 T</td><td><b>研发室</b></td><td>室</td></tr>
+      <tr><td class="code">X-Mate</td><td class="code"><b>Booth-HDP</b></td><td>人域 H</td><td><b>人事部</b></td><td>部</td></tr>
+      <tr><td class="code">X-Plaz</td><td class="code"><b>Booth-YDP</b></td><td>场域 Y</td><td><b>空间场</b></td><td>场</td></tr>
+    </tbody>
+  </table>
+
+  <h2>六、v1.3 → v1.4 升版记录</h2>
+  <div class="sect">
+    <ul>
+      <li><b>集市三层结构定版</b>：客集 X-Customer（谁在买）/ 集市 X-Market（在哪成交）/ 供集 X-Supply（谁在卖）；三层=「我要干什么」，与六容器（「我是谁」）分轨不得混放。</li>
+      <li><b>资源集别名表</b>（322 全景图 v3 终版）：客集挂 CRM；供集挂 SCM（供域 E）/ TAMS（技域 T）/ HRM（人域 H）/ FAMS（场域 Y）；集市层无别名。</li>
+      <li><b>Plat 族定名</b>：X-Mall=C-Market 商城 / X-Goods=E-Market 通货集市 / X-Tech=T-Market 技术集市 / X-Cajob=H-Market 人事集市 / X-Jezoom=Y-Market 空间集市 / X-OFD=履约中心 Plat；模块≠客户端。</li>
+      <li><b>X-Market 落地</b>（XMK-STRUCT-01）：terminology.ts v1.4 增 MARKET_LAYERS / RESOURCE_SET_TERMS / PLAT_TERMS 唯一口径；X-Mall/X-Market 客户端内加客集/集市/供集三层导航区（共享组件 MarketLayerNav）；/entrance 六容器卡零改动；X-Goods（E-Market）路由 +goods 占位页。</li>
+      <li><b>契约依据</b>：主人 09-11 定版《集市三层结构定版v1》《Ziway_Market_API协议v1》（票务/准入红线，Market 侧嵌入契约冻结不越界）。</li>
+    </ul>
+  </div>
+
+  <div class="ver">知味数智生态 · 命名体系规范 v1.4 ｜ 2026-09-11 ｜ 本文件由 X-Market 侧同步落盘（XMK-STRUCT-01 产出）</div>
+</div>
+</body>
+</html>

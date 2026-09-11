@@ -22,6 +22,7 @@ import SupplyVendorDesk from './pages/SupplyVendorDesk';
 import { XSupplyHub } from './x-supply';
 import OperatorDesk from './pages/OperatorDesk';
 import Board from './pages/Board';
+import Goods from './pages/Goods';
 import OperatorMobile from './pages/OperatorMobile';
 import OrderStatusBadge from './components/OrderStatusBadge';
 import OnboardingTour, { TourRestartButton } from './components/OnboardingTour';
@@ -31,7 +32,7 @@ import EntranceLogin from './entrance/EntranceLogin';
 import EntranceRole from './entrance/EntranceRole';
 import { workbenchOf, workbenchThemeOf, WORKBENCH_HOME, WORKBENCH_THEME } from './lib/domain';
 import type { WorkbenchKind } from './lib/domain';
-import { roleTerm, conceptTerm, duChildTermOf, duChildBadgeTextOf } from './lib/terminology';
+import { roleTerm, conceptTerm, duChildTermOf, duChildBadgeTextOf, platTerm } from './lib/terminology';
 import { api } from './api/client';
 
 function Header() {
@@ -45,6 +46,8 @@ function Header() {
     client: [
       { to: '/market', label: 'Market', icon: <Store className="h-3.5 w-3.5" /> },
       { to: '/mall', label: 'Mall', icon: <ShoppingBag className="h-3.5 w-3.5" /> },
+      // XMK-STRUCT-01：X-Goods（E-Market 通货集市）占位入口，label 走术语表
+      { to: '/goods', label: platTerm('goods')?.big ?? 'X-Goods', icon: <Boxes className="h-3.5 w-3.5" /> },
       { to: '/orders', label: '交易单', icon: <ReceiptText className="h-3.5 w-3.5" /> },
     ],
     supplier: [
@@ -265,6 +268,8 @@ function AllRoutes() {
               <Route path="/login" element={<Login />} />
               <Route path="/mall" element={<Mall />} />
               <Route path="/mall/booth/:id" element={<MallBooth />} />
+              {/* XMK-STRUCT-01：X-Goods（E-Market 通货集市）占位页——真 UI 后续工单 */}
+              <Route path="/goods" element={<Goods />} />
               <Route path="/market" element={<Market />} />
               <Route path="/market/booth/:id" element={<MarketBooth />} />
               <Route path="/orders" element={<Orders />} />

@@ -6,6 +6,7 @@ import { FileClock, ShoppingCart, ShieldCheck, Minus, Plus, X, CheckCircle2, Arr
 import { api } from '../api/client';
 import type { MallListing, DecoratedBooth } from '../api/client';
 import PowerAuditList from '../components/PowerAuditList';
+import MarketLayerNav from '../components/MarketLayerNav';
 import { DomainChip, SectionTitle, EmptyState } from '../components/ui';
 import { colorOf, marketLabel, money } from '../lib/domain';
 import { conceptTerm } from '../lib/terminology';
@@ -60,6 +61,8 @@ export default function Mall() {
 
   return (
     <div>
+      {/* XMK-STRUCT-01 集市域内三层导航区（X-Mall=C-Market 落客集层） */}
+      <MarketLayerNav active="customer" />
       <div className="rounded-xl border bg-white p-4 mb-5">
         <p className="font-serif-display text-xl font-black">买家商城</p>
         <p className="mt-1 text-sm text-[#6b665a]">个人买家的零售商城：门店店铺的零售货架在这里，企业客户批量采购请前往「企业采购」市场。</p>

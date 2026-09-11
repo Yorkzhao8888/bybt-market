@@ -330,3 +330,13 @@
 - **协调单全文**：`assets/mkt_sync01.md`——主人授权三层升级（X-Customer / X-Market&Mall / X-Supply），嵌入契约升级期间冻结。
 - **红线（遵守状态）**：①`/api/embed/*` 全部端点契约冻结（exchange POST 400 校验保留 / verify / 白名单逻辑，请求响应结构不变）——**未动**；②`/xhpz/embed/market` 路由+握手协议稳定，三形态票兼容（data.ticket / payload.ticket / data.ticket）不删任一——**未动**；③origin 白名单必须含 ZiwayOS 生产壳 `c8w9k9wq2g.coze.site` + ZiwayDS 生产壳 `8vyt5xfk57.coze.site`——**本次收口**（lib/embed.ts `ZIWAY_EMBED_ORIGINS` 补 8vyt5xfk57，EMBED-03-M 教训防回归）；④守卫横条逻辑（8s 无票→游客条）——**未动**。
 - **范围确认（回主 Agent 三问）**：①拆新模块渐进升级，不重构现有 repo 路由；客集 `/api/customer/*` 新开含本期；②本期不涉 `/api/embed/*` 与嵌入页 UI（唯一白名单追加已随本次 commit 落地）；③部署时点=白名单收口 commit 即可部署，后续三层升级按工单分批。
+
+## XMK-STRUCT-01 集市三层结构落地（术语 v1.4 + 三层导航 + X-Goods 占位，2026-09-11）
+
+- **契约依据**：主人 09-11 定版《集市三层结构定版v1》《Ziway_Market_API协议v1》（主 Agent 侧 Drive 路径，沙箱不可达，按工单引用口径落地）；322 全景图 v3 终版别名。**集市三分**：客集 X-Customer（谁在买）/ 集市 X-Market（在哪成交）/ 供集 X-Supply（谁在卖）。
+- **terminology.ts v1.4 唯一口径**：①`MARKET_LAYERS`+`layerTerm()`（三层模块：code/big/sys/pos 定位语/icon）②`RESOURCE_SET_TERMS`+`resourceSetsOfLayer()`（资源集别名：客集挂 **CRM**；供集挂 **SCM 供域E / TAMS 技域T / HRM 人域H / FAMS 场域Y**；集市层无别名）③`PLAT_TERMS`+`platTerm()`（Plat 族六名：X-Mall=C-Market 商城 / X-Goods=E-Market 通货集市 / X-Tech=T-Market 技术集市 / X-Cajob=H-Market 人事集市 / X-Jezoom=Y-Market 空间集市 / X-OFD=履约中心 Plat）。
+- **三层导航区（共享组件）**：`src/components/MarketLayerNav.tsx`——三卡（层名大号+系统代码+资源集别名徽标+定位语）+active 高亮（border-[#17181d]）；挂点：Mall.tsx（active=customer）/ Market.tsx（active=market）/ Goods.tsx（active=market）页顶；供集卡带 Lock 角标（客户端点击 /supply 由 RoleGuard 403 兜底，隔离口径不破）。**/entrance 六容器卡零改动**（容器="我是谁"，三层="我要干什么"，分轨不混放）。
+- **X-Goods（E-Market）占位页**：`src/pages/Goods.tsx`+路由 `/goods`（公开无守卫，仅占位）——Plat 头卡（X-Goods=E-Market · 通货集市）+SCM/制造厂（Booth-EDP）语义说明+占位声明（真 UI 后续工单）+客集/集市回跳；Header client nav 增「通货集市」入口（label 走 `platTerm('goods')?.big`，既有三项不动）。
+- **命名规范 v1.4 落盘**：`X-Market_原型_20260908/知味数智生态_命名体系规范_v1.4_20260911.html`（新增：三层结构表/资源集别名表/Plat 族表+消歧红线 sect；沿用：容器六类+Booth 六形态；升版记录 v1.3→v1.4）。
+- **红线执行**：中文名全部走 terminology 常量（页面 grep 无「客集/供集」硬编码文案）；界面零帽名；不新增 XU 分支；消歧保持 Booth-C≠Booth-CDP、模块≠客户端；嵌入契约零触碰（MKT-SYNC-01 冻结继续）。
+- **验收**：test_run lint/ts-check PASS + /goods SPA 200 + /api/overview 正常；cont01-check **10/10**（46/46 oneclick 零回归）；cont01-shots **17/17**（沿用项）；struct01-shots **7/7**（Mall 客集高亮+SCM 徽标/Market 集市高亮/Goods 占位三断言/entrance 六卡零改动匿名抽查；截图 assets/struct01/ 四张）；术语 grep：导出 6 符号+5 文件引用。
