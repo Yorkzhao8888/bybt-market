@@ -45,6 +45,8 @@ export const containers: Container[] = [
   { id: 'c-cdu', type: 'XEPZ', name: '恒产客服中心(CDU)', region: '华东', credit: 92, domainTag: 'DE_MARKET' },
   { id: 'c-hdu', type: 'XEPZ', name: '恒产人资部(HDU)', region: '华北', credit: 92, domainTag: 'H_MARKET' },
   { id: 'c-tdu', type: 'XEPZ', name: '恒产技术部(TDU)', region: '华东', credit: 93, domainTag: 'T_MARKET' },
+  // XMK-CONT-01 容器六类定版：XDPZ 生态方经营户容器（DP）
+  { id: 'c-dp1', type: 'XDPZ', name: '生态方经营户(DP演示)', region: '全国', credit: 92 },
   // DU 经营实体（唯一经营主体，平台直营/加盟，一个 DU 可开多店）
   { id: 'c-du', type: 'XEPZ', name: '合和经营(平台直营)', region: '全国', credit: 96, domainTag: 'DE_MARKET' },
   { id: 'c-fs', type: 'XEPZ', name: '丰时经营(加盟)', region: '华西', credit: 88, domainTag: 'H_MARKET' },
@@ -90,6 +92,8 @@ export const units: Unit[] = [
   { id: 'u-tu3', code: 'TU-ML', name: '码力工场', role: 'TU', side: 'B', containerId: 'c-tu2', domainTags: ['T_MARKET'], tier: 'L2', credit: 90 },
   { id: 'u-tu4', code: 'TU-YT', name: '云图方案', role: 'TU', side: 'B', containerId: 'c-tu3', domainTags: ['T_MARKET'], tier: 'L2', credit: 93 },
   { id: 'u-du10', code: 'DU-DDU', name: '恒产集团主业(DDU)', role: 'DU', side: 'B', containerId: 'c-ddu', domainTags: ['Y_MARKET', 'E_MARKET', 'H_MARKET', 'T_MARKET', 'DE_MARKET'], tier: 'L2', credit: 94 },
+  // XMK-CONT-01 XDPZ#DU 经营账号（生态方经营户 DP → DU 经营视角）
+  { id: 'u-dp1', code: 'DU-DP1', name: '生态方经营户·DU', role: 'DU', side: 'B', containerId: 'c-dp1', domainTags: ['Y_MARKET', 'E_MARKET', 'H_MARKET', 'T_MARKET', 'DE_MARKET'], tier: 'L2', credit: 92 },
   { id: 'u-du11', code: 'DU-EDU', name: '恒产产品线(EDU)', role: 'DU', side: 'B', containerId: 'c-edu', domainTags: ['E_MARKET', 'DE_MARKET'], tier: 'L2', credit: 93 },
   { id: 'u-du12', code: 'DU-CDU', name: '恒产客服中心(CDU)', role: 'DU', side: 'B', containerId: 'c-cdu', domainTags: ['DE_MARKET'], tier: 'L2', credit: 92 },
   { id: 'u-du13', code: 'DU-HDU', name: '恒产人资部(HDU)', role: 'DU', side: 'B', containerId: 'c-hdu', domainTags: ['H_MARKET'], tier: 'L2', credit: 92 },

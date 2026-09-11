@@ -15,6 +15,27 @@ export interface TermPair {
 }
 
 /** 角色/身份称呼映射 */
+
+/* XMK-CONT-01 容器六类定版（2026-09-11）：X?PZ 全谱，简称规则 X?PZ→?P（XHPZ→HP） */
+export const CONTAINER_TERMS: Record<string, { code: string; short: string; big: string; sys: string; reserved?: boolean }> = {
+  hp: { code: '#xhpz', short: 'HP', big: '个人容器', sys: 'XHPZ · 自然个人' },
+  ep: { code: '#xepz', short: 'EP', big: '企业容器', sys: 'XEPZ · 自然企业' },
+  dp: { code: '#xdpz', short: 'DP', big: '经营户容器', sys: 'XDPZ · 生态方经营户' },
+  vp: { code: '#xvpz', short: 'VP', big: '平台容器', sys: 'XVPZ · 生态方平台', reserved: true },
+  op: { code: '#xopz', short: 'OP', big: '治理容器', sys: 'XOPZ · 生态方治理', reserved: true },
+  gp: { code: '#xgpz', short: 'GP', big: '政府容器', sys: 'XGPZ · 政府', reserved: true },
+};
+
+/* XMK-CONT-01 Booth 六形态中文定名（2026-09-11 凌晨拍板）：尾字字辈 店-台-厂-室-部-场 */
+export const BOOTH_FORM_TERMS: Record<string, { en: string; big: string; sys: string }> = {
+  xshop: { en: 'Xshop', big: '零售店', sys: 'Xshop · 零售店（店）' },
+  xdomain: { en: 'Xdomain', big: '项目台', sys: 'Xdomain · 项目台（台）' },
+  xfactory: { en: 'Xfactory', big: '制造厂', sys: 'Xfactory · 制造厂（厂）' },
+  xlab: { en: 'Xlab', big: '研发室', sys: 'Xlab · 研发室（室）' },
+  xmate: { en: 'Xmate', big: '人事部', sys: 'Xmate · 人事部（部）' },
+  xplaz: { en: 'Xplaz', big: '空间场', sys: 'Xplaz · 空间场（场）' },
+};
+
 export const ROLE_TERMS: Record<string, TermPair> = {
   DU: { big: '店主', sys: '经营者 DU' },
   // X-MARKET-18 v1.2 终版：VXM→VMX→VDM 合并（总经营管理执行，归 OVM）；FMX 总财执行归 OFM（预留，ERP 高频角色）；域内管家审批仍 V*M 系（v4.8 V*U 内嵌管家，不进 ERP）

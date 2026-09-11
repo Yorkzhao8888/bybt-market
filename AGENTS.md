@@ -312,3 +312,15 @@
 - **FIX5 留痕台账文案对齐（Mall.tsx）**：C 端购买不进三权审计（createOrder 无 checkPower）——原「购买与越权尝试全部留痕」不实，改「越权操作与平台治理动作会留痕（购物订单见交易单页），仅本人可见」。
 - **FIX6 术语收敛第一批（主界面去工程代号）**：entrance.ts 企业容器 desc「经营 DU / 供给 *U·EX / 治理 V*M（Market 与 Supply 双面）」→「单位视角：开店经营 / 供货入驻 / 平台管理（多角色企业账号）」；ROLE_BRIEF duty/face 全用户语言化（去 *DU/*DX·L1/EMX/（办位）/X-Supply 等代号）；Orders.tsx「客户视角（XU/CU）」→「买家 / 采购方视角」、「（P3 隐私过滤）」→「为保护双方隐私，对方名称与进价信息不在列表展示」、订单六族条折叠 `<details>「订单编号规则说明」`（详情层保留 C/D/H/E/Y/T）；'Mall·C端'/'Market·B端'→'商城购买'/'企业采购'、'合同对手与售后（DU 承载）'→'合同与售后说明'、CU 侧「供货商→商家（进项）→你」用户语言化；Mall 副标/门店行/留痕块去 '（个人客户 CU）'/'CDX 在 Mall' 等代号；onboarding.ts 三套引导步骤去 *DU/*DX/V*M 代号（如「采购商城（*DU 分店）」→「采购商城」）。
 - **验收证据（scripts/ux01-shots.mjs 15/15+截图 assets/ux01/）**：A 游客购买弹登入引导（弹窗+链接）/B 登录下单→成功横条→一键到交易单/C 交易单页「买家 / 采购方视角」+「演示环境暂不支持在线支付」+六族折叠且主界面 0 曝光/D 登入端企业容器用户语言+工程代号 0 命中/E Mall 代号 0 命中；FIX3 脚本 4/4；**EMBED-01 协议回归 embed-e2e 8/8**（iframe 握手/免登/嵌入壳隐藏/非嵌入 Header 正常）；lint/ts-check 全绿。
+
+## XMK-CONT-01 登入端六容器卡 + 命名规范 v1.3（2026-09-11）
+
+- **定版口径**：容器六类（取代 09-08 四类）——XHPZ 自然个人 **HP** / XEPZ 自然企业 **EP** / XDPZ 生态方经营户 **DP** / XVPZ 生态方平台 **VP** / XOPZ 生态方治理 **OP** / XGPZ 政府 **GP**（简称规则 X?PZ→?P）；Booth 六形态中文定名——零售店 Xshop / 项目台 Xdomain / 制造厂 Xfactory / 研发室 Xlab / 人事部 Xmate / 空间场 Xplaz（尾字字辈：店-台-厂-室-部-场）。
+- **entrance.ts**：`ContainerKind` 扩 'dp'；`CONTAINER_META` 三实卡（personal #xhpz / enterprise #xepz / **dp #xdpz**——name 经营户容器，desc「生态方经营户：登录 XDPZ#DU 经营账号，进 DU 经营视角（开铺 / 采购 / 履约衔接）」，accent 橙 #B45309）全带 `short` 徽标字段；`RESERVED_CONTAINERS` 三预留卡 **xvpz 平台容器（生态方平台：平台运营总控，预留）/ xopz 治理容器（生态方治理：治理与规则维护，预留——原「平台容器」文案修正）/ xgpz 政府容器**，均带 short。
+- **EntranceGate.tsx**：`ENTERABLE=['personal','enterprise','dp']`+`ENTER_ICON` 映射（dp→Store）；六卡渲染（实卡 3+预留 3），实卡右上角简称徽标（accent 色边框 mono），预留卡同款徽标+「预留」灰标；预留卡无入口。
+- **EntranceLogin.tsx**：container 参数校验扩 'dp'；`CONTAINER_SIDE` 徽标行（dp='经营户 / 生态方侧'）；**dp 容器 demo 过滤 `d.id==='dp1'`**（XDPZ 演示账号唯一）；登录页流程与既有 personal/enterprise 完全同构。
+- **XDPZ 账号种子**：store.ts containers 加 `c-dp1`（type **'XDPZ'**——ContainerType 联合类型同步扩 XDPZ，units 加 `u-dp1`（code DU-DP1，role 'DU'，side B，containerId c-dp1，domainTags ['DE_MARKET']）；routes demoAccounts 加 dp1 条目（label「生态方经营户 · XDPZ#DU」，entry B）+`DEMO_ALIAS['acc-dp1']=DEMO_ALIAS['dp1']` 别名+**login 密码特例 `acc-dp1/Test1234`**（其余账号仍 DEV_PASSWORD test123，错密码 401 回归）。
+- **DU 视角一致性（红线）**：dp1 hatRole='DU'→workbenchOf→/operator，与恒产六 DU 完全同构（KPI/铺面/采购商城/履约），不另起炉灶；buildSession 走标准容器/帽查找（c-dp1/u-dp1 实体 seed）。
+- **术语表（terminology.ts）**：`CONTAINER_TERMS` 六容器词条（code/short/big/sys）+`BOOTH_FORM_TERMS` 六形态词条（en/big/sys）——后续 UI 引用统一走词条，禁止页面写死。
+- **命名规范 v1.3**：`X-Market_原型_20260908/知味数智生态_命名体系规范_v1.3_20260911.html`（六容器全谱表：全称/简称/主体线/开放状态；六形态中文定名表：英文/中文/尾字字辈/定位；变更记录 v1.2→v1.3）。
+- **验收**：cont01-check **10/10**（oneclick dp1 200+hatRole DU、me DU、container c-dp1、acc-dp1 别名 200、密码 Test1234 200+DU、错密码 401、V3 抽样 xiaolin CU/xu-huadong XU/du-hehe DU、**红线 46 账号 oneclick 全通**）；cont01-shots **17/17**（六卡+六徽标+xopz 非「平台容器」+dp 登录页+XDPZ#DU demo 卡+一键登录落 /operator+Header 经营者徽标；截图 assets/cont01/entrance-six-cards.png、xdpz-login-page.png、xdpz-operator-view.png）；**CONN 履约时间线回归 booth-timeline-ui-check 10/10**；lint/ts-check 全绿。

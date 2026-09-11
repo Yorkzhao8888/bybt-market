@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>知味数智生态 · 命名体系规范 v1.3（2026-09-11）</title>
+<style>
+  :root {
+    --ink: #17181d; --paper: #f5f2eb; --card: #fbf9f4; --line: #e4ded2;
+    --muted: #6b665a; --accent: #b8862b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--paper); color: var(--ink); font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif; line-height: 1.7; padding: 40px 20px; }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 26px; margin-bottom: 4px; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+  h2 { font-size: 19px; margin: 34px 0 10px; padding-left: 10px; border-left: 4px solid var(--accent); }
+  p.note { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 14px; }
+  th { background: #efeae0; text-align: left; padding: 9px 12px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+  td { padding: 9px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+  td.code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; white-space: nowrap; }
+  .badge { display: inline-block; padding: 1px 8px; border: 1px solid var(--ink); border-radius: 999px; font-family: ui-monospace, monospace; font-size: 12px; font-weight: 700; margin-right: 6px; }
+  .badge.reserved { border-color: var(--muted); color: var(--muted); }
+  .tag { display: inline-block; background: #efeae0; border-radius: 6px; padding: 0 8px; font-size: 12px; color: var(--muted); }
+  .sect { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-top: 10px; font-size: 13.5px; }
+  .sect ul { padding-left: 18px; }
+  .sect li { margin: 4px 0; }
+  .ver { margin-top: 34px; border-top: 1px dashed var(--line); padding-top: 14px; color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>知味数智生态 · 命名体系规范 <span class="tag">v1.3</span></h1>
+  <div class="meta">版本：v1.3（2026-09-11） ｜ 前版：v1.2（2026-09-10） ｜ 主管战场：X-Market 命名体系 ｜ 本版拍板：容器六类定版 + Booth 六形态中文定名</div>
+
+  <h2>一、容器六类定版（取代 09-08 四类口径）</h2>
+  <p class="note">容器编码 X?PZ 六类全谱；简称规则 <b>X?PZ → ?P</b>（XHPZ→HP、XEPZ→EP、XDPZ→DP、XVPZ→VP、XOPZ→OP、XGPZ→GP）。</p>
+  <table>
+    <thead><tr><th>容器编码</th><th>简称</th><th>容器名</th><th>主体线</th><th>主体说明</th><th>Market 落地状态</th></tr></thead>
+    <tbody>
+      <tr><td class="code">#xhpz</td><td><span class="badge">HP</span></td><td>个人容器</td><td>自然个人</td><td>自然人（买家 CU / 客户 XU 的自然人侧）</td><td>已开放登录</td></tr>
+      <tr><td class="code">#xepz</td><td><span class="badge">EP</span></td><td>企业容器</td><td>自然企业</td><td>企业单位（客户 XU 企业采购侧等）</td><td>已开放登录</td></tr>
+      <tr><td class="code">#xdpz</td><td><span class="badge">DP</span></td><td>经营户容器</td><td>生态方经营户</td><td>生态方经营户登录 XDPZ#DU 经营账号，进 DU 经营视角（开铺 / 采购 / 履约衔接）</td><td>已开放登录（XMK-CONT-01）</td></tr>
+      <tr><td class="code">#xvpz</td><td><span class="badge reserved">VP</span></td><td>平台容器</td><td>生态方平台</td><td>平台运营总控</td><td>预留（未开放）</td></tr>
+      <tr><td class="code">#xopz</td><td><span class="badge reserved">OP</span></td><td>治理容器</td><td>生态方治理</td><td>治理与规则维护（原「平台容器」文案更正为「生态方治理」）</td><td>预留（未开放）</td></tr>
+      <tr><td class="code">#xgpz</td><td><span class="badge reserved">GP</span></td><td>政府容器</td><td>政府</td><td>政务监管视角：合规巡检 / 报备核验</td><td>预留（未开放）</td></tr>
+    </tbody>
+  </table>
+
+  <h2>二、Booth 六形态中文定名（2026-09-11 凌晨拍板）</h2>
+  <p class="note">六形态英文定名不变；中文定名按尾字字辈：<b>店 — 台 — 厂 — 室 — 部 — 场</b>。</p>
+  <table>
+    <thead><tr><th>英文定名</th><th>中文定名</th><th>尾字字辈</th><th>形态语义</th><th>典型业务</th></tr></thead>
+    <tbody>
+      <tr><td class="code">Xshop</td><td><b>零售店</b></td><td>店</td><td>面向个人买家的零售经营体</td><td>Mall 零售货架、DCX 门店销执行</td></tr>
+      <tr><td class="code">Xdomain</td><td><b>项目台</b></td><td>台</td><td>项目制交付的经营体</td><td>Y 智场域项目经营（YU 空间供给）</td></tr>
+      <tr><td class="code">Xfactory</td><td><b>制造厂</b></td><td>厂</td><td>制造与产能交付的经营体</td><td>T 技术域制造供给（TU）</td></tr>
+      <tr><td class="code">Xlab</td><td><b>研发室</b></td><td>室</td><td>研发与试验交付的经营体</td><td>T 技术域研发供给</td></tr>
+      <tr><td class="code">Xmate</td><td><b>人事部</b></td><td>部</td><td>人力供给与派单的经营体</td><td>H 人资域人力供给（HU）</td></tr>
+      <tr><td class="code">Xplaz</td><td><b>空间场</b></td><td>场</td><td>空间与场地交付的经营体</td><td>Y 智场域空间供给（YU）</td></tr>
+    </tbody>
+  </table>
+  <div class="sect">
+    <b>命名对照口诀</b>：店台厂室部场 —— 商（Xshop）言店、项（Xdomain）言台、造（Xfactory）言厂、研（Xlab）言室、人（Xmate）言部、场（Xplaz）言场。
+  </div>
+
+  <h2>三、v1.2 → v1.3 升版记录</h2>
+  <div class="sect">
+    <ul>
+      <li><b>容器六类定版</b>（取代 09-08 四类口径）：新增 XDPZ 生态方经营户、XVPZ 生态方平台、XOPZ 生态方治理三类；XHPZ/XEPZ 语义不变；XGPZ 并入全谱。</li>
+      <li><b>简称规则定版</b>：X?PZ → ?P。</li>
+      <li><b>XOPZ 文案更正</b>：由「平台容器」更正为「生态方治理」。</li>
+      <li><b>Booth 六形态中文定名</b>：Xshop 零售店 / Xdomain 项目台 / Xfactory 制造厂 / Xlab 研发室 / Xmate 人事部 / Xplaz 空间场。</li>
+      <li><b>X-Market 落地</b>（XMK-CONT-01）：/entrance 六容器卡 + 简称徽标；#xdpz 实卡开放（XDPZ#DU 一键登录，DU 经营视角与既有 DU 一致）；#xvpz/#xopz/#xgpz 仅预留卡不开登录；terminology.ts 增 CONTAINER_TERMS / BOOTH_FORM_TERMS 唯一口径。</li>
+    </ul>
+  </div>
+
+  <div class="ver">知味数智生态 · 命名体系规范 v1.3 ｜ 2026-09-11 ｜ 本文件由 X-Market 侧同步落盘（XMK-CONT-01 产出）</div>
+</div>
+</body>
+</html>

@@ -70,6 +70,8 @@ const demoAccounts: DemoAccount[] = [
   // DU 唯一经营主体（一个 DU 多店）
   { id: 'du-hehe', entry: 'B', hatRole: 'DU', containerId: 'c-du', hatId: 'u-du1', label: '合和经营 · 平台直营 DU', note: '以 DU 身份经营 5 类经营实体铺（DY/DH/DT/DE/DC），执行帽 DYX/DHX/DTX/DEX/DCX 分管；复合多挂 *DU 六类分经营号（含 DDU 主业，X-MARKET-19 展示/核算维度，权限仍单帽 DU）', domainView: 'DE', boothTarget: 'b-de1', duChildDomains: ['D', 'Y', 'H', 'T', 'DE', 'C'] },
   { id: 'du-fengshi', entry: 'B', hatRole: 'DU', containerId: 'c-fs', hatId: 'u-du2', label: '丰时经营 · 加盟 DU', note: '加盟 DU（Y/H/DE 可加盟），经营 Booth-DH', domainView: 'H', boothTarget: 'b-dh2' },
+  // XMK-CONT-01 XDPZ 生态方经营户容器（DP）——登录进 DU 经营视角，与既有 DU 视角一致
+  { id: 'dp1', entry: 'B', hatRole: 'DU', containerId: 'c-dp1', hatId: 'u-dp1', label: '生态方经营户 · XDPZ#DU', note: '生态方经营户容器（XDPZ · DP）登录经营账号，进 DU 经营视角（开铺 / 采购 / 履约衔接）', domainView: 'DE' },
   // B 端客户 XU（买家，走 Market）
   { id: 'xu-huadong', entry: 'B', hatRole: 'XU', containerId: 'c-gou', hatId: 'u-xu1', label: '华东区采购办 · 客户 XU', note: 'B 端采购客户（走 Market，企业采购/询价报价）', domainView: 'E' },
   // 平台运营方 V*M（X-MARKET-ROLE-01 治理分线：VDM=market 经营治理；VDM+四源家族=supply 域内管家审批，X-MARKET-18）
@@ -115,6 +117,8 @@ const demoAccounts: DemoAccount[] = [
   { id: 'ydu', entry: 'B', hatRole: 'DU', containerId: 'c-ydu', hatId: 'u-du15', label: '恒产智场部 · 智场经营 YDU', note: 'YDU 分经营号（Y 线）；TI-04 采 YU 源样板', domainView: 'Y', duChildDomains: ['Y'] },
 ];
 const DEMO_ALIAS: Record<string, DemoAccount> = Object.fromEntries(demoAccounts.map((a) => [a.id, a]));
+// XMK-CONT-01：acc-dp1 为 XDPZ 经营户演示账号别名（密码登录用 Test1234）
+DEMO_ALIAS['acc-dp1'] = DEMO_ALIAS['dp1'];
 // 帽角色路由 → 演示账号（快捷）
 const DEMO_ROUTE: Partial<Record<HatRole, DemoAccount>> = {
   EU: demoAccounts[3], HU: demoAccounts[4], TU: demoAccounts[5], YU: demoAccounts[6],
@@ -143,7 +147,8 @@ function buildSession(acc: DemoAccount): SessionUser {
 
 api.post('/auth/login', (req, res) => {
   const { account, password } = (req.body ?? {}) as { account?: string; password?: string };
-  if (password !== DEV_PASSWORD) {
+  // XMK-CONT-01：acc-dp1 专属密码 Test1234（生态方经营户容器演示），其余沿用开发统一密码
+  if (password !== (account === 'acc-dp1' ? 'Test1234' : DEV_PASSWORD)) {
     res.status(401).json({ success: false, error: '密码不正确（开发版统一 test123）' });
     return;
   }

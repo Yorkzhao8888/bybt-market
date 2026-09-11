@@ -1,9 +1,10 @@
 // X-MARKET-ENTRANCE-01 登录表单（V1）：选择容器类型 → 账号+密码登录；
-// 现有 demo 账号按容器映射兼容（XU/CU → 个人容器，其余 → 企业容器），不做容器数据迁移；
+// 现有 demo 账号按容器映射兼容（XU/CU → 个人容器，DU/供给/治理 → 企业容器），不做容器数据迁移；
+// XMK-CONT-01：#xdpz 经营户容器入口（XDPZ#DU 演示账号一键登录，进 DU 经营视角）；
 // 企业容器登录态展示企业名徽标；demo 一键登录走 oneclick 通道（自动带默认角色直进视角）。
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { ShieldCheck, ArrowLeft, Building2, UserRound, Zap } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, Building2, UserRound, Store, Zap } from 'lucide-react';
 import { useAuth } from '../Auth';
 import { api } from '../api/client';
 import { CONTAINER_META, roleHomeOf } from './entrance';
@@ -11,12 +12,14 @@ import type { ContainerKind } from './entrance';
 import type { DemoAccount } from '../../shared/types';
 
 const CLIENT_HATS = ['XU', 'CU'];
+const CONTAINER_SIDE: Record<ContainerKind, string> = { personal: '个人 / 客户侧', enterprise: '企业 / 单位侧', dp: '经营户 / 生态方侧' };
 
 export default function EntranceLogin() {
   const { user, activeRole, login, loginDemo } = useAuth();
   const nav = useNavigate();
   const [params] = useSearchParams();
-  const container: ContainerKind = params.get('container') === 'personal' ? 'personal' : 'enterprise';
+  const raw = params.get('container');
+  const container: ContainerKind = raw === 'personal' || raw === 'dp' ? raw : 'enterprise';
 
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
@@ -34,11 +37,12 @@ export default function EntranceLogin() {
 
   const meta = CONTAINER_META[container];
   const isPersonal = container === 'personal';
+  const isDp = container === 'dp';
 
-  // demo 账号按容器映射过滤（P0 兼容：不做容器数据迁移）
+  // demo 账号按容器映射过滤（P0 兼容：不做容器数据迁移；dp 容器仅 XDPZ#DU 演示账号）
   const containerDemos = useMemo(
-    () => demos.filter((d) => (isPersonal ? CLIENT_HATS.includes(d.hatRole) : !CLIENT_HATS.includes(d.hatRole))),
-    [demos, isPersonal],
+    () => demos.filter((d) => (isPersonal ? CLIENT_HATS.includes(d.hatRole) : isDp ? d.id === 'dp1' : !CLIENT_HATS.includes(d.hatRole))),
+    [demos, isPersonal, isDp],
   );
 
   const goLogin = async (e?: React.FormEvent): Promise<void> => {
@@ -68,7 +72,7 @@ export default function EntranceLogin() {
     }
   };
 
-  const Icon = isPersonal ? UserRound : Building2;
+  const Icon = isPersonal ? UserRound : isDp ? Store : Building2;
 
   return (
     <div className="mx-auto max-w-lg py-6">
@@ -83,7 +87,7 @@ export default function EntranceLogin() {
         <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#e4ded2] bg-white px-3 py-1 text-xs font-semibold" style={{ color: meta.accent }}>
           <span className="font-mono">{meta.code}</span>
           <span>·</span>
-          <span>{isPersonal ? '个人 / 客户侧' : '企业 / 单位侧'}</span>
+          <span>{CONTAINER_SIDE[container]}</span>
         </p>
       </div>
 
@@ -94,7 +98,7 @@ export default function EntranceLogin() {
         <div className="mb-4 rounded-xl border border-[#e4ded2] bg-white p-4 shadow-[4px_4px_0_rgba(23,24,29,0.07)]">
           <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-[#6b665a]">
             <Zap className="h-3.5 w-3.5 text-[#b8862b]" />
-            {isPersonal ? '客户侧演示账号' : '企业侧演示账号'} · 一键登录直进视角
+            {CONTAINER_SIDE[container] + '演示账号'} · 一键登录直进视角
           </p>
           <div className="flex flex-wrap gap-2">
             {containerDemos.map((d) => (

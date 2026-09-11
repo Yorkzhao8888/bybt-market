@@ -84,12 +84,14 @@ export const JOB_SYSTEMS: JobSystem[] = [
 export type Side = 'C' | 'B'; // Mall(C端 CU 消费者) / Market(B端 经营·企业采购中心)
 
 /** ===== 主体：容器模型 ===== */
-export type ContainerType = 'XEPZ' | 'XHPZ' | 'XGPZ' | 'XOPZ';
+export type ContainerType = 'XEPZ' | 'XHPZ' | 'XGPZ' | 'XOPZ' | 'XDPZ' | 'XVPZ';
 export const CONTAINER_TYPE_LABEL: Record<ContainerType, string> = {
   XEPZ: '企业容器',
   XHPZ: '自然人容器',
   XGPZ: '政府容器',
-  XOPZ: '平台容器(T-PLAT)',
+  XOPZ: '治理容器(OP)',
+  XDPZ: '经营户容器',
+  XVPZ: '平台容器(VP)',
 };
 
 export interface Container {

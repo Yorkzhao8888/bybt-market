@@ -3,21 +3,25 @@
 import type { HatRole, SessionUser } from '../../shared/types';
 import { workbenchOf, WORKBENCH_HOME } from '../lib/domain';
 
-export type ContainerKind = 'personal' | 'enterprise';
+// XMK-CONT-01 容器六类定版（2026-09-11）：X?PZ 全谱（简称规则 X?PZ→?P）；
+// 实卡 xhpz/xepz/xdpz，预留 xvpz/xopz/xgpz（仅置灰展示不开登录）。
+export type ContainerKind = 'personal' | 'enterprise' | 'dp';
 
-/** 容器映射（P0 兼容口径：XU/CU 客户侧走个人容器，经营/供给/治理走企业容器，不做容器数据迁移） */
+/** 容器映射（P0 兼容口径：XU/CU 客户侧走个人容器，经营/供给/治理走企业容器，DP 经营户走经营户容器；不做容器数据迁移） */
 export const containerOf = (hatRole: string | null | undefined): ContainerKind =>
   hatRole === 'XU' || hatRole === 'CU' ? 'personal' : 'enterprise';
 
-export const CONTAINER_META: Record<ContainerKind, { code: string; name: string; desc: string; accent: string }> = {
-  personal: { code: '#xhpz', name: '个人容器', desc: '个人购物与采购：商城买家购物 / 企业客户采购（个人侧兼容入口）', accent: '#1D4ED8' },
-  enterprise: { code: '#xepz', name: '企业容器', desc: '单位视角：开店经营 / 供货入驻 / 平台管理（一个企业账号可办理多种业务）', accent: '#17181d' },
+export const CONTAINER_META: Record<ContainerKind, { code: string; short: string; name: string; desc: string; accent: string }> = {
+  personal: { code: '#xhpz', short: 'HP', name: '个人容器', desc: '自然个人（HP）：个人购物与采购——商城买家购物 / 企业客户采购（个人侧兼容入口）', accent: '#1D4ED8' },
+  enterprise: { code: '#xepz', short: 'EP', name: '企业容器', desc: '自然企业（EP）：单位视角——开店经营 / 供货入驻 / 平台管理（一个企业账号可办理多种业务）', accent: '#17181d' },
+  dp: { code: '#xdpz', short: 'DP', name: '经营户容器', desc: '生态方经营户（DP）：登录 XDPZ#DU 经营账号，进 DU 经营视角（开铺 / 采购 / 履约衔接）', accent: '#B45309' },
 };
 
 /** 预留容器（本单不开放，仅置灰展示） */
 export const RESERVED_CONTAINERS = [
-  { code: '#xgpz', name: '政府容器', desc: '政务监管视角：合规巡检 / 报备核验（预留）' },
-  { code: '#xopz', name: '平台容器', desc: '平台运营视角：全局运营 / 平台治理（预留）' },
+  { code: '#xvpz', short: 'VP', name: '平台容器', desc: '生态方平台（VP）：平台运营总控（预留）' },
+  { code: '#xopz', short: 'OP', name: '治理容器', desc: '生态方治理（OP）：治理与规则维护（预留）' },
+  { code: '#xgpz', short: 'GP', name: '政府容器', desc: '政务监管视角：合规巡检 / 报备核验（预留）' },
 ];
 
 export interface RoleBrief {
