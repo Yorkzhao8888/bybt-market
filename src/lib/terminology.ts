@@ -27,13 +27,13 @@ export const CONTAINER_TERMS: Record<string, { code: string; short: string; big:
 };
 
 /* XMK-CONT-01 Booth 六形态中文定名（2026-09-11 凌晨拍板）：尾字字辈 店-台-厂-室-部-场 */
-export const BOOTH_FORM_TERMS: Record<string, { en: string; big: string; sys: string }> = {
-  xshop: { en: 'Xshop', big: '零售店', sys: 'Xshop · 零售店（店）' },
-  xdomain: { en: 'Xdomain', big: '项目台', sys: 'Xdomain · 项目台（台）' },
-  xfactory: { en: 'Xfactory', big: '制造厂', sys: 'Xfactory · 制造厂（厂）' },
-  xlab: { en: 'Xlab', big: '研发室', sys: 'Xlab · 研发室（室）' },
-  xmate: { en: 'Xmate', big: '人事部', sys: 'Xmate · 人事部（部）' },
-  xplaz: { en: 'Xplaz', big: '空间场', sys: 'Xplaz · 空间场（场）' },
+export const BOOTH_FORM_TERMS: Record<string, { en: string; code: string; big: string; sys: string }> = {
+  xshop: { en: 'X-Shop', code: 'Booth-CDP', big: '零售店', sys: 'X-Shop · 零售店（店）· Booth-CDP' },
+  xdomain: { en: 'X-Domain', code: 'Booth-DDP', big: '项目台', sys: 'X-Domain · 项目台（台）· Booth-DDP' },
+  xfactory: { en: 'X-Factory', code: 'Booth-EDP', big: '制造厂', sys: 'X-Factory · 制造厂（厂）· Booth-EDP' },
+  xlab: { en: 'X-Lab', code: 'Booth-TDP', big: '研发室', sys: 'X-Lab · 研发室（室）· Booth-TDP' },
+  xmate: { en: 'X-Mate', code: 'Booth-HDP', big: '人事部', sys: 'X-Mate · 人事部（部）· Booth-HDP' },
+  xplaz: { en: 'X-Plaz', code: 'Booth-YDP', big: '空间场', sys: 'X-Plaz · 空间场（场）· Booth-YDP' },
 };
 
 export const ROLE_TERMS: Record<string, TermPair> = {

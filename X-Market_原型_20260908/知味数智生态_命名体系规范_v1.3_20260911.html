@@ -48,22 +48,23 @@
     </tbody>
   </table>
 
-  <h2>二、Booth 六形态中文定名（2026-09-11 凌晨拍板）</h2>
-  <p class="note">六形态英文定名不变；中文定名按尾字字辈：<b>店 — 台 — 厂 — 室 — 部 — 场</b>。</p>
+  <h2>二、Booth 六形态中文定名（2026-09-11 凌晨拍板 ｜ 09:48 图版口径升级正式编码）</h2>
+  <p class="note">中文定名按尾字字辈：<b>店 — 台 — 厂 — 室 — 部 — 场</b>。<b>正式编码结构：Booth-{域}DP</b> = 域字母前置 + D（经营户）+ P（铺子），域序 C客 / D主 / E供 / H人 / Y场 / T技。</p>
   <table>
-    <thead><tr><th>英文定名</th><th>中文定名</th><th>尾字字辈</th><th>形态语义</th><th>典型业务</th></tr></thead>
+    <thead><tr><th>英文定名（图版口径）</th><th>正式编码</th><th>域</th><th>中文定名</th><th>尾字字辈</th><th>形态语义</th><th>典型业务</th></tr></thead>
     <tbody>
-      <tr><td class="code">Xshop</td><td><b>零售店</b></td><td>店</td><td>面向个人买家的零售经营体</td><td>Mall 零售货架、DCX 门店销执行</td></tr>
-      <tr><td class="code">Xdomain</td><td><b>项目台</b></td><td>台</td><td>项目制交付的经营体</td><td>Y 智场域项目经营（YU 空间供给）</td></tr>
-      <tr><td class="code">Xfactory</td><td><b>制造厂</b></td><td>厂</td><td>制造与产能交付的经营体</td><td>T 技术域制造供给（TU）</td></tr>
-      <tr><td class="code">Xlab</td><td><b>研发室</b></td><td>室</td><td>研发与试验交付的经营体</td><td>T 技术域研发供给</td></tr>
-      <tr><td class="code">Xmate</td><td><b>人事部</b></td><td>部</td><td>人力供给与派单的经营体</td><td>H 人资域人力供给（HU）</td></tr>
-      <tr><td class="code">Xplaz</td><td><b>空间场</b></td><td>场</td><td>空间与场地交付的经营体</td><td>Y 智场域空间供给（YU）</td></tr>
+      <tr><td class="code">X-Shop</td><td class="code"><b>Booth-CDP</b></td><td>客域 C</td><td><b>零售店</b></td><td>店</td><td>面向个人买家的零售经营体</td><td>Mall 零售货架、DCX 门店销执行</td></tr>
+      <tr><td class="code">X-Domain</td><td class="code"><b>Booth-DDP</b></td><td>主域 D</td><td><b>项目台</b></td><td>台</td><td>项目制交付的经营体</td><td>Y 智场域项目经营（YU 空间供给）</td></tr>
+      <tr><td class="code">X-Factory</td><td class="code"><b>Booth-EDP</b></td><td>供域 E</td><td><b>制造厂</b></td><td>厂</td><td>制造与产能交付的经营体</td><td>T 技术域制造供给（TU）</td></tr>
+      <tr><td class="code">X-Lab</td><td class="code"><b>Booth-TDP</b></td><td>技域 T</td><td><b>研发室</b></td><td>室</td><td>研发与试验交付的经营体</td><td>T 技术域研发供给</td></tr>
+      <tr><td class="code">X-Mate</td><td class="code"><b>Booth-HDP</b></td><td>人域 H</td><td><b>人事部</b></td><td>部</td><td>人力供给与派单的经营体</td><td>H 人资域人力供给（HU）</td></tr>
+      <tr><td class="code">X-Plaz</td><td class="code"><b>Booth-YDP</b></td><td>场域 Y</td><td><b>空间场</b></td><td>场</td><td>空间与场地交付的经营体</td><td>Y 智场域空间供给（YU）</td></tr>
     </tbody>
   </table>
   <div class="sect">
-    <b>命名对照口诀</b>：店台厂室部场 —— 商（Xshop）言店、项（Xdomain）言台、造（Xfactory）言厂、研（Xlab）言室、人（Xmate）言部、场（Xplaz）言场。
+    <b>命名对照口诀</b>：店台厂室部场 —— 商（X-Shop · Booth-CDP）言店、项（X-Domain · Booth-DDP）言台、造（X-Factory · Booth-EDP）言厂、研（X-Lab · Booth-TDP）言室、人（X-Mate · Booth-HDP）言部、场（X-Plaz · Booth-YDP）言场。
   </div>
+  <div class="note" style="margin-top:8px">历史对照（不进正文）：旧编码 Booth-DC / Booth-DD / Booth-DE / Booth-DH / Booth-DY / Booth-DT（2026-09-08 口径）已由 Booth-{域}DP 结构取代，仅作版本演进记录。</div>
 
   <h2>三、v1.2 → v1.3 升版记录</h2>
   <div class="sect">
@@ -72,6 +73,7 @@
       <li><b>简称规则定版</b>：X?PZ → ?P。</li>
       <li><b>XOPZ 文案更正</b>：由「平台容器」更正为「生态方治理」。</li>
       <li><b>Booth 六形态中文定名</b>：Xshop 零售店 / Xdomain 项目台 / Xfactory 制造厂 / Xlab 研发室 / Xmate 人事部 / Xplaz 空间场。</li>
+      <li><b>六铺正式编码升级</b>（09-11 09:48 图版口径）：Booth-{域}DP 结构（域字母前置 + D 经营户 + P 铺子）——Booth-CDP 零售店 / Booth-DDP 项目台 / Booth-EDP 制造厂 / Booth-HDP 人事部 / Booth-YDP 空间场 / Booth-TDP 研发室；旧编码 Booth-DC/DD/DE/DH/DY/DT 仅作历史对照，不进正文。</li>
       <li><b>X-Market 落地</b>（XMK-CONT-01）：/entrance 六容器卡 + 简称徽标；#xdpz 实卡开放（XDPZ#DU 一键登录，DU 经营视角与既有 DU 一致）；#xvpz/#xopz/#xgpz 仅预留卡不开登录；terminology.ts 增 CONTAINER_TERMS / BOOTH_FORM_TERMS 唯一口径。</li>
     </ul>
   </div>
