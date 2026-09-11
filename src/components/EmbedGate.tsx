@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../Auth';
-import { detectEmbedMode, isTicketMsg, EMBED_APP, EMBED_HELLO, ZIWAY_EMBED_ORIGIN } from '../lib/embed';
+import { detectEmbedMode, isTicketMsg, postHelloToParent, EMBED_APP, EMBED_HELLO } from '../lib/embed';
 
 export function useEmbedMode(): boolean {
   const [embed] = useState<boolean>(() => detectEmbedMode());
@@ -23,9 +23,8 @@ export function EmbedGate() {
   useEffect(() => {
     let dead = false;
     const hello = () => {
-      try {
-        window.parent?.postMessage({ type: EMBED_HELLO, app: EMBED_APP }, ZIWAY_EMBED_ORIGIN);
-      } catch { /* parent 不可达则等重试 */ }
+      // EMBED-03-M：多播白名单（生产+dev+VITE 追加域），origin 不匹配的被浏览器丢弃，命中宿主域的送达
+      postHelloToParent({ type: EMBED_HELLO, app: EMBED_APP });
     };
     const onMsg = (ev: MessageEvent) => {
       if (!isTicketMsg(ev)) return; // origin 白名单 + 类型/前缀校验
