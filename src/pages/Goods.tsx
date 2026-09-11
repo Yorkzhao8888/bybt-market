@@ -1,19 +1,60 @@
 /**
- * XMK-STRUCT-01 X-Goods（E-Market 通货集市）占位页
- * 仅占位：真 UI 由后续工单交付。本页只落三层结构示意（术语走 terminology v1.4，零硬编码）。
+ * XMK-STRUCT-01 X-Goods（E-Market 通货集市）占位页 → XMK-MALL-RICH-01 轻升级：
+ * 同源商品列表只读——与 /mall 共用同一份 mallListings 数据源（GET /mall/listings，DCX 门店货架），
+ * 只读浏览 + 发起采购意向入口；不含 B 端完整采购流程（询价→报价→合约→下单由后续工单交付）。
  * 消歧红线：模块≠客户端——X-Goods 是集市面 Plat（E-Market），不是某个客户端；
  *          Booth-E≠Booth-EDP——供给实体铺（Booth-E）与通货集市 Booth 形态（制造厂 Booth-EDP）是两个概念。
  */
-import { Link } from 'react-router-dom';
-import { Boxes, ArrowRight, Construction } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Boxes, ArrowRight, Search, ShoppingBag, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
 import MarketLayerNav from '../components/MarketLayerNav';
-import { platTerm, layerTerm, RESOURCE_SET_TERMS, BOOTH_FORM_TERMS } from '../lib/terminology';
+import { api } from '../api/client';
+import type { MallListing } from '../api/client';
+import { customerApi } from '../api/customer';
+import { platTerm, layerTerm, RESOURCE_SET_TERMS, BOOTH_FORM_TERMS, conceptTerm } from '../lib/terminology';
+import { marketLabel, money, colorOf } from '../lib/domain';
+import { useAuth } from '../Auth';
 
 export default function Goods() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const plat = platTerm('goods');
   const marketLayer = layerTerm('market');
   const scm = RESOURCE_SET_TERMS.scm;
   const factory = BOOTH_FORM_TERMS.xfactory;
+  const [listings, setListings] = useState<MallListing[]>([]);
+  const [q, setQ] = useState('');
+  const [cat, setCat] = useState('');
+  const [doneMsg, setDoneMsg] = useState('');
+  const [err, setErr] = useState('');
+
+  useEffect(() => { void api.mallListings().then(setListings).catch(() => setListings([])); }, []);
+
+  const cats = useMemo(() => ([
+    { code: '', label: '全部品类' },
+    { code: 'food', label: '食品生鲜' },
+    { code: 'grain', label: '粮油调味' },
+    { code: 'specialty', label: '地方特产' },
+    { code: 'daily', label: '日用百货' },
+  ]), []);
+  const filtered = useMemo(() => {
+    let list = listings;
+    if (cat) list = list.filter((l) => l.category === cat);
+    const kw = q.trim();
+    if (kw) list = list.filter((l) => l.title.includes(kw) || (l.desc ?? '').includes(kw));
+    return list;
+  }, [listings, cat, q]);
+
+  /** 只读页唯一动线：发起采购意向（未登录跳登入端引导；非 CU 服务端 403 红条呈现） */
+  const runIntent = (l: MallListing): void => {
+    if (!user) { navigate('/entrance'); return; }
+    setErr(''); setDoneMsg('');
+    customerApi.postIntent({ title: `采购意向：${l.title}`, desc: `自 ${plat?.plat} 只读列表发起 · ${money(l.priceCents)}/${l.unit}` })
+      .then(() => setDoneMsg(`已提交${conceptTerm('customerIntent').big}：${l.title}（去客集工作台查看）`))
+      .catch((e: unknown) => setErr(e instanceof Error ? e.message : '提交失败'));
+  };
+
   return (
     <div>
       <MarketLayerNav active="market" />
@@ -32,14 +73,94 @@ export default function Goods() {
         </div>
         <p className="mt-1.5 text-sm text-[#6b665a]">
           {scm?.sys}——{scm?.big}资源在{marketLayer?.big}成交：{marketLayer?.pos}。
+          本页为同源商品只读列表（与{layerTerm('customer')?.big}共用 DCX 门店货架数据），B 端完整采购流程后续工单交付。
         </p>
       </div>
 
-      {/* 占位说明卡 */}
-      <div className="rounded-xl border border-dashed border-[#c9c2b2] bg-[#faf8f3] p-6">
+      {/* 只读筛选：品类 + 关键词 */}
+      <div className="mb-4 rounded-xl border bg-white p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 font-serif-display font-bold">通货货源</span>
+          {cats.map((m) => (
+            <button
+              key={m.code}
+              onClick={() => setCat(m.code)}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${cat === m.code ? 'border-[#17181d] bg-[#17181d] text-white' : 'border-[#e4ded2] bg-[#faf7f0] text-[#6b665a] hover:border-[#17181d]'}`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-[#e4ded2] bg-[#faf7f0] px-3 py-2">
+          <Search className="h-4 w-4 shrink-0 text-[#8a8577]" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="搜货源标题 / 描述"
+            className="w-full bg-transparent text-sm outline-none placeholder:text-[#b0aa9c]"
+            aria-label="搜索货源"
+          />
+          <span className="font-mono text-xs text-[#8a8577]">{filtered.length} 件</span>
+        </div>
+      </div>
+
+      {doneMsg && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#c7d7f5] bg-[#eef3fc] px-4 py-2.5 text-sm text-[#1D4ED8]">
+          <span className="flex items-center gap-1.5 font-semibold"><CheckCircle2 className="h-4 w-4" /> {doneMsg}</span>
+          <Link to="/customer" className="inline-flex items-center gap-1 rounded-md bg-[#1D4ED8] px-3 py-1.5 text-xs font-bold text-white hover:opacity-90">
+            {conceptTerm('customerWorkbench').big} <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      )}
+      {err && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-[#f3c9c9] bg-[#fdf0f0] px-4 py-2.5 text-sm font-medium text-[#b91c1c]">
+          <AlertCircle className="h-4 w-4 shrink-0" /> {err}
+        </div>
+      )}
+
+      {/* 同源商品只读网格（无下单/报价/合约入口） */}
+      {filtered.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-[#c9c2b2] bg-[#faf8f3] p-6 text-sm text-[#6b665a]">没有匹配的货源，换个关键词或品类试试。</div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {filtered.map((l) => (
+            <div key={l.id} className="paper-card overflow-hidden rounded-lg">
+              {l.img ? (
+                <img src={l.img} alt={l.title} loading="lazy" className="h-24 w-full object-cover" />
+              ) : (
+                <div className="flex h-20 items-center justify-center" style={{ background: colorOf(l.domain) }}>
+                  <span className="font-serif-display text-2xl font-black text-white/90">{l.title.slice(0, 1)}</span>
+                </div>
+              )}
+              <div className="p-3">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="font-bold" style={{ color: colorOf(l.domain) }}>{marketLabel(l.domain)}</span>
+                  {l.booth?.franchise === 'direct' && (
+                    <span className="inline-flex items-center gap-1 font-bold text-[#15803D]"><ShieldCheck className="h-3 w-3" />{conceptTerm('admission').big}</span>
+                  )}
+                </div>
+                <p className="mt-1 truncate text-sm font-semibold" title={l.title}>{l.title}</p>
+                <div className="mt-1.5 flex items-baseline justify-between">
+                  <span className="font-serif-display text-lg font-black text-[#b8862b]">{money(l.priceCents)}<span className="ml-0.5 text-[10px] font-normal text-[#8a8577]">/{l.unit}</span></span>
+                  <button
+                    onClick={() => runIntent(l)}
+                    className="inline-flex items-center gap-1 rounded border border-[#c7d7f5] px-2 py-1 text-[11px] font-semibold text-[#1D4ED8] hover:bg-[#eef3fc]"
+                    title="发起采购意向（客集）"
+                  >
+                    <ShoppingBag className="h-3 w-3" /> 采购意向
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 占位说明卡（保留 STRUCT-01 消歧内容） */}
+      <div className="mt-5 rounded-xl border border-dashed border-[#c9c2b2] bg-[#faf8f3] p-6">
         <div className="flex items-center gap-2">
-          <Construction className="h-4 w-4 text-[#b0aa9c]" />
-          <p className="font-serif-display text-sm font-bold">占位页 · 真实界面由后续工单交付</p>
+          <Boxes className="h-4 w-4 text-[#b0aa9c]" />
+          <p className="font-serif-display text-sm font-bold">只读浏览 · B 端完整采购流程后续工单交付</p>
         </div>
         <ul className="mt-3 space-y-1.5 text-sm text-[#6b665a]">
           <li>· 集市形态：{factory?.sys}</li>

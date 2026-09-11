@@ -237,6 +237,12 @@ export interface Listing {
   unit: string; // 计量单位
   priceCents: number; // 分
   tags: string[];
+  /** XMK-MALL-RICH-01 扩容字段（可选增量，不破既有模型/契约） */
+  category?: 'food' | 'grain' | 'specialty' | 'daily'; // 品类：食品生鲜/粮油调味/地方特产/日用百货
+  desc?: string; // 商品描述
+  img?: string; // 本地图片资产（/img/mall/*.svg，禁外链）
+  stock?: number; // 库存（展示用，真实扣减归 Booth 实体系统）
+  supplyBoothId?: string; // 供集映射铺（企业采购动线 buyer initiate 用）
 }
 
 /** 履约任务（后厂条目） */
