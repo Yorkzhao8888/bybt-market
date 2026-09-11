@@ -178,6 +178,8 @@ api.get('/auth/demos', (_req, res) => ok(res, demoAccounts));
 
 // ================= X-MARKET-EMBED-01：ZiwayOS 嵌入票核销（免登握手第 4-6 步） =================
 // 票单次消费在 ZiwayOS verify 端发生（信任锚=ZiwayOS，Market 不自建 JWT/密钥）；ticket 不落日志明文
+// EMBED-L2-R3：verify 目标自报诊断端点（部署后一条 curl 核对票签发/核销实例是否同源）
+api.get('/embed/meta', (_req, res) => ok(res, embedMeta));
 api.post('/embed/exchange', async (req, res) => {
   const { ticket } = (req.body ?? {}) as { ticket?: string };
   if (typeof ticket !== 'string' || !ticket.startsWith('zt_') || ticket.length < 8 || ticket.length > 512) {

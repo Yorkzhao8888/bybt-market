@@ -5,11 +5,19 @@
 //   （401 时 {code:401,message:"ticket 不存在或已过期"}，http 同码）——解析下钻 data 层；
 //   兼容裸 {ok:true,...}（mock/联调）；失败分支读顶层 code/message 透出诊断原因。
 
-const ZIWAY_BASE = process.env.ZIWAY_EMBED_BASE || 'https://ebb131cf-37e1-493f-8717-36c8905a080a.dev.coze.site';
+// EMBED-L2-R3：verify 目标必须与票签发实例同源——生产壳（c8w9k9wq2g）签发的票存生产 ZOS 票库，
+// 打 dev 实例（ebb131cf）恒 401「ticket 不存在或已过期」（L2 实证 T0 红根因）。
+// 优先级：显式 env ZIWAY_EMBED_BASE（本地 mock/E2E/主 Agent 配置）> COZE_PROJECT_ENV=PROD 生产壳域 > dev 默认。
+const ZIWAY_PROD_BASE = 'https://c8w9k9wq2g.coze.site';
+const ZIWAY_DEV_BASE = 'https://ebb131cf-37e1-493f-8717-36c8905a080a.dev.coze.site';
+const ZIWAY_BASE = process.env.ZIWAY_EMBED_BASE || (process.env.COZE_PROJECT_ENV === 'PROD' ? ZIWAY_PROD_BASE : ZIWAY_DEV_BASE);
 const ZIWAY_APP = 'market';
 // 真实 ZiwayOS 签发 realm='xhpz'（EMBED-01-FIX 实测）；env ZIWAY_EMBED_REALM 可覆盖
 const EXPECTED_REALM = process.env.ZIWAY_EMBED_REALM || 'xhpz';
 const CONSUMER_ROLES = new Set(['CU', 'GU']);
+
+// EMBED-L2-R3：启动自报核销目标（部署后日志一眼核对 签发/核销 同源）
+console.log(`[EMBED] verify base=${ZIWAY_BASE} app=${ZIWAY_APP} realm=${EXPECTED_REALM} env=${process.env.COZE_PROJECT_ENV ?? 'DEV'}`);
 
 export interface EmbedVerifyOk {
   ok: true;
