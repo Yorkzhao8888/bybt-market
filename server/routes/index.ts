@@ -18,6 +18,7 @@ import {
 import { createToken, getUserByToken, revokeToken, DEV_PASSWORD, requireAuth, optionalAuth, roleOf, type AuthReq, type AuthRes } from '../auth';
 import { checkPower, boothCodeOf, powerAudit } from '../power';
 import xSupply from '../x-supply/routes';
+import customerRoutes from '../customer/routes';
 import { fetchBoothTimeline, getBoothToken, boothBase, boothDeepLink } from '../boothConn';
 import { verifyTicket, embedMeta } from '../embed';
 import type { DemoAccount, DomainCode, HatRole, Order, SessionUser, Booth, SupplierApplication, SupplierProduct, SupplyMallItem, MarketPowerMapRow, MarketPowerAuditRow, PowerHat, FulfillmentReceipt } from '../../shared/types';
@@ -115,6 +116,8 @@ const demoAccounts: DemoAccount[] = [
   { id: 'hdu', entry: 'B', hatRole: 'DU', containerId: 'c-hdu', hatId: 'u-du13', label: '恒产人资部 · 人资经营 HDU', note: 'HDU 分经营号（H 线）；TI-04 采 HU 源样板', domainView: 'H', duChildDomains: ['H'] },
   { id: 'tdu', entry: 'B', hatRole: 'DU', containerId: 'c-tdu', hatId: 'u-du14', label: '恒产技术部 · 技术经营 TDU', note: 'TDU 分经营号（T 线）；TI-04 采 TU 源样板', domainView: 'T', duChildDomains: ['T'] },
   { id: 'ydu', entry: 'B', hatRole: 'DU', containerId: 'c-ydu', hatId: 'u-du15', label: '恒产智场部 · 智场经营 YDU', note: 'YDU 分经营号（Y 线）；TI-04 采 YU 源样板', domainView: 'Y', duChildDomains: ['Y'] },
+  // XMK-API-01：XEPZ#CU 企业入驻主体客户帽（矩阵 v3 供给动线主体；客集写+供集写双 ✅ 样板；尾部追加不动 DEMO_ROUTE 索引）
+  { id: 'cu-ep1', entry: 'B', hatRole: 'CU', containerId: 'c-eu01', hatId: 'u-cu-ep1', label: '恒晟物资 · 企业客户 XEPZ#CU', note: '企业容器（XEPZ）内客户帽：客集需求/意向可写+企业入驻主体供给动线（XMK-API-01 矩阵）', domainView: 'E' },
 ];
 const DEMO_ALIAS: Record<string, DemoAccount> = Object.fromEntries(demoAccounts.map((a) => [a.id, a]));
 // XMK-CONT-01：acc-dp1 为 XDPZ 经营户演示账号别名（密码登录用 Test1234）
@@ -1270,6 +1273,7 @@ api.get('/power/dashboard', requireAuth, (req: AuthReq, res) => {
 
 // X-Supply 独立路由域（X-SUPPLY-01 补充约束：/supply 前缀固定，域内路由整体迁出预留）
 api.use('/supply', xSupply);
+api.use('/customer', customerRoutes);
 
 router.use('/api', api);
 export default router;

@@ -7,8 +7,8 @@ import { requireAuth, roleOf, type AuthReq, type AuthRes } from '../auth';
 import { checkPower } from '../power';
 import { getStore, containerById, unitById, normalizePowerHat } from '../store';
 import { boothOwnerRole, isSupplyGovernHat, supplyGovernDomainOf } from '../domainConfig';
-import { xSupplyEntries, xSupplyNextEntryId, xSupplyOrders, xSupplyNextOrderId, xSupplyNextOrderCode, xSupplyAppendEvent } from './store';
-import type { XSupplyBooth, XSupplyEntry, XSupplyHubData, XSupplyOrder } from '../../shared/x-supply';
+import { xSupplyEntries, xSupplyNextEntryId, xSupplyOrders, xSupplyNextOrderId, xSupplyNextOrderCode, xSupplyAppendEvent, xSupplyProfiles } from './store';
+import type { XSupplyBooth, XSupplyEntry, XSupplyHubData, XSupplyOrder, XSupplyProfile } from '../../shared/x-supply';
 import type { PowerHat, HatRole } from '../../shared/types';
 
 const xSupply = Router();
@@ -22,6 +22,13 @@ const fail = (res: AuthRes, code: number, message: string): void => {
 
 /** 办位执行帽（E 域供给线：EX 驻场执行 / EXX 铺内执行端；后续域扩展 HYX/HYXX 等） */
 const isSupplyExecHat = (hat: PowerHat): boolean => hat === 'EX' || hat === 'EXX';
+
+/** XMK-API-01 供集写准入（互通协议 §4 矩阵，勿一刀切）：
+ *  DU（含 XDPZ#DU/X*DU 分经营号，经营铺供给）✅；
+ *  CU 仅企业入驻主体容器（XEPZ#CU，矩阵 v3 供给动线主体）✅，消费侧 XHPZ#CU ❌403；
+ *  供给帽 EU/HU/YU/TU（本铺收件动线主体）✅；其余 403；匿名由 requireAuth 401 */
+const canSupplyWrite = (hat: PowerHat, containerType: string): boolean =>
+  hat === 'DU' || (hat === 'CU' && containerType === 'XEPZ') || ['EU', 'HU', 'YU', 'TU'].includes(hat);
 
 /** 供给集市读权限（EU/HU/YU/TU + EX/EXX + DU + 执行帽 + V*M 四源家族（VDM/VEM/VHM/VYM/VTM）；
  *  X-MARKET-ROLE-01：VDM 归 market 经营治理，不入 supply 面（移除）；XU/CU 一律 403 双保险） */
@@ -136,6 +143,16 @@ xSupply.post('/booths/:id/maintain', requireAuth, (req: AuthReq, res: AuthRes) =
 xSupply.get('/orders', requireAuth, (req: AuthReq, res: AuthRes) => {
   const user = req.user;
   const hat = normalizePowerHat(roleOf(user!));
+  // XMK-API-01：CU 特判（先于 isSupplyReader）——仅企业入驻主体（XEPZ 容器）可见本人容器 buyer 单；
+  // XHPZ#CU 消费侧保持 403 隔离（既有口径零回归），无信息泄露
+  if (hat === 'CU') {
+    if (user!.containerType !== 'XEPZ') {
+      fail(res, 403, '供给单数据仅在 DU/供给方/V*M 间流转；客户界面不可见（隔离口径）');
+      return;
+    }
+    ok(res, xSupplyOrders.filter((o) => o.buyerContainerId === user!.containerId));
+    return;
+  }
   if (!isSupplyReader(hat)) {
     fail(res, 403, '供给单数据仅在 DU/供给方/V*M 间流转；客户界面不可见（隔离口径）');
     return;
@@ -159,9 +176,16 @@ xSupply.get('/orders', requireAuth, (req: AuthReq, res: AuthRes) => {
   ok(res, list);
 });
 
-/** DU 发起供给单（采购主体=DU 唯一经营号；D*U 分拨机制预留，本期供给单归属 DU） */
+/** DU 发起供给单（XMK-API-01 准入矩阵放宽：DU / XEPZ#CU 企业入驻主体；XHPZ#CU 消费侧 403；
+ *  D*U 分拨机制预留，本期供给单归属发起容器） */
 xSupply.post('/orders', requireAuth, (req: AuthReq, res: AuthRes) => {
   const user = req.user;
+  const hat = normalizePowerHat(roleOf(user!));
+  // 准入矩阵前置校验（先于三权 map：CU 仅 XEPZ 容器放行，XHPZ#CU 消费侧直接 403）
+  if (!canSupplyWrite(hat, user!.containerType)) {
+    fail(res, 403, '供集写准入不通过：供给采购仅经营者（DU）与企业入驻主体（XEPZ#CU）可发起（XMK-API-01 矩阵）');
+    return;
+  }
   const body = (req.body ?? {}) as { boothId?: string; title?: string; qty?: number; unit?: string; note?: string };
   const key = String(body.boothId ?? '');
   const booth = getStore().booths.find((b) => (b.id === key || b.code === key) && b.kind === 'supply');
@@ -216,7 +240,7 @@ xSupply.post('/orders/:id/accept', requireAuth, (req: AuthReq, res: AuthRes) => 
     return;
   }
   if (order.status !== 'initiated') {
-    fail(res, 400, `仅待接单（initiated）状态可接单，当前 ${order.status}`);
+    fail(res, 409, `状态机非法迁移：仅待接单（initiated）状态可接单，当前 ${order.status}`);
     return;
   }
   if (!checkPower('supply_order_accept', req, res, order.supplierBoothCode)) return;
@@ -239,7 +263,7 @@ xSupply.post('/orders/:id/quote', requireAuth, (req: AuthReq, res: AuthRes) => {
     return;
   }
   if (order.status !== 'accepted') {
-    fail(res, 400, `仅已接单（accepted）状态可报价，当前 ${order.status}`);
+    fail(res, 409, `状态机非法迁移：仅已接单（accepted）状态可报价，当前 ${order.status}`);
     return;
   }
   const cents = Math.round(Number(body.quotedCents));
@@ -254,7 +278,7 @@ xSupply.post('/orders/:id/quote', requireAuth, (req: AuthReq, res: AuthRes) => {
   ok(res, order);
 });
 
-/** DU 确认报价（采购主体本人；仅 quoted 态 → confirmed 基础闭环终态） */
+/** DU 确认报价（采购主体本人容器；仅 quoted 态 → confirmed 基础闭环终态） */
 xSupply.post('/orders/:id/confirm', requireAuth, (req: AuthReq, res: AuthRes) => {
   const user = req.user;
   const order = xSupplyOrders.find((o) => o.id === req.params?.id);
@@ -267,13 +291,67 @@ xSupply.post('/orders/:id/confirm', requireAuth, (req: AuthReq, res: AuthRes) =>
     return;
   }
   if (order.status !== 'quoted') {
-    fail(res, 400, `仅已报价（quoted）状态可确认，当前 ${order.status}`);
+    fail(res, 409, `状态机非法迁移：仅已报价（quoted）状态可确认，当前 ${order.status}`);
     return;
   }
   if (!checkPower('supply_order_confirm', req, res, order.supplierBoothCode)) return;
   order.status = 'confirmed';
   xSupplyAppendEvent(order, 'confirm', user!.hatId ?? '', roleOf(user!), order.supplierBoothCode, `确认报价 ${(order.quotedCents ?? 0) / 100} 元成单`);
   ok(res, order);
+});
+
+/* ============ XMK-API-01 入驻主体资料（GET 本人容器派生兜底；PUT 供集写矩阵准入） ============ */
+
+xSupply.get('/profile', requireAuth, (req: AuthReq, res: AuthRes) => {
+  const user = req.user!;
+  const stored = xSupplyProfiles.get(user.containerId);
+  if (stored) {
+    ok(res, stored);
+    return;
+  }
+  // 无资料容器派生骨架（复用 OAS identity_id=登录身份标识，不另建客户主数据）
+  const derived: XSupplyProfile = {
+    container_id: user.containerId ?? '',
+    container_name: user.containerName ?? '',
+    identity_id: user.hatId ?? '',
+    contact_name: '',
+    contact_phone: '',
+    intro: '',
+    updated_at: '',
+  };
+  ok(res, derived);
+});
+
+xSupply.put('/profile', requireAuth, (req: AuthReq, res: AuthRes) => {
+  const user = req.user!;
+  const hat = normalizePowerHat(roleOf(user));
+  if (!canSupplyWrite(hat, user.containerType)) {
+    fail(res, 403, '入驻主体资料维护仅经营者/企业入驻主体/供给帽可操作；消费侧容器不可写（XMK-API-01 矩阵）');
+    return;
+  }
+  const body = (req.body ?? {}) as { contact_name?: string; contact_phone?: string; intro?: string };
+  const contactName = String(body.contact_name ?? '').trim();
+  if (!contactName || contactName.length > 40) {
+    fail(res, 400, '联系人（contact_name）必填且不超过 40 字');
+    return;
+  }
+  const phone = String(body.contact_phone ?? '').trim();
+  if (!/^[0-9+\-\s]{5,20}$/.test(phone)) {
+    fail(res, 400, '联系电话（contact_phone）格式无效（5-20 位数字/+/-' + '）');
+    return;
+  }
+  const prev = xSupplyProfiles.get(user.containerId);
+  const profile: XSupplyProfile = {
+    container_id: user.containerId ?? '',
+    container_name: user.containerName ?? '',
+    identity_id: prev?.identity_id ?? user.hatId ?? '',
+    contact_name: contactName,
+    contact_phone: phone,
+    intro: String(body.intro ?? '').trim(),
+    updated_at: new Date().toISOString(),
+  };
+  xSupplyProfiles.set(user.containerId, profile);
+  ok(res, profile);
 });
 
 export default xSupply;

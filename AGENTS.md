@@ -340,3 +340,19 @@
 - **命名规范 v1.4 落盘**：`X-Market_原型_20260908/知味数智生态_命名体系规范_v1.4_20260911.html`（新增：三层结构表/资源集别名表/Plat 族表+消歧红线 sect；沿用：容器六类+Booth 六形态；升版记录 v1.3→v1.4）。
 - **红线执行**：中文名全部走 terminology 常量（页面 grep 无「客集/供集」硬编码文案）；界面零帽名；不新增 XU 分支；消歧保持 Booth-C≠Booth-CDP、模块≠客户端；嵌入契约零触碰（MKT-SYNC-01 冻结继续）。
 - **验收**：test_run lint/ts-check PASS + /goods SPA 200 + /api/overview 正常；cont01-check **10/10**（46/46 oneclick 零回归）；cont01-shots **17/17**（沿用项）；struct01-shots **7/7**（Mall 客集高亮+SCM 徽标/Market 集市高亮/Goods 占位三断言/entrance 六卡零改动匿名抽查；截图 assets/struct01/ 四张）；术语 grep：导出 6 符号+5 文件引用。
+
+## XMK-API-01 客集+供集 API v1（2026-09-11）
+
+- **客集域（X-Customer『CRM』）**：新目录 `server/customer/routes.ts`（Router，内存表 customerDocs，seq cd-N）+ `shared/customer.ts`（CustomerDemand/CustomerIntent/CustomerProfile，**全 snake_case**）——`routes/index.ts` `router.use('/api/customer', customerRoutes)`。
+  - `POST /api/customer/demands`（title/desc 必填 title；status 默认 'open'）+ `GET`（仅本人容器过滤）；`POST/GET /api/customer/intents` 同构（ci-N/XCI-）。
+  - `GET /api/customer/profile`：**派生只读，复用 OAS identity_id（=SessionUser.hatId），禁止另建客户主数据**——container_name/type/identity_id 从现有 store 派生，零新主数据表。
+  - 客集写准入=**CU only**（矩阵：XEPZ#CU/XHPZ#CU ✅；DU/XU/EU 等 403「客集写仅客户身份（CU）」；匿名 401）。
+- **供集域扩展（X-Supply『SCM』）**：`server/x-supply/routes.ts`——
+  - `canSupplyWrite(hat, containerType)` 准入底座：DU 任意容器 / **CU 仅 XEPZ 容器（企业入驻主体，矩阵 v3）** / 供给帽 EU/HU/YU/TU。POST /orders 前置校验（先于 checkPower），XHPZ#CU 403「供集写准入不通过」。
+  - 状态机三端点（/accept /quote /confirm）非法迁移 **400→409**（「状态机非法迁移：仅 XX 状态可…」）；initiated→accepted→quoted→confirmed 全链路 events 4 条。
+  - `GET/PUT /api/supply/profile`（XSupplyProfile，snake_case：container_id/container_name/**identity_id**/contact_name/contact_phone/intro/updated_at）——store.ts `xSupplyProfiles` Map+seed c-qc 启辰/c-eu01 恒晟；PUT 入参校验（contact_name 必填 400、phone 长度），container/identity 服务端定（不可伪造）；准入=canSupplyWrite（XHPZ#CU 403）。
+  - **GET /orders CU 特判**（先于 isSupplyReader）：CU 且 containerType==='XEPZ'→仅本人容器 buyer 单；CU 其他容器（XHPZ）**保持 403 隔离**（既有口径零回归）。
+- **三权 map 调整**（server/store.ts marketPowerMap）：`supply_order_initiate` allow ['DU']→['DU','CU']（forbid 移除 CU）；`supply_order_confirm` allow ['DU']→['DU','CU']（forbid 移除 CU）——XHPZ#CU 由端点前置容器校验拦截，三权体系一致性保持。
+- **演示账号（末位追加）**：`cu-ep1`（XEPZ#CU @ c-eu01 恒晟物资，u-cu-ep1，label「恒晟物资 · 企业客户 XEPZ#CU」，domainView E）——oneclick 46→**47/47**。
+- **验收（api01-check.mjs 33/33）**：矩阵逐格实测（匿名×4 全 401；XEPZ#CU 客集✅供集✅；XDPZ#DU 客集 403 供集✅；XHPZ#CU 客集✅供集 403+PUT profile 403；EU 客集 403）；跨容器越权 confirm/accept 403；状态机全链路+confirmed 再 accept/confirm 409+initiated 直接 quote 409；事件流 snake_case 七字段（无 camelCase 混入）+actor_hat 系统标识（accept→EU/confirm→CU）；content-type/JSON 外壳全断言；oneclick 47/47+booth-timeline-ui 10/10+test_run lint/ts-check PASS。
+- **SessionUser 可空字段教训**：hatId/containerId/containerName 均为 string|null——新 snake_case 契约字段赋值一律 `?? ''` 归一（TS2322 五连的根因是 hatId 非 container 字段，勿凭行号直觉修）。

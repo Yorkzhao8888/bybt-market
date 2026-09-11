@@ -1,7 +1,7 @@
 // X-Supply 供给集市 · 独立数据层（X-SUPPLY-01 补充约束：供给表与 X-Market 经营数据隔离，未来可迁独立库）
 // 口径与主仓一致：内存 store，重启清空。
 
-import type { XSupplyEntry, XSupplyOrder, XSupplyOrderEvent } from '../../shared/x-supply';
+import type { XSupplyEntry, XSupplyOrder, XSupplyOrderEvent, XSupplyProfile } from '../../shared/x-supply';
 
 /** 入驻登记台账（EX/EXX 办位登记记录） */
 export const xSupplyEntries: XSupplyEntry[] = [];
@@ -55,3 +55,28 @@ export function xSupplyAppendEvent(
   order.updatedAt = ev.ts;
   return ev;
 }
+
+/* ============ XMK-API-01 入驻主体资料（独立数据层；内存 store，重启清空） ============ */
+
+/** 入驻主体资料表（key=container_id） */
+export const xSupplyProfiles = new Map<string, XSupplyProfile>();
+
+/** 演示入驻主体 seed（仅演示容器；真实主体走 PUT 自助维护） */
+xSupplyProfiles.set('c-qc', {
+  container_id: 'c-qc',
+  container_name: '启辰物资',
+  identity_id: 'u-eu1',
+  contact_name: '陈启',
+  contact_phone: '13800000001',
+  intro: '启辰物资 · Booth-E 源头产能入驻主体（SCM 供域）',
+  updated_at: '2026-09-11T00:00:00.000Z',
+});
+xSupplyProfiles.set('c-eu01', {
+  container_id: 'c-eu01',
+  container_name: '恒晟物资',
+  identity_id: 'u-cu-ep1',
+  contact_name: '恒晟入驻办',
+  contact_phone: '13800000002',
+  intro: '恒晟物资 · 企业入驻主体（XEPZ#CU 供给动线样板）',
+  updated_at: '2026-09-11T00:00:00.000Z',
+});
