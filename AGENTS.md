@@ -18,6 +18,14 @@
 - **UI**: Tailwind CSS，React 19
 - **共享类型**: `shared/types.ts`（前后端唯一类型源，import 自 `../../shared/types`）
 
+## 平台工程配置（初始化对账，2026 对齐）
+
+- **单层结构**：技术项目根=工作区根，`.coze` 兼子项目职责，`[subprojects].path = ["."]`。
+- **`.coze`**：`project_type="web"`（可预览 ✅）、`sub_id=fea0fda5`（创建后不可改）、`name=x-market`、`[preview].preview_enable="enabled"`、`[dev]` 预览入口与 `[deploy]` 部署入口已就位。
+- **预览**：`.preview`（`expose_port=5000`）已生成并加入 `.gitignore`；预览链路= `scripts/prepare.sh`（装依赖）→ `scripts/dev.sh`（`PORT=5000` 起 Express+Vite，含 1200s 自动回收），端口不 hardcode 到代码、对外只暴露 5000。
+- **部署**：`[deploy.profile] kind="service" flavor="web"`；`build=scripts/build.sh`（pnpm install + `pnpm vite build` + `pnpm tsup server/server.ts`→dist-server）、`run=scripts/start.sh`（`PORT=${DEPLOY_RUN_PORT:-5000}` 起 `dist-server/server.js`）。服务端口固定 5000。
+- **包管理器**：pnpm（`only-allow` 强制），前端 `dist/`、后端 `dist-server/`。
+
 ## 目录结构
 
 ```
@@ -192,6 +200,14 @@
 - **视角容器+路由守卫（App.tsx RoleGuard P0 升级）**：未登录直访工作台 → `/entrance`（原 /login 改）；`activeRole` 空或不等于 `user.hatRole` → `/entrance/role`（V4 重定向）；其余 403 逻辑不变。**五路由 /market /mall /operator /govern /supply 全部挂入守卫，页面业务内容零改动**。Header（user 存在时）加「切换角色」按钮（Repeat 图标 → clearActiveRole + nav /entrance/role，V5 清空当前视角会话状态）；未登录 Header 按钮改挂 /entrance。
 - **落点函数**：`entrance.ts roleHomeOf(u)`=（entry==='C' 且 workbenchOf='client' → '/mall'，否则 WORKBENCH_HOME[workbenchOf]）——V3 映射：du-hehe→/operator、vxm-cloud→/supply、vdm→/govern、xu-huadong→/market、xiaolin→/mall。
 - **回归口径（冒烟全绿）**：SPA 十路由（/entrance /entrance/login /entrance/role /market /mall /operator /govern /supply /login /）全 200；五角色 oneclick /api/orders 全 200（du-hehe/eu-qiuchen/xu-huadong/xiaolin/vxm-cloud）；overview/demos/me 200；lint+ts-check 一次过。
+
+## 全局规范：NORM-LOGIN 一键登入=发行门槛（主人 09-12 定版 · 常驻约束）
+
+- **定级**：所有发行产品（内测/公测/正式）必须内置一键测试登录，级别=**发行门槛（验收 P0）**，非可选优化；缺失即打回、删能力即打回重做。「新开单一律按此执行」。
+- **实现口径（主人 09-12 校准 · 更正确认）**：一键登入本质=**无感登入 / 免登模式**，唯一硬性要求=**用户零输入（无密码/无表单/无选账号）直达工作台**；**形态自由**——按钮一点直进 / 直链带凭证 / embed 免登 / L2 层级免登（对齐 ZiwayOS L2 免登先例）均可；**禁做成「快捷登录表单」**（凡需输密码/选账号=不合格）；**端点不绑定统一 `/quick-login`**；`QUICK_LOGIN` 开关控制开放；验收=**30 秒进工作台**，发行单验收清单必含。
+- **开关语义**：开发/内测域默认开；公测默认关；正式域默认关但**能力保留**（off 时免登端点 404，fail-closed；对齐百泰 OS v0.1 三关）。
+- **当前项目基线**：现有 `/api/auth/oneclick(demoId)`（AuthContext.loginDemo/oneClick，X-MARKET-ENTRANCE-01 登入端底座）需**选账号/选角色/容器分流**，`/api/auth/login` 需输密码（test123）——属「快捷登录表单」形态，**按更新口径非严格合格**。**差距**：缺 `QUICK_LOGIN` 开关（off→404 fail-closed）与一条真正「零输入」免登通道（单键直进 / 直链带凭证 / 默认 demo 免登之一）。
+- **排期提示**：落 `QUICK_LOGIN` 开关会触碰 auth/路由核心路径，与 STAB-01 P0（login/orders 写路径）共用「在跑大单收口」gate——并入发行单统一落地，不插队、不与在跑大单冲突。规范原件 `/Coze/Drive/扣子/规范_一键登入常态要求_20260912.md` 当前环境不可达，以新版为准（本环境不臆造）。
 
 ## X-MARKET-19/17/18：复合经营 + 执行双线验证 + 治理帽语义对齐（2026-09-10）
 

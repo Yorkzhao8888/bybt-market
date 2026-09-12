@@ -127,6 +127,7 @@ export default function SupplyDesk() {
             className="mb-1 mt-2 flex w-full items-center gap-2 rounded-lg border border-dashed px-3 py-2.5 text-sm font-semibold transition-colors"
             style={{ color: '#0F766E', borderColor: '#0F766E' }}>
             <Landmark className="h-4 w-4" /> ERP 供给台（嵌入）
+            <span className="ml-1 rounded-full border border-[#fbbf24] bg-[#fffbeb] px-1.5 py-0.5 text-[10px] font-semibold text-[#b45309]">v2 接入位</span>
           </Link>
           <p className="mt-2 rounded-lg px-3 py-2 text-[11px] leading-relaxed text-[#8a8577]">
             交易单向：供给方唯一交易对手 = DU。货品与产能仅对 DU/云中心可见。

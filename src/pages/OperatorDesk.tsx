@@ -266,9 +266,13 @@ export default function OperatorDesk() {
               <div className="rounded-xl border bg-white p-5" style={{ borderLeft: '4px solid #0F766E' }}>
                 <p className="flex items-center gap-2 font-serif-display text-lg font-black" style={{ color: TEXT }}>
                   <Landmark className="h-5 w-5 text-teal-700" /> ERP · 经营台（嵌入外壳 · X-MARKET-ERP-01）
+                  <span className="rounded-full border border-[#fbbf24] bg-[#fffbeb] px-2 py-0.5 text-[11px] font-semibold text-[#b45309]">ERP v2 接入位</span>
                 </p>
                 <p className="mt-2 text-sm text-[#4a463c]">
                   Market 是 ERP 的新外壳：单据/库存/联动入口在本视角内直接可达（经营线目标 95%）。操作复用既有三权 checkPower 与审计留痕；ERP 独立资源底座不变、不迁移数据、不改主库结构。菜单按「容器 → 帽 → 三权」裁剪（OAS JWT/13U 在 ERP 对接层同源收敛，X-MARKET-ERP-01 V4）。
+                </p>
+                <p className="mt-2 rounded-lg bg-[#fffbeb] px-3 py-2 text-[11px] text-[#b45309]">
+                  百泰OS底座 v0.1 正式版：ERP 独立系统后置 v2 接入（占位态）——本视角以数据同源嵌入运行，对接位已预留，接入后此处直连正式 ERP，不影响现有单据/库存操作。
                 </p>
               </div>
 

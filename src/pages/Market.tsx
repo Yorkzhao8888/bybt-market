@@ -142,7 +142,9 @@ export default function Market() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <p className="font-serif-display text-2xl font-black">Market · 企业采购中心（B 端交易平台）</p>
+              <p className="font-serif-display text-2xl font-black">Market · 企业采购中心（B 端交易平台）
+                <span className="ml-2 inline-block align-middle rounded-full border border-[#bfdbfe] bg-[#eff6ff] px-2 py-0.5 text-[11px] font-semibold text-[#2563eb]">v0.1</span>
+              </p>
               {isClient && (
                 <span className="rounded px-2 py-0.5 text-xs font-semibold text-white" style={{ background: WORKBENCH_THEME.client.accent }}>
                   <DualTerm hat={user?.hatRole} accent="#ffffff" />

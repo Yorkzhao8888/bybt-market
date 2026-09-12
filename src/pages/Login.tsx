@@ -104,8 +104,10 @@ export default function Login() {
         <span className={`mx-auto flex h-14 w-14 items-center justify-center rounded-xl text-[#f5f2eb] shadow-[4px_4px_0_rgba(23,24,29,0.12)] ${entryMeta.badge}`}>
           <Store className="h-7 w-7" />
         </span>
-        <h1 className="font-serif-display mt-3 text-2xl font-black">X-Market · 登录</h1>
-        <p className="mt-1 text-sm text-[#8a8577]">底座认证（开发版）· 口令统一 test123</p>
+        <h1 className="font-serif-display mt-3 text-2xl font-black">X-Market · 登录
+          <span className="ml-2 inline-block align-middle rounded-full border border-[#bfdbfe] bg-[#eff6ff] px-2 py-0.5 text-[11px] font-semibold text-[#2563eb]">v0.1 正式版</span>
+        </h1>
+        <p className="mt-1 text-sm text-[#8a8577]">百泰OS底座 · 统一认证 · v0.1 正式版</p>
         <Link to="/entrance" className="mt-2 inline-block text-xs text-[#b8862b] underline">一角色一登入 · 从容器类型页进入 →</Link>
       </div>
 
